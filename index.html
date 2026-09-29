@@ -9103,5 +9103,107 @@ programarCierreAutomatico1930();
 }
 </style>
 
+
+<style id="autocamiones-servicio-layout-final">
+/* SERVICIO: Placa/Marca arriba; Servicio/Foto de ingreso debajo */
+@media (min-width: 701px){
+  #registro #gridRegistro:not(.modo-vin){
+    display:grid !important;
+    grid-template-columns:minmax(0,1fr) minmax(0,1fr) !important;
+    grid-template-areas:
+      "vehiculo marca"
+      "servicio fotoIngreso"
+      "observaciones observaciones" !important;
+    align-items:start !important;
+  }
+
+  #registro #gridRegistro:not(.modo-vin) #campoPlaca{
+    grid-area:vehiculo !important;
+    display:block !important;
+  }
+
+  #registro #gridRegistro:not(.modo-vin) #campoMarca{
+    grid-area:marca !important;
+    display:block !important;
+  }
+
+  #registro #gridRegistro:not(.modo-vin) .campo-servicio-registro{
+    grid-area:servicio !important;
+    display:block !important;
+    width:100% !important;
+    grid-column:auto !important;
+  }
+
+  #registro #gridRegistro:not(.modo-vin) #campoFotoIngreso{
+    grid-area:fotoIngreso !important;
+    display:block !important;
+  }
+
+  #registro #gridRegistro:not(.modo-vin) #campoObservaciones{
+    grid-area:observaciones !important;
+    display:block !important;
+  }
+}
+
+/* En móvil se conserva una columna */
+@media (max-width:700px){
+  #registro #gridRegistro:not(.modo-vin){
+    display:grid !important;
+    grid-template-columns:1fr !important;
+    grid-template-areas:
+      "vehiculo"
+      "marca"
+      "servicio"
+      "fotoIngreso"
+      "observaciones" !important;
+  }
+}
+</style>
+
+
+<style id="autocamiones-servicio-layout-forzado">
+/* CORRECCIÓN DEFINITIVA: SERVICIO Y FOTO DE INGRESO EN LA MISMA FILA */
+@media (min-width: 701px){
+  #registro #gridRegistro:not(.modo-vin){
+    display:grid !important;
+    grid-template-columns:minmax(0,1fr) minmax(0,1fr) !important;
+    grid-auto-flow:row !important;
+  }
+
+  #registro #gridRegistro:not(.modo-vin) #campoPlaca{
+    grid-column:1 !important;
+    grid-row:1 !important;
+    grid-area:auto !important;
+  }
+
+  #registro #gridRegistro:not(.modo-vin) #campoMarca{
+    grid-column:2 !important;
+    grid-row:1 !important;
+    grid-area:auto !important;
+  }
+
+  #registro #gridRegistro:not(.modo-vin) .campo-servicio-registro{
+    grid-column:1 !important;
+    grid-row:2 !important;
+    grid-area:auto !important;
+    width:100% !important;
+  }
+
+  #registro #gridRegistro:not(.modo-vin) #campoFotoIngreso{
+    grid-column:2 !important;
+    grid-row:2 !important;
+    grid-area:auto !important;
+    width:100% !important;
+  }
+
+  #registro #gridRegistro:not(.modo-vin) #campoObservaciones{
+    grid-column:1 / 3 !important;
+    grid-row:3 !important;
+    grid-area:auto !important;
+    width:100% !important;
+  }
+}
+</style>
+
 </body>
 </html>
