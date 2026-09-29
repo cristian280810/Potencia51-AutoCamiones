@@ -1119,12 +1119,16 @@ html, body {
 #tiposLavado .tipo-option input{display:inline-block;margin:0;accent-color:#2563eb;}
 @media(max-width:700px){#tiposLavado{gap:18px;flex-wrap:nowrap;}#tiposLavado .tipo-option{white-space:nowrap;padding:7px 10px;}}
 
-/* Selector Placa / VIN */
+/* Selector Placa / VIN: radios simples, sin apariencia de botones */
 .identificador-registro{margin-bottom:16px;}
 .identificador-opciones{display:flex;justify-content:center;align-items:center;gap:34px;width:100%;}
-.identificador-option{display:flex;align-items:center;gap:7px;padding:8px 16px;border-radius:7px;cursor:pointer;font-weight:600;color:#111827;}
-.identificador-option input{margin:0;accent-color:#2563eb;}
-.identificador-option.active{background:#f1f5f9;}
+.identificador-option{display:flex;align-items:center;gap:7px;padding:0;border:0;background:transparent !important;border-radius:0;cursor:pointer;font-weight:600;color:#111827;}
+.identificador-option input{display:inline-block;margin:0;accent-color:#2563eb;}
+.identificador-option.active{background:transparent !important;border:0 !important;}
+@media(max-width:700px){
+  .identificador-opciones{gap:24px;}
+  .identificador-option{padding:0;}
+}
 
 /* Buscador y selección múltiple de servicios */
 .servicio-multiple-group{position:relative;}
@@ -1499,6 +1503,220 @@ html, body {
 <style>
 #placa::placeholder, #vin::placeholder { text-transform: none !important; }
 </style>
+<style>
+/* =====================================================
+   AJUSTE FINAL: CATEGORÍAS Y SUBOPCIONES
+   ===================================================== */
+.tipo-container{
+    display:grid !important;
+    grid-template-columns:repeat(2,minmax(0,1fr)) !important;
+    gap:15px !important;
+    align-items:center !important;
+}
+
+.tipo-container > #categoriaLavado,
+.tipo-container > #categoriaPintura{
+    width:100% !important;
+    min-width:0 !important;
+    box-sizing:border-box !important;
+}
+
+.tipo-container > #tiposLavado{
+    grid-column:1 / -1 !important;
+    width:100% !important;
+    box-sizing:border-box !important;
+    justify-content:center !important;
+    margin:0 !important;
+}
+
+@media(max-width:700px){
+    .tipo-container{
+        grid-template-columns:repeat(2,minmax(0,1fr)) !important;
+        gap:10px !important;
+    }
+
+    .tipo-container > #categoriaLavado,
+    .tipo-container > #categoriaPintura{
+        width:100% !important;
+        padding:12px 8px !important;
+        min-height:54px !important;
+    }
+
+    .tipo-container > #tiposLavado{
+        grid-column:1 / -1 !important;
+        justify-content:center !important;
+    }
+}
+</style>
+
+<style>
+/* =========================================================
+   FORMULARIO DE REGISTRO - DISTRIBUCIÓN TIPO WANKAMOTORS
+   Desktop:
+   Placa/VIN + Marca
+   Servicio + Foto de ingreso
+   Observaciones a todo el ancho
+   ========================================================= */
+
+#registro .form-grid{
+  grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+  grid-template-areas:
+    "vehiculo marca"
+    "servicio fotoIngreso"
+    "observaciones observaciones";
+  align-items:start;
+}
+
+#registro #campoPlaca,
+#registro #campoVIN{
+  grid-area:vehiculo;
+}
+
+#registro #campoMarca{
+  grid-area:marca;
+}
+
+#registro .campo-servicio-registro{
+  grid-area:servicio;
+}
+
+#registro #campoFotoIngreso{
+  grid-area:fotoIngreso;
+}
+
+#registro #campoObservaciones{
+  grid-area:observaciones;
+}
+
+/* Cuando se usa VIN, la foto del VIN ocupa la columna derecha
+   de la primera fila de datos y la foto de ingreso pasa a la
+   segunda fila derecha. */
+#registro #campoFotoVIN{
+  grid-area:fotoVIN;
+}
+
+#registro .form-grid.modo-vin{
+  grid-template-areas:
+    "vehiculo marca"
+    "fotoVIN fotoIngreso"
+    "servicio servicio"
+    "observaciones observaciones";
+}
+
+/* El selector de servicios de lavado sigue ocupando el ancho
+   de su columna, como el formulario original. */
+#registro .campo-servicio-registro{
+  width:100%;
+}
+
+/* En pantallas pequeñas se apilan los campos para evitar
+   desbordamientos, manteniendo el orden lógico. */
+@media(max-width:700px){
+  #registro .form-grid,
+  #registro .form-grid.modo-vin{
+    grid-template-columns:1fr;
+    grid-template-areas:
+      "vehiculo"
+      "marca"
+      "servicio"
+      "fotoIngreso"
+      "fotoVIN"
+      "observaciones";
+    gap:14px;
+  }
+}
+</style>
+
+<style>
+/* =========================================================
+   CATEGORÍAS DE REGISTRO
+   Dos categorías siempre lado a lado.
+   Servicio/Nuevo debajo, centrados.
+   ========================================================= */
+
+#registrar .tipo-container{
+    display:grid !important;
+    grid-template-columns: minmax(0,1fr) minmax(0,1fr) !important;
+    grid-template-rows:auto auto !important;
+    gap:14px !important;
+    align-items:center !important;
+    width:100% !important;
+}
+
+#registrar .tipo-container > #categoriaLavado,
+#registrar .tipo-container > #categoriaPintura{
+    grid-row:1 !important;
+    width:100% !important;
+    min-width:0 !important;
+    box-sizing:border-box !important;
+    margin:0 !important;
+}
+
+#registrar .tipo-container > #categoriaLavado{
+    grid-column:1 !important;
+}
+
+#registrar .tipo-container > #categoriaPintura{
+    grid-column:2 !important;
+}
+
+#registrar .tipo-container > #tiposLavado{
+    grid-column:1 / 3 !important;
+    grid-row:2 !important;
+    display:flex !important;
+    flex-direction:row !important;
+    justify-content:center !important;
+    align-items:center !important;
+    flex-wrap:nowrap !important;
+    width:100% !important;
+    margin:0 !important;
+    padding:8px 0 2px !important;
+    border-left:0 !important;
+    gap:28px !important;
+}
+
+#registrar #tiposLavado .tipo-option{
+    flex:0 0 auto !important;
+    width:auto !important;
+    white-space:nowrap !important;
+}
+
+/* En móvil también se mantienen las dos categorías lado a lado */
+@media (max-width:700px){
+    #registrar .tipo-container{
+        display:grid !important;
+        grid-template-columns:minmax(0,1fr) minmax(0,1fr) !important;
+        grid-template-rows:auto auto !important;
+        gap:10px !important;
+    }
+
+    #registrar .tipo-container > #categoriaLavado,
+    #registrar .tipo-container > #categoriaPintura{
+        grid-row:1 !important;
+        min-height:54px !important;
+        padding:12px 7px !important;
+        font-size:13px !important;
+    }
+
+    #registrar .tipo-container > #tiposLavado{
+        grid-column:1 / 3 !important;
+        grid-row:2 !important;
+        flex-direction:row !important;
+        flex-wrap:nowrap !important;
+        justify-content:center !important;
+        gap:18px !important;
+        padding:6px 0 2px !important;
+    }
+
+    #registrar #tiposLavado .tipo-option{
+        flex:0 0 auto !important;
+        width:auto !important;
+        padding:7px 10px !important;
+        white-space:nowrap !important;
+    }
+}
+</style>
+
 </head>
 
 <body>
@@ -1635,27 +1853,14 @@ onclick="seleccionarCategoriaRegistro('pintura')">
 
 <div class="card">
 
-<div id="identificadorRegistro" class="identificador-registro">
-  <div class="identificador-opciones">
-    <label id="opcionPlaca" class="identificador-option active">
-      <input type="radio" name="tipo" value="Servicio" checked onchange="cambiarTipo('Servicio')">
-      <span>◉</span> Placa
-    </label>
-    <label id="opcionVIN" class="identificador-option">
-      <input type="radio" name="tipo" value="Nuevo" onchange="cambiarTipo('Nuevo')">
-      <span>◉</span> VIN
-    </label>
-  </div>
-</div>
-
-<div class="form-grid">
+<div class="form-grid" id="gridRegistro">
 <!-- =====================================================
      PLACA
 ===================================================== -->
 
 <div
 id="campoPlaca"
-class="form-group">
+class="form-group campo-vehiculo-placa">
 
 <label>
 Placa *
@@ -1675,7 +1880,7 @@ autocomplete="off" oninput="this.value=this.value.toUpperCase()">
 
 <div
 id="campoVIN"
-class="form-group"
+class="form-group campo-vehiculo-vin"
 style="display:none">
 
 <label>
@@ -1698,7 +1903,7 @@ oninput="const inicio=this.selectionStart; const fin=this.selectionEnd; this.val
 
 <div
 id="campoFotoVIN"
-class="form-group"
+class="form-group campo-foto-vin"
 style="display:none">
 
 <label>
@@ -1719,11 +1924,8 @@ capture="environment">
 ===================================================== -->
 
 <div
+id="campoMarca"
 class="form-group">
-
-<label>
-Marca *
-</label>
 
 <select id="marca">
 
@@ -1783,7 +1985,7 @@ value="">
      SERVICIO
 ===================================================== -->
 
-<div class="form-group servicio-multiple-group full">
+<div class="form-group servicio-multiple-group full campo-servicio-registro">
   <label>Servicio *</label>
 
   <div id="selectorServicioLavado">
@@ -1816,7 +2018,8 @@ value="">
 ===================================================== -->
 
 <div
-class="form-group">
+id="campoFotoIngreso"
+class="form-group campo-foto-ingreso">
 
 <label>
 Foto de ingreso *
@@ -1836,7 +2039,8 @@ capture="environment">
 ===================================================== -->
 
 <div
-class="form-group full">
+id="campoObservaciones"
+class="form-group full campo-observaciones">
 
 <label>
 Observaciones
@@ -3673,13 +3877,18 @@ function seleccionarCategoriaRegistro(categoria){
 function cambiarTipoLavado(tipo){
   const servicio=document.getElementById("opcionServicioLavado");
   const nuevo=document.getElementById("opcionNuevoLavado");
+
   if(tipo === "Nuevo"){
-    servicio.classList.remove("active");
-    nuevo.classList.add("active");
+    if(servicio) servicio.classList.remove("active");
+    if(nuevo) nuevo.classList.add("active");
   }else{
-    servicio.classList.add("active");
-    nuevo.classList.remove("active");
+    if(servicio) servicio.classList.add("active");
+    if(nuevo) nuevo.classList.remove("active");
   }
+
+  // El tipo de identificación depende directamente de Servicio/Nuevo:
+  // Servicio = Placa | Nuevo = VIN.
+  cambiarTipo(tipo);
 }
 
 function seleccionarServicioLavado(id){
@@ -3704,23 +3913,23 @@ function seleccionarServicioLavado(id){
 ===================================================== */
 
 function cambiarTipo(tipo){
+  const gridRegistro = document.getElementById("gridRegistro");
+  if (gridRegistro) {
+    gridRegistro.classList.toggle("modo-vin", tipo === "Nuevo");
+  }
+
   const campoPlaca=document.getElementById("campoPlaca");
   const campoVIN=document.getElementById("campoVIN");
   const campoFotoVIN=document.getElementById("campoFotoVIN");
-  const opcionServicio=document.getElementById("opcionPlaca");
-  const opcionNuevo=document.getElementById("opcionVIN");
+
   if(tipo==="Nuevo"){
-    campoPlaca.style.display="none";
-    campoVIN.style.display="flex";
-    campoFotoVIN.style.display="flex";
-    opcionServicio.classList.remove("active");
-    opcionNuevo.classList.add("active");
+    if(campoPlaca) campoPlaca.style.display="none";
+    if(campoVIN) campoVIN.style.display="flex";
+    if(campoFotoVIN) campoFotoVIN.style.display="flex";
   }else{
-    campoPlaca.style.display="flex";
-    campoVIN.style.display="none";
-    campoFotoVIN.style.display="none";
-    opcionServicio.classList.add("active");
-    opcionNuevo.classList.remove("active");
+    if(campoPlaca) campoPlaca.style.display="flex";
+    if(campoVIN) campoVIN.style.display="none";
+    if(campoFotoVIN) campoFotoVIN.style.display="none";
   }
 }
 
@@ -3928,7 +4137,9 @@ async function registrar(){
   const boton=document.getElementById("btnRegistrar");
   const loading=document.getElementById("loadingRegistro");
   try{
-    const tipo=document.querySelector('input[name="tipo"]:checked').value;
+    const tipo = categoriaRegistroActual === "lavado"
+      ? (document.querySelector('input[name="tipoLavado"]:checked')?.value || "Servicio")
+      : "Servicio";
     const placa=normalizarValorInterno(document.getElementById("placa").value);
     const vin=normalizarValorInterno(document.getElementById("vin").value);
     const marca=document.getElementById("marca").value;
@@ -5528,9 +5739,9 @@ function limpiarFormulario(){
   const radioServicioLavado=document.querySelector('input[name="tipoLavado"][value="Servicio"]');
   if(radioServicioLavado){ radioServicioLavado.checked=true; cambiarTipoLavado("Servicio"); }
   seleccionarServicioLavado("");
-  const radio=document.querySelector('input[name="tipo"][value="Servicio"]');
-  if(radio) radio.checked=true;
-  cambiarTipo("Servicio");
+  const radioServicio=document.querySelector('input[name="tipoLavado"][value="Servicio"]');
+  if(radioServicio) radioServicio.checked=true;
+  cambiarTipoLavado("Servicio");
 }
 
 function mostrarPopup(titulo, mensaje, tipo){
