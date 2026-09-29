@@ -1518,11 +1518,8 @@ Placa *
 
 <input
 id="placa"
-type="text"
-placeholder="Ingrese Nro. de Placa"
-autocomplete="off"
-style="text-transform:uppercase"
-oninput="const inicio=this.selectionStart; const fin=this.selectionEnd; this.value=this.value.toUpperCase(); try{this.setSelectionRange(inicio,fin);}catch(e){}">
+type="text" placeholder="Ingrese Nro. de placa"
+autocomplete="off" oninput="this.value=this.value.toUpperCase()">
 
 </div>
 
@@ -8300,6 +8297,6 @@ programarCierreAutomatico1930();
 </script>
 
 
-<div class="version-app">V5.5 Dashboard</div>
+<div class="version-app">V7.2 Dashboard</div>
 </body>
 </html>
