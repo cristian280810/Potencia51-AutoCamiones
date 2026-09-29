@@ -1598,9 +1598,9 @@ html, body {
 
 #registro .form-grid.modo-vin{
   grid-template-areas:
-    "vehiculo marca"
-    "servicio fotoIngreso"
-    "fotoVIN fotoVIN"
+    "vehiculo fotoVIN"
+    "marca servicio"
+    "fotoIngreso fotoIngreso"
     "observaciones observaciones";
 }
 
@@ -1628,10 +1628,10 @@ html, body {
     grid-template-columns:1fr;
     grid-template-areas:
       "vehiculo"
+      "fotoVIN"
       "marca"
       "servicio"
       "fotoIngreso"
-      "fotoVIN"
       "observaciones";
     gap:14px;
   }
@@ -8969,5 +8969,139 @@ programarCierreAutomatico1930();
 
 
 <div class="version-app">V5.5 Dashboard</div>
+
+<style id="autocamiones-layout-final-override">
+/* =========================================================
+   DISTRIBUCIÓN FINAL DEL FORMULARIO AUTOCAMIONES
+   SERVICIO:
+   Placa | Marca
+   Servicio | Foto de ingreso
+   Observaciones
+
+   NUEVO:
+   VIN | Marca
+   Foto de ingreso | Servicio
+   Foto del VIN
+   Observaciones
+   ========================================================= */
+
+/* El campo Servicio tiene la clase .full del diseño original,
+   pero aquí debe ocupar solamente una columna. */
+#registro #gridRegistro .campo-servicio-registro{
+  grid-column: auto !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  grid-area: servicio !important;
+}
+
+/* Modo SERVICIO */
+#registro #gridRegistro:not(.modo-vin){
+  display: grid !important;
+  grid-template-columns: minmax(0,1fr) minmax(0,1fr) !important;
+  grid-template-areas:
+    "vehiculo marca"
+    "servicio fotoIngreso"
+    "observaciones observaciones" !important;
+  align-items: start !important;
+}
+
+#registro #gridRegistro:not(.modo-vin) #campoPlaca{
+  grid-area: vehiculo !important;
+}
+
+#registro #gridRegistro:not(.modo-vin) #campoVIN{
+  display: none !important;
+}
+
+#registro #gridRegistro:not(.modo-vin) #campoMarca{
+  grid-area: marca !important;
+}
+
+#registro #gridRegistro:not(.modo-vin) .campo-servicio-registro{
+  grid-area: servicio !important;
+}
+
+#registro #gridRegistro:not(.modo-vin) #campoFotoIngreso{
+  grid-area: fotoIngreso !important;
+}
+
+#registro #gridRegistro:not(.modo-vin) #campoFotoVIN{
+  display: none !important;
+}
+
+#registro #gridRegistro:not(.modo-vin) #campoObservaciones{
+  grid-area: observaciones !important;
+}
+
+/* Modo NUEVO */
+#registro #gridRegistro.modo-vin{
+  display: grid !important;
+  grid-template-columns: minmax(0,1fr) minmax(0,1fr) !important;
+  grid-template-areas:
+    "vehiculo marca"
+    "fotoIngreso servicio"
+    "fotoVIN fotoVIN"
+    "observaciones observaciones" !important;
+  align-items: start !important;
+}
+
+#registro #gridRegistro.modo-vin #campoPlaca{
+  display: none !important;
+}
+
+#registro #gridRegistro.modo-vin #campoVIN{
+  display: flex !important;
+  grid-area: vehiculo !important;
+}
+
+#registro #gridRegistro.modo-vin #campoMarca{
+  grid-area: marca !important;
+}
+
+#registro #gridRegistro.modo-vin .campo-servicio-registro{
+  grid-area: servicio !important;
+}
+
+#registro #gridRegistro.modo-vin #campoFotoIngreso{
+  grid-area: fotoIngreso !important;
+}
+
+#registro #gridRegistro.modo-vin #campoFotoVIN{
+  display: flex !important;
+  grid-area: fotoVIN !important;
+}
+
+#registro #gridRegistro.modo-vin #campoObservaciones{
+  grid-area: observaciones !important;
+}
+
+/* Móvil: mantener los campos ordenados y evitar desbordamiento */
+@media(max-width:700px){
+  #registro #gridRegistro:not(.modo-vin),
+  #registro #gridRegistro.modo-vin{
+    grid-template-columns: 1fr !important;
+  }
+
+  #registro #gridRegistro:not(.modo-vin){
+    grid-template-areas:
+      "vehiculo"
+      "marca"
+      "servicio"
+      "fotoIngreso"
+      "observaciones" !important;
+  }
+
+  #registro #gridRegistro.modo-vin{
+    grid-template-areas:
+      "vehiculo"
+      "marca"
+      "fotoIngreso"
+      "servicio"
+      "fotoVIN"
+      "observaciones" !important;
+  }
+}
+</style>
+
 </body>
 </html>
