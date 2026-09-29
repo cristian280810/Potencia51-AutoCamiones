@@ -1113,7 +1113,7 @@ html, body {
     }
 }
 
-/* Jerarquía de tipo Servicio/Nuevo: subopciones de Lavado y Adicionales */
+/* Selector común Servicio/Nuevo para ambas categorías */
 #tiposLavado{display:flex;justify-content:center;align-items:center;gap:30px;margin:12px 0 0;}
 #tiposLavado .tipo-option{flex:0 0 auto;width:auto;padding:8px 14px;border:1px solid transparent;border-radius:7px;background:transparent;display:flex;align-items:center;gap:7px;cursor:pointer;font-weight:600;}
 #tiposLavado .tipo-option.active{background:#f1f5f9;border-color:#e5e7eb;}
@@ -1599,8 +1599,8 @@ html, body {
 #registro .form-grid.modo-vin{
   grid-template-areas:
     "vehiculo fotoVIN"
-    "marca servicio"
-    "fotoIngreso fotoIngreso"
+    "marca fotoIngreso"
+    "servicio servicio"
     "observaciones observaciones";
 }
 
@@ -1630,8 +1630,8 @@ html, body {
       "vehiculo"
       "fotoVIN"
       "marca"
-      "servicio"
       "fotoIngreso"
+      "servicio"
       "observaciones";
     gap:14px;
   }
@@ -1642,7 +1642,7 @@ html, body {
 /* =========================================================
    CATEGORÍAS DE REGISTRO
    Dos categorías siempre lado a lado.
-   Servicio/Nuevo debajo, centrados.
+   Servicio/Nuevo debajo, centrados y común a ambas categorías.
    ========================================================= */
 
 #registrar .tipo-container{
@@ -3871,10 +3871,13 @@ function seleccionarCategoriaRegistro(categoria){
   if(categoriaRegistroActual === "pintura"){
     categoriaLavado.classList.remove("active");
     categoriaPintura.classList.add("active");
-    if(tiposLavado) tiposLavado.style.display="none";
+    // Planchado y Pintura usa exactamente el mismo selector Servicio/Nuevo
+    // y los mismos campos de identificación/fotos que Lavado y Adicionales.
+    if(tiposLavado) tiposLavado.style.display="flex";
     if(selectorLavado) selectorLavado.style.display="none";
     if(selectorPintura) selectorPintura.style.display="block";
-    cambiarTipo("Servicio");
+    const tipoActual = document.querySelector('input[name="tipoLavado"]:checked')?.value || "Servicio";
+    cambiarTipo(tipoActual);
     cargarServiciosPlanchadoPintura().catch(function(error){
       console.warn("No se pudo cargar el catálogo de Planchado y Pintura:", error);
     });
@@ -3884,6 +3887,8 @@ function seleccionarCategoriaRegistro(categoria){
     if(tiposLavado) tiposLavado.style.display="flex";
     if(selectorLavado) selectorLavado.style.display="block";
     if(selectorPintura) selectorPintura.style.display="none";
+    const tipoActual = document.querySelector('input[name="tipoLavado"]:checked')?.value || "Servicio";
+    cambiarTipo(tipoActual);
     cargarServiciosAutoCamiones().catch(function(error){
       console.warn("No se pudo cargar el catálogo de Lavado y Adicionales:", error);
     });
@@ -4153,9 +4158,9 @@ async function registrar(){
   const boton=document.getElementById("btnRegistrar");
   const loading=document.getElementById("loadingRegistro");
   try{
-    const tipo = categoriaRegistroActual === "lavado"
-      ? (document.querySelector('input[name="tipoLavado"]:checked')?.value || "Servicio")
-      : "Servicio";
+    // Servicio/Nuevo aplica a ambas categorías; lo único que cambia
+    // entre ellas es el catálogo de servicios.
+    const tipo = document.querySelector('input[name="tipoLavado"]:checked')?.value || "Servicio";
     const placa=normalizarValorInterno(document.getElementById("placa").value);
     const vin=normalizarValorInterno(document.getElementById("vin").value);
     const marca=document.getElementById("marca").value;
@@ -9226,6 +9231,53 @@ programarCierreAutomatico1930();
   #registro #gridRegistro:not(.modo-vin) > #campoObservaciones{
     grid-column:1 / 3 !important; grid-row:3 !important;
     grid-area:auto !important; width:100% !important;
+  }
+}
+</style>
+
+
+<style id="autocamiones-nuevo-layout-real-final">
+/* CORRECCIÓN REAL: en NUEVO, Foto de ingreso va donde estaba Servicio
+   y Servicio baja a la fila siguiente. */
+@media (min-width:701px){
+  #gridRegistro.modo-vin{
+    display:grid !important;
+    grid-template-columns:minmax(0,1fr) minmax(0,1fr) !important;
+    grid-template-areas:
+      "vehiculo fotoVIN"
+      "marca fotoIngreso"
+      "servicio servicio"
+      "observaciones observaciones" !important;
+    align-items:start !important;
+  }
+  #gridRegistro.modo-vin #campoPlaca{
+    display:none !important;
+  }
+  #gridRegistro.modo-vin #campoVIN{
+    display:flex !important;
+    grid-area:vehiculo !important;
+  }
+  #gridRegistro.modo-vin #campoFotoVIN{
+    display:flex !important;
+    grid-area:fotoVIN !important;
+  }
+  #gridRegistro.modo-vin #campoMarca{
+    grid-area:marca !important;
+  }
+  #gridRegistro.modo-vin #campoFotoIngreso{
+    grid-area:fotoIngreso !important;
+    display:block !important;
+    width:100% !important;
+  }
+  #gridRegistro.modo-vin .campo-servicio-registro{
+    grid-area:servicio !important;
+    display:block !important;
+    width:100% !important;
+    grid-column:1 / 3 !important;
+  }
+  #gridRegistro.modo-vin #campoObservaciones{
+    grid-area:observaciones !important;
+    grid-column:1 / 3 !important;
   }
 }
 </style>
