@@ -176,6 +176,53 @@ textarea{
     display:none;
 }
 
+/* Subopciones de Servicio de lavado y adicionales: selección tipo radio */
+#tiposLavado{
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    gap:28px;
+    margin-top:10px;
+    padding:8px 10px 4px 18px;
+    border-left:4px solid #e5e7eb;
+}
+
+#tiposLavado .tipo-option{
+    flex:0 0 auto;
+    width:auto;
+    padding:8px 18px 8px 10px;
+    border:0;
+    border-radius:6px;
+    background:transparent;
+    text-align:left;
+    font-weight:600;
+    color:#111827;
+    display:flex;
+    align-items:center;
+    gap:9px;
+}
+
+#tiposLavado .tipo-option:hover{
+    background:#f3f4f6;
+}
+
+#tiposLavado .tipo-option.active{
+    border:0;
+    background:#f3f4f6;
+}
+
+#tiposLavado .tipo-option input{
+    display:inline-block;
+    width:17px;
+    height:17px;
+    margin:0;
+    accent-color:#1d4ed8;
+}
+
+#tiposLavado .tipo-option.active input{
+    accent-color:#1d4ed8;
+}
+
 .btn{
     border:none;
     padding:12px 18px;
@@ -1467,12 +1514,37 @@ class="section active">
 <h2>Registrar vehículo</h2>
 
 <p>
-Seleccione el tipo de vehículo.
+Seleccione el tipo de servicio.
 </p>
 
+<div class="tipo-container" style="margin-bottom:14px;">
 
-<div class="tipo-container">
+<label
+id="categoriaLavado"
+class="tipo-option active"
+onclick="seleccionarCategoriaRegistro('lavado')">
 
+🔧 Servicio de lavado y adicionales
+
+</label>
+
+<label
+id="categoriaPintura"
+class="tipo-option"
+onclick="seleccionarCategoriaRegistro('pintura')">
+
+🎨 Planchado y Pintura
+
+</label>
+
+</div>
+
+</div>
+
+
+<div class="card">
+
+<div id="tiposLavado" class="tipo-container" style="margin-bottom:16px;">
 
 <label
 id="opcionServicio"
@@ -1489,7 +1561,6 @@ onchange="cambiarTipo('Servicio')">
 
 </label>
 
-
 <label
 id="opcionNuevo"
 class="tipo-option">
@@ -1504,13 +1575,7 @@ onchange="cambiarTipo('Nuevo')">
 
 </label>
 
-
 </div>
-
-</div>
-
-
-<div class="card">
 
 <div class="form-grid">
 <!-- =====================================================
@@ -3320,6 +3385,32 @@ function mostrarModuloAdministracion(nombre){
   }
 }
 
+
+/* =====================================================
+   CATEGORÍA DE REGISTRO
+===================================================== */
+
+function seleccionarCategoriaRegistro(categoria){
+  const categoriaLavado=document.getElementById("categoriaLavado");
+  const categoriaPintura=document.getElementById("categoriaPintura");
+  const tiposLavado=document.getElementById("tiposLavado");
+
+  if(categoria==="pintura"){
+    categoriaLavado.classList.remove("active");
+    categoriaPintura.classList.add("active");
+    tiposLavado.style.display="none";
+
+    const radioServicio=document.querySelector('input[name="tipo"][value="Servicio"]');
+    if(radioServicio){
+      radioServicio.checked=true;
+      cambiarTipo("Servicio");
+    }
+  }else{
+    categoriaLavado.classList.add("active");
+    categoriaPintura.classList.remove("active");
+    tiposLavado.style.display="flex";
+  }
+}
 
 /* =====================================================
    CAMBIAR TIPO
@@ -8306,6 +8397,6 @@ programarCierreAutomatico1930();
 </script>
 
 
-<div class="version-app">V5.5 Dashboard</div>
+<div class="version-app">V2.0 Dashboard</div>
 </body>
 </html>
