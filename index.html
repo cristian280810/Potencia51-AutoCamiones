@@ -1599,8 +1599,8 @@ html, body {
 #registro .form-grid.modo-vin{
   grid-template-areas:
     "vehiculo marca"
-    "fotoVIN fotoIngreso"
-    "servicio servicio"
+    "servicio fotoIngreso"
+    "fotoVIN fotoVIN"
     "observaciones observaciones";
 }
 
@@ -1613,7 +1613,17 @@ html, body {
 /* En pantallas pequeñas se apilan los campos para evitar
    desbordamientos, manteniendo el orden lógico. */
 @media(max-width:700px){
-  #registro .form-grid,
+  #registro .form-grid{
+    grid-template-columns:1fr;
+    grid-template-areas:
+      "vehiculo"
+      "marca"
+      "servicio"
+      "fotoIngreso"
+      "observaciones";
+    gap:14px;
+  }
+
   #registro .form-grid.modo-vin{
     grid-template-columns:1fr;
     grid-template-areas:
