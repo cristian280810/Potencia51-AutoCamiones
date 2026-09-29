@@ -2001,7 +2001,7 @@ value="">
      SERVICIO
 ===================================================== -->
 
-<div class="form-group servicio-multiple-group full campo-servicio-registro">
+<div class="form-group servicio-multiple-group campo-servicio-registro">
   <label>Servicio *</label>
 
   <div id="selectorServicioLavado">
@@ -9201,6 +9201,31 @@ programarCierreAutomatico1930();
     grid-row:3 !important;
     grid-area:auto !important;
     width:100% !important;
+  }
+}
+</style>
+
+
+<style id="autocamiones-servicio-foto-definitivo">
+/* DISTRIBUCIÓN DEFINITIVA EN MODO SERVICIO */
+@media (min-width:701px){
+  #registro #gridRegistro:not(.modo-vin) > #campoPlaca{
+    grid-column:1 !important; grid-row:1 !important;
+  }
+  #registro #gridRegistro:not(.modo-vin) > #campoMarca{
+    grid-column:2 !important; grid-row:1 !important;
+  }
+  #registro #gridRegistro:not(.modo-vin) > .campo-servicio-registro{
+    grid-column:1 !important; grid-row:2 !important;
+    grid-area:auto !important; width:100% !important;
+  }
+  #registro #gridRegistro:not(.modo-vin) > #campoFotoIngreso{
+    grid-column:2 !important; grid-row:2 !important;
+    grid-area:auto !important; width:100% !important;
+  }
+  #registro #gridRegistro:not(.modo-vin) > #campoObservaciones{
+    grid-column:1 / 3 !important; grid-row:3 !important;
+    grid-area:auto !important; width:100% !important;
   }
 }
 </style>
