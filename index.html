@@ -808,6 +808,19 @@ th{
 .estado-cot-pyp.facturada{background:#eff6ff;color:#1d4ed8;}
 .estado-cot-pyp.anulada{background:#f3f4f6;color:#6b7280;}
 .cotizacion-detalle-pyp{margin-top:16px;padding:14px;border:1px solid #dbe2ea;border-radius:10px;background:#f8fafc;}
+
+.pyp-acciones-cot{display:flex;gap:6px;flex-wrap:wrap;align-items:center;}
+.btn-ver-cot-pyp{background:#eef5ff!important;color:#174ea6!important;border:1px solid #b9d3f7!important;}
+.btn-desc-cot-pyp{background:#f4f6f8!important;color:#243447!important;border:1px solid #cbd5e1!important;}
+.btn-aprobar-cot-pyp{background:#1d4ed8!important;color:#fff!important;border:1px solid #1d4ed8!important;}
+.modal-pyp-confirm .modal-content{max-width:480px;border-radius:18px;padding:0;overflow:hidden;}
+.modal-pyp-confirm-head{padding:22px 24px 12px;text-align:center;}
+.modal-pyp-confirm-icon{width:58px;height:58px;margin:0 auto 10px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#eaf2ff;font-size:28px;}
+.modal-pyp-confirm-head h3{margin:0;color:#172033;font-size:20px;}
+.modal-pyp-confirm-body{padding:0 24px 20px;text-align:center;color:#5b6678;line-height:1.5;}
+.modal-pyp-confirm-body strong{color:#172033;}
+.modal-pyp-confirm-actions{display:flex;gap:10px;justify-content:center;padding:0 24px 22px;}
+.modal-pyp-confirm-actions button{min-width:130px;}
 @media(max-width:900px){.cotizaciones-pyp-table{font-size:12px;}.cotizaciones-pyp-table th,.cotizaciones-pyp-table td{padding:6px;}}
 
 @media(max-width:700px){
@@ -2212,6 +2225,26 @@ onclick="limpiarFormulario()">
     <div id="detalleCotizacionPyp" class="cotizacion-detalle-pyp" style="display:none"></div>
   </div>
 </section>
+
+<!-- =====================================================
+     MODAL CONFIRMAR APROBACIÓN PYP
+===================================================== -->
+<div id="modalConfirmarAprobacionPyp" class="modal modal-pyp-confirm">
+  <div class="modal-content">
+    <div class="modal-pyp-confirm-head">
+      <div class="modal-pyp-confirm-icon">✓</div>
+      <h3>¿Aprobar cotización?</h3>
+    </div>
+    <div class="modal-pyp-confirm-body">
+      <div>Estás a punto de aprobar la cotización <strong id="confirmarAprobacionCorrelativo">—</strong>.</div>
+      <div style="margin-top:7px">Una vez aprobada, podrás enviarla al proceso de facturación.</div>
+    </div>
+    <div class="modal-pyp-confirm-actions">
+      <button type="button" class="btn btn-secondary" onclick="cerrarModalAprobacionPyp()">Cancelar</button>
+      <button type="button" class="btn btn-primary" onclick="confirmarAprobacionPyp()">✓ Sí, aprobar</button>
+    </div>
+  </div>
+</div>
 
 <!-- =====================================================
      FACTURACIÓN
@@ -4058,9 +4091,13 @@ function renderizarCotizacionesPyp(){
     const id=esc(String(c.id||""));
     const estado=String(c.estado||"Pendiente");
     const identificador=c.tipo==="Nuevo"?(c.vin||"—"):(c.placa||"—");
-    const acciones=estado==="Pendiente"
-      ? '<button type="button" class="btn btn-primary" style="padding:6px 9px;font-size:12px" onclick="aprobarCotizacionPyp(\''+id+'\')">✅ Aprobar</button>'
-      : (estado==="Aprobada" ? (c.facturacion_id ? '<button type="button" class="btn btn-secondary" style="padding:6px 9px;font-size:12px" onclick="mostrarModuloAdministracion(\'facturacion\')">🧾 En Facturación</button>' : '<button type="button" class="btn btn-secondary" style="padding:6px 9px;font-size:12px" onclick="pasarCotizacionAFacturacion(\''+id+'\')">🧾 Pasar a facturación</button>') : '—');
+    const acciones=
+      '<div class="pyp-acciones-cot">'+
+      '<button type="button" class="btn btn-ver-cot-pyp" style="padding:6px 9px;font-size:12px" onclick="verCotizacionPyp(\''+id+'\')">👁 Ver</button>'+
+      '<button type="button" class="btn btn-desc-cot-pyp" style="padding:6px 9px;font-size:12px" onclick="descargarCotizacionPyp(\''+id+'\')">⬇ Descargar</button>'+
+      (estado==="Pendiente" ? '<button type="button" class="btn btn-aprobar-cot-pyp" style="padding:6px 9px;font-size:12px" onclick="aprobarCotizacionPyp(\''+id+'\')">✓ Aprobar</button>' :
+       estado==="Aprobada" ? (c.facturacion_id ? '<button type="button" class="btn btn-secondary" style="padding:6px 9px;font-size:12px" onclick="mostrarModuloAdministracion(\'facturacion\')">🧾 En Facturación</button>' : '<button type="button" class="btn btn-secondary" style="padding:6px 9px;font-size:12px" onclick="pasarCotizacionAFacturacion(\''+id+'\')">🧾 Pasar a facturación</button>') : '')+
+      '</div>';
     return '<tr>'+
       '<td><strong>'+esc(c.correlativo||"—")+'</strong></td>'+
       '<td>'+esc(String(c.created_at||"").slice(0,10))+'</td>'+
@@ -4076,12 +4113,80 @@ function renderizarCotizacionesPyp(){
   }).join("");
 }
 
+let cotizacionPypPendienteAprobacion=null;
+
+function cerrarModalAprobacionPyp(){
+  const modal=document.getElementById("modalConfirmarAprobacionPyp");
+  if(modal) modal.classList.remove("active");
+  cotizacionPypPendienteAprobacion=null;
+}
+
 async function aprobarCotizacionPyp(id){
-  if(!confirm("¿Confirmar la aprobación de esta cotización?")) return;
-  const respuesta=await fetch(SUPABASE_URL+"/rest/v1/cotizaciones_pyp_autocamiones?id=eq."+encodeURIComponent(id),{method:"PATCH",headers:{"apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY,"Content-Type":"application/json","Prefer":"return=minimal"},body:JSON.stringify({estado:"Aprobada",fecha_aprobacion:new Date().toISOString()})});
-  if(!respuesta.ok){mostrarAlerta("No se pudo aprobar la cotización.","error");return;}
-  mostrarAlerta("Cotización aprobada correctamente. Ya puede pasar a facturación.","success");
-  cargarCotizacionesPyp();
+  const cotizacion=cotizacionesPyp.find(function(c){return String(c.id)===String(id);});
+  if(!cotizacion) return;
+  cotizacionPypPendienteAprobacion=cotizacion;
+  const label=document.getElementById("confirmarAprobacionCorrelativo");
+  if(label) label.textContent=cotizacion.correlativo||"—";
+  const modal=document.getElementById("modalConfirmarAprobacionPyp");
+  if(modal) modal.classList.add("active");
+}
+
+async function confirmarAprobacionPyp(){
+  const cotizacion=cotizacionPypPendienteAprobacion;
+  if(!cotizacion) return;
+  const boton=document.querySelector('#modalConfirmarAprobacionPyp .btn-primary');
+  if(boton){boton.disabled=true;boton.textContent="Aprobando...";}
+  try{
+    const respuesta=await fetch(SUPABASE_URL+"/rest/v1/cotizaciones_pyp_autocamiones?id=eq."+encodeURIComponent(cotizacion.id),{method:"PATCH",headers:{"apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY,"Content-Type":"application/json","Prefer":"return=minimal"},body:JSON.stringify({estado:"Aprobada",fecha_aprobacion:new Date().toISOString()})});
+    if(!respuesta.ok) throw new Error(await respuesta.text());
+    cerrarModalAprobacionPyp();
+    mostrarAlerta("La cotización "+(cotizacion.correlativo||"")+" fue aprobada correctamente. Ya puede pasar a facturación.","success");
+    await cargarCotizacionesPyp();
+  }catch(error){
+    if(boton){boton.disabled=false;boton.textContent="✓ Sí, aprobar";}
+    mostrarAlerta("No se pudo aprobar la cotización.","error");
+    console.error(error);
+  }
+}
+
+async function obtenerDetalleCotizacionPyp(id){
+  const resp=await fetch(SUPABASE_URL+"/rest/v1/cotizacion_detalle_pyp_autocamiones?select=*&cotizacion_id=eq."+encodeURIComponent(id)+"&order=item.asc",{method:"GET",headers:{"apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY},cache:"no-store"});
+  if(!resp.ok) throw new Error("No se pudo obtener el detalle de la cotización.");
+  return await resp.json()||[];
+}
+
+function construirPdfCotizacionPyp(cotizacion,detalle){
+  const jsPDFRef=window.jspdf&&window.jspdf.jsPDF;
+  if(!jsPDFRef) throw new Error("No se pudo cargar el generador de PDF.");
+  const doc=new jsPDFRef({orientation:"landscape",unit:"mm",format:"a4"});
+  const pageW=doc.internal.pageSize.getWidth(), pageH=doc.internal.pageSize.getHeight();
+  const tipo=String(cotizacion.tipo_registro||cotizacion.tipo||"Servicio");
+  const identificador=tipo.toLowerCase()==="nuevo"?(cotizacion.vin||"—"):(cotizacion.placa||"—");
+  const fecha=String(cotizacion.fecha||cotizacion.created_at||"").slice(0,10)||formatoFechaCotizacionPyp();
+  try{doc.addImage(LOGO_COTIZACION_PYP_BASE64,"PNG",10,8,72,29);}catch(e){doc.setFont("helvetica","bold");doc.setFontSize(18);doc.text("POTENCIA 51",10,20);}
+  doc.setFont("helvetica","bolditalic");doc.setFontSize(9);doc.setTextColor(55,73,92);doc.text("Especialistas en Servicios Automotrices | Taller de Planchado y Pintura",10,44);
+  doc.setTextColor(0,0,0);doc.setFont("helvetica","bold");doc.setFontSize(10);doc.text(cotizacion.correlativo||"—",pageW-10,23,{align:"right"});
+  doc.setFontSize(10);doc.setTextColor(31,41,55);doc.text("DATOS DEL CLIENTE Y VEHÍCULO",10,56);
+  const rows=[["Cliente:",cotizacion.cliente||"—","Placa / VIN:",identificador],["Teléfono / Email:",(cotizacion.telefono||cotizacion.email)||"—","Marca / Modelo:",cotizacion.marca||"—"],["Fecha:",fecha,"Año / Color:","—"]];
+  let y=61; const x1=10,x2=125,boxX1=28,boxX2=168;
+  rows.forEach(function(r){doc.setFont("helvetica","bold");doc.text(r[0],x1,y+4);doc.setFont("helvetica","normal");doc.setDrawColor(185,198,213);doc.setFillColor(255,255,255);doc.rect(boxX1,y,74,7,"FD");doc.text(String(r[1]||"—"),boxX1+2,y+4.7);doc.setFont("helvetica","bold");doc.text(r[2],x2,y+4);doc.setFont("helvetica","normal");doc.rect(boxX2,y,38,7,"FD");doc.text(String(r[3]||"—"),boxX2+2,y+4.7);y+=8;});
+  const tableRows=detalle.map(function(d,i){return [String(i+1),String(d.servicio||"Otros"),String(d.tipo_trabajo||d.servicio||""),formatoCantidadPyp(Number(d.cantidad||1)),formatoSolesPyp(Number(d.precio_unitario||0)),formatoSolesPyp(Number(d.descuento||0)),formatoSolesPyp(Number(d.subtotal||0))];});
+  doc.autoTable({startY:88,margin:{left:8,right:8},head:[["Item","Pieza / Paño / Servicio","Tipo de Trabajo","Cant.","Precio Unit. (S/)","Descuento (S/)","Subtotal (S/)"]],body:tableRows,theme:"grid",styles:{font:"helvetica",fontSize:8.5,cellPadding:1.7,textColor:[31,41,55],lineColor:[185,198,213],lineWidth:.25,overflow:"linebreak",valign:"middle"},headStyles:{fontStyle:"bold",fillColor:[31,55,85],textColor:[255,255,255],halign:"center"},columnStyles:{0:{cellWidth:14,halign:"center"},1:{cellWidth:75},2:{cellWidth:75},3:{cellWidth:22,halign:"center"},4:{cellWidth:36,halign:"right"},5:{cellWidth:36,halign:"right"},6:{cellWidth:38,halign:"right"}},alternateRowStyles:{fillColor:[248,250,252]}});
+  let sy=(doc.lastAutoTable?.finalY||88)+10;if(sy>pageH-55){doc.addPage();sy=20;}
+  const subtotal=Number(cotizacion.subtotal_bruto||0),igv=Number(cotizacion.igv||0),total=Number(cotizacion.total||0);
+  doc.setFont("helvetica","bolditalic");doc.setFontSize(8);doc.setTextColor(82,100,120);doc.text("NOTAS / CONDICIONES DEL SERVICIO:",10,sy);doc.setFont("helvetica","italic");doc.text("1. Cotización válida por 15 días calendario.",10,sy+6);doc.text("2. Garantía de pintura: 12 meses frente a decoloración o desprendimiento.",10,sy+12);doc.text("3. Presupuesto no incluye daños ocultos encontrados al desarme",10,sy+18);
+  const rx=pageW-75;doc.setTextColor(31,41,55);doc.setFont("helvetica","bold");doc.setFontSize(9);doc.text("Subtotal Bruto:",rx-4,sy+2,{align:"right"});doc.text(formatoSolesPyp(subtotal),pageW-10,sy+2,{align:"right"});doc.text("IGV (18%):",rx-4,sy+9,{align:"right"});doc.text(formatoSolesPyp(igv),pageW-10,sy+9,{align:"right"});doc.setFillColor(230,244,252);doc.rect(rx,sy+13,67,9,"F");doc.setFontSize(11);doc.text("TOTAL (S/):",rx+30,sy+19,{align:"right"});doc.text(formatoSolesPyp(total),pageW-10,sy+19,{align:"right"});doc.setDrawColor(31,55,85);doc.setLineWidth(1.2);doc.line(rx+30,sy+24,pageW-10,sy+24);
+  if(cotizacion.observaciones){doc.setFont("helvetica","bold");doc.setFontSize(8);doc.setTextColor(55,65,81);doc.text("Observaciones:",10,sy+31);doc.setFont("helvetica","normal");doc.text(doc.splitTextToSize(cotizacion.observaciones,150),10,sy+36);}
+  doc.setFont("helvetica","normal");doc.setFontSize(7);doc.setTextColor(120,120,120);doc.text("Cotización "+(cotizacion.correlativo||"")+" | Potencia 51 AutoCamiones",10,pageH-8);
+  return doc;
+}
+
+async function verCotizacionPyp(id){
+  try{const c=cotizacionesPyp.find(function(x){return String(x.id)===String(id);});if(!c) return;const d=await obtenerDetalleCotizacionPyp(id);const doc=construirPdfCotizacionPyp(c,d);const url=doc.output("bloburl");window.open(url,"_blank");}catch(e){console.error(e);mostrarAlerta("No se pudo abrir la cotización.","error");}
+}
+
+async function descargarCotizacionPyp(id){
+  try{const c=cotizacionesPyp.find(function(x){return String(x.id)===String(id);});if(!c) return;const d=await obtenerDetalleCotizacionPyp(id);const doc=construirPdfCotizacionPyp(c,d);doc.save((c.correlativo||"cotizacion-pyp")+".pdf");}catch(e){console.error(e);mostrarAlerta("No se pudo descargar la cotización.","error");}
 }
 
 async function pasarCotizacionAFacturacion(id){
