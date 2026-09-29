@@ -4818,18 +4818,26 @@ function siguienteCorrelativoCotizacionPypLocal(){
 
 async function guardarCotizacionPypEnSupabase(datos){
   const fallbackCorrelativo=siguienteCorrelativoCotizacionPypLocal();
+  const descuentoTotal = datos.items.reduce(function(acum,s){
+    return acum + Number(descuentoServicioPyp(s) || 0);
+  },0);
+  const subtotalNeto = Number((Number(datos.subtotal || 0) - descuentoTotal).toFixed(2));
   const payload={
     correlativo:fallbackCorrelativo,
-    tipo:datos.tipo,
+    tipo_registro:datos.tipo === "Nuevo" ? "nuevo" : "servicio",
     placa:datos.placa||null,
     vin:datos.vin||null,
-    marca:datos.marca,
-    modelo:datos.modelo||"",
-    observaciones:datos.observaciones||"",
-    subtotal_bruto:datos.subtotal,
-    igv:datos.igv,
-    total:datos.total,
-    estado:"Pendiente"
+    marca:datos.marca||null,
+    cliente:datos.cliente||null,
+    telefono:datos.telefono||null,
+    email:datos.email||null,
+    subtotal_bruto:Number(datos.subtotal || 0),
+    descuento_total:Number(descuentoTotal.toFixed(2)),
+    subtotal_neto:subtotalNeto,
+    igv:Number(datos.igv || 0),
+    total:Number(datos.total || 0),
+    estado:"Pendiente",
+    observaciones:datos.observaciones||null
   };
 
   const respuesta=await fetch(SUPABASE_URL+"/rest/v1/cotizaciones_pyp_autocamiones",{
@@ -4847,20 +4855,8 @@ async function guardarCotizacionPypEnSupabase(datos){
   const row=rows && rows[0] ? rows[0] : null;
   if(!row) throw new Error("Supabase no devolvió la cotización creada.");
 
-  // Si la tabla tiene la columna numero, el correlativo queda sincronizado entre equipos.
-  let correlativo=row.correlativo || fallbackCorrelativo;
-  if(row.numero !== undefined && row.numero !== null){
-    const n=Math.max(128, Number(row.numero)+127);
-    correlativo="PTO-"+String(n).padStart(5,"0")+"-PYP";
-    if(row.correlativo !== correlativo){
-      const patch=await fetch(SUPABASE_URL+"/rest/v1/cotizaciones_pyp_autocamiones?id=eq."+encodeURIComponent(row.id),{
-        method:"PATCH",
-        headers:{"apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY,"Content-Type":"application/json","Prefer":"return=minimal"},
-        body:JSON.stringify({correlativo:correlativo})
-      });
-      if(!patch.ok) throw new Error("No se pudo sincronizar el correlativo de la cotización.");
-    }
-  }
+  // El correlativo lo genera el cliente de forma incremental y se guarda en Supabase.
+  const correlativo=row.correlativo || fallbackCorrelativo;
 
   const detalles=datos.items.map(function(s,i){
     return {
@@ -4927,8 +4923,11 @@ async function generarCotizacionPyp(){
     const igv=Number((subtotalBruto*IGV_AUTOCAMIONES).toFixed(2));
     const total=Number((subtotalBruto+igv).toFixed(2));
     const observaciones=(document.getElementById("observaciones")?.value||"").trim();
+    const cliente=(document.getElementById("cliente")?.value||"").trim();
+    const telefono=(document.getElementById("telefono")?.value||"").trim();
+    const email=(document.getElementById("email")?.value||"").trim();
     const cotizacionGuardada=await guardarCotizacionPypEnSupabase({
-      tipo,placa,vin,marca,modelo:"",observaciones,items,subtotal:subtotalBruto,igv,total
+      tipo,placa,vin,marca,cliente,telefono,email,observaciones,items,subtotal:subtotalBruto,igv,total
     });
     const correlativo=cotizacionGuardada.correlativo;
     const fecha=formatoFechaCotizacionPyp();
