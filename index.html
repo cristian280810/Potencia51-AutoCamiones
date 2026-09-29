@@ -182,9 +182,10 @@ textarea{
     justify-content:center;
     align-items:center;
     gap:28px;
-    margin-top:10px;
-    padding:8px 10px 4px 18px;
-    border-left:4px solid #e5e7eb;
+    margin:0 0 18px 0;
+    padding:0;
+    border-left:0;
+    width:100%;
 }
 
 #tiposLavado .tipo-option{
@@ -1836,6 +1837,13 @@ onclick="seleccionarCategoriaRegistro('pintura')">
 </label>
 
 
+</div>
+
+</div>
+
+
+<div class="card">
+
 <div id="tiposLavado" class="tipos-lavado">
   <label id="opcionServicioLavado" class="tipo-option active">
     <input type="radio" name="tipoLavado" value="Servicio" checked onchange="cambiarTipoLavado('Servicio')">
@@ -1846,12 +1854,6 @@ onclick="seleccionarCategoriaRegistro('pintura')">
     🚘 Nuevo
   </label>
 </div>
-</div>
-
-</div>
-
-
-<div class="card">
 
 <div class="form-grid" id="gridRegistro">
 <!-- =====================================================
@@ -1926,6 +1928,10 @@ capture="environment">
 <div
 id="campoMarca"
 class="form-group">
+
+<label>
+Marca *
+</label>
 
 <select id="marca">
 
