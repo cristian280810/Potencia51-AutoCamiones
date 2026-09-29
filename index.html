@@ -3496,7 +3496,12 @@ async function cargarServiciosAutoCamiones(){
       select.disabled = false;
     });
 
-    seleccionarServicioLavado(document.getElementById("servicioLavado")?.value || "");
+    // En Lavado y Adicionales, "Lavado básico" queda seleccionado por defecto.
+    const selectLavadoDefault = document.getElementById("servicioLavado");
+    if(selectLavadoDefault){
+      seleccionarServicioPorNombre("servicioLavado", "Lavado básico");
+      seleccionarServicioLavado(selectLavadoDefault.value || "");
+    }
     seleccionarServicioPorNombre("pasadoServicio", "Lavado básico");
     if(categoriaRegistroActual === "lavado") renderizarServiciosSeleccionadosRegistro();
 
@@ -4090,7 +4095,13 @@ function seleccionarCategoriaRegistro(categoria){
     if(selectorPintura) selectorPintura.style.display="none";
     const tipoActual = document.querySelector('input[name="tipoLavado"]:checked')?.value || "Servicio";
     cambiarTipo(tipoActual);
-    cargarServiciosAutoCamiones().catch(function(error){
+    cargarServiciosAutoCamiones().then(function(){
+      const selectLavado = document.getElementById("servicioLavado");
+      if(selectLavado){
+        seleccionarServicioPorNombre("servicioLavado", "Lavado básico");
+        seleccionarServicioLavado(selectLavado.value || "");
+      }
+    }).catch(function(error){
       console.warn("No se pudo cargar el catálogo de Lavado y Adicionales:", error);
     });
   }
@@ -5957,7 +5968,10 @@ function limpiarFormulario(){
   document.getElementById("fotoVIN").value="";
   limpiarServiciosSeleccionadosRegistro();
   const selectLavadoReset=document.getElementById("servicioLavado");
-  if(selectLavadoReset) selectLavadoReset.value="";
+  if(selectLavadoReset){
+    seleccionarServicioPorNombre("servicioLavado", "Lavado básico");
+    seleccionarServicioLavado(selectLavadoReset.value || "");
+  }
   const radioServicioLavado=document.querySelector('input[name="tipoLavado"][value="Servicio"]');
   if(radioServicioLavado){ radioServicioLavado.checked=true; cambiarTipoLavado("Servicio"); }
   seleccionarServicioLavado("");
