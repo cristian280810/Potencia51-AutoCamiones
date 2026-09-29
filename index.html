@@ -5168,8 +5168,15 @@ async function generarCotizacionPyp(){
 
     doc.setFont("helvetica","normal"); doc.setFontSize(7); doc.setTextColor(120,120,120);
     doc.text("Cotización " + correlativo + " | Potencia 51 AutoCamiones",10,pageH-8);
+
+    // La cotización ya fue guardada en Supabase y el PDF ya está completamente
+    // construido. Limpiamos el formulario ANTES de abrir/descargar el PDF para
+    // que los datos no permanezcan aunque el navegador muestre una ventana
+    // de impresión/visualización y el usuario elija Sí o No.
+    limpiarFormulario();
+
     doc.save(correlativo+".pdf");
-    mostrarAlerta("Cotización "+correlativo+" generada correctamente.","success");
+    mostrarAlerta("Cotización "+correlativo+" generada correctamente. El formulario quedó listo para una nueva cotización.","success");
   }catch(error){
     console.error("Error al generar cotización PYP:",error);
     mostrarAlerta("No se pudo generar la cotización. Revise los datos e intente nuevamente.","error");
@@ -6785,6 +6792,12 @@ function limpiarFormulario(){
   document.getElementById("vin").value="";
   document.getElementById("modelo").value="";
   document.getElementById("observaciones").value="";
+  const clienteEl=document.getElementById("cliente");
+  const telefonoEl=document.getElementById("telefono");
+  const emailEl=document.getElementById("email");
+  if(clienteEl) clienteEl.value="";
+  if(telefonoEl) telefonoEl.value="";
+  if(emailEl) emailEl.value="";
   document.getElementById("marca").value="";
   document.getElementById("fotoIngreso").value="";
   document.getElementById("fotoVIN").value="";
