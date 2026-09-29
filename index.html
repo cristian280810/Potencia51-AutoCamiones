@@ -1133,28 +1133,26 @@ html, body {
 
 /* Buscador y selección múltiple de servicios */
 .servicio-multiple-group{position:relative;}
-.servicio-buscador{display:flex;align-items:center;gap:8px;width:100%;}
-.servicio-search-wrap{position:relative;flex:1;}
-.servicio-search-wrap input{width:100%;padding:10px 12px 10px 36px;border:1px solid #d1d5db;border-radius:7px;box-sizing:border-box;}
-.servicio-search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:15px;pointer-events:none;}
-.btn-add-servicio{width:42px;height:40px;border:0;border-radius:7px;background:#2563eb;color:#fff;font-size:24px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;}
-.btn-add-servicio:hover{background:#1d4ed8;}
-.servicio-resultados{position:absolute;left:0;right:50px;top:calc(100% + 38px);z-index:80;background:#fff;border:1px solid #d1d5db;border-radius:7px;box-shadow:0 8px 20px rgba(0,0,0,.12);max-height:230px;overflow-y:auto;}
-.servicio-resultado-item{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 12px;border-bottom:1px solid #f1f5f9;cursor:pointer;}
-.servicio-resultado-item:last-child{border-bottom:0;}
-.servicio-resultado-item:hover{background:#f8fafc;}
-.servicio-resultado-nombre{flex:1;}
-.servicio-resultado-precio{font-weight:700;white-space:nowrap;}
-.servicio-resultado-add{border:0;background:#e0ecff;color:#1d4ed8;border-radius:6px;width:30px;height:30px;font-size:20px;cursor:pointer;}
+.servicio-desplegable{position:relative;width:100%;}
+.servicio-desplegable-btn{width:100%;min-height:40px;padding:10px 12px;border:1px solid #d1d5db;border-radius:7px;background:#fff;color:#374151;text-align:left;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:space-between;gap:10px;box-sizing:border-box;}
+.servicio-desplegable-btn:hover{border-color:#9ca3af;}
+.servicio-desplegable-flecha{font-size:16px;color:#6b7280;}
+.servicio-desplegable-menu{position:absolute;left:0;right:0;top:calc(100% + 4px);z-index:100;background:#fff;border:1px solid #d1d5db;border-radius:7px;box-shadow:0 8px 20px rgba(0,0,0,.12);max-height:300px;overflow-y:auto;padding:0;}
+.servicio-desplegable-buscador{position:sticky;top:0;z-index:2;background:#fff;padding:8px;border-bottom:1px solid #e5e7eb;}
+.servicio-desplegable-buscador input{width:100%;box-sizing:border-box;padding:9px 10px 9px 32px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;outline:none;background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width=16 height=16 viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width=2%3E%3Ccircle cx=11 cy=11 r=7/%3E%3Cpath d='m20 20-3.5-3.5'/%3E%3C/svg%3E") no-repeat 9px center;}
+.servicio-desplegable-buscador input:focus{border-color:#2563eb;box-shadow:0 0 0 2px rgba(37,99,235,.12);}
+.servicio-desplegable-lista{padding:5px 0;}
+.servicio-desplegable-sin-resultados{padding:12px;color:#6b7280;font-size:13px;text-align:center;}
+.servicio-desplegable-item{display:flex;align-items:center;gap:9px;padding:9px 12px;cursor:pointer;font-size:13px;line-height:1.25;}
+.servicio-desplegable-item:hover{background:#f3f4f6;}
+.servicio-desplegable-item input{width:16px;height:16px;margin:0;accent-color:#2563eb;flex:0 0 auto;}
 .servicios-seleccionados{display:flex;flex-wrap:wrap;gap:7px;margin-top:9px;min-height:36px;align-items:center;}
 .servicio-chip{display:inline-flex;align-items:center;gap:7px;padding:7px 9px;background:#eef2ff;border:1px solid #c7d2fe;border-radius:7px;font-size:13px;}
-.servicio-chip-precio{font-weight:700;}
 .servicio-chip-remove{border:0;background:transparent;color:#dc2626;font-size:18px;line-height:1;cursor:pointer;padding:0;}
 .servicios-vacio{color:#6b7280;font-size:13px;}
 @media(max-width:700px){
   .identificador-opciones{gap:12px;}
   .identificador-option{padding:7px 10px;}
-  .servicio-resultados{right:50px;}
 }
 </style>
 <style>
@@ -2011,14 +2009,18 @@ value="">
   </div>
 
   <div id="selectorServiciosPintura" style="display:none;">
-    <div class="servicio-buscador">
-      <div class="servicio-search-wrap">
-        <span class="servicio-search-icon">🔍</span>
-        <input id="buscarServicioRegistro" type="text" placeholder="Buscar servicio..." autocomplete="off" oninput="buscarServiciosRegistro(this.value)">
+    <div class="servicio-desplegable">
+      <button type="button" id="btnServiciosPintura" class="servicio-desplegable-btn" onclick="toggleServiciosPinturaDropdown(event)">
+        <span id="textoServiciosPintura">Seleccione el servicio</span>
+        <span class="servicio-desplegable-flecha">▾</span>
+      </button>
+      <div id="dropdownServiciosPintura" class="servicio-desplegable-menu" style="display:none;">
+        <div class="servicio-desplegable-buscador">
+          <input id="buscadorServiciosPintura" type="text" placeholder="Buscar servicio..." autocomplete="off" oninput="filtrarServiciosPintura(this.value)" onclick="event.stopPropagation()">
+        </div>
+        <div id="listaServiciosPintura" class="servicio-desplegable-lista"></div>
       </div>
-      <button type="button" class="btn-add-servicio" onclick="agregarServicioDesdeBusqueda()" title="Agregar servicio">＋</button>
     </div>
-    <div id="resultadosServiciosRegistro" class="servicio-resultados" style="display:none"></div>
     <div id="serviciosSeleccionadosRegistro" class="servicios-seleccionados">
       <span class="servicios-vacio">No hay servicios seleccionados</span>
     </div>
@@ -3397,7 +3399,50 @@ let supabaseClient = null;
 ===================================================== */
 
 let serviciosAutoCamiones = [];
-let serviciosPlanchadoPintura = [];
+
+// Catálogo independiente de Planchado y Pintura.
+// Se carga directamente en memoria para que el selector nunca dependa
+// de una consulta externa para poder mostrarse.
+let serviciosPlanchadoPintura = [
+  [1,"MO por planchado",40],
+  [2,"Pintado por paño tricapa",170],
+  [3,"Pintado por paño bicapa",150],
+  [4,"Pintado de chasis",350],
+  [5,"Reparación de aros C/U",110],
+  [6,"Reparar funda de parachoque DELT o POST",80],
+  [7,"Reparar funda superior parachoque DELT o POST",80],
+  [8,"Reparar y pintar funda inferior DELT o POST (negro mate)",120],
+  [9,"Reparar y pintar funda de parachoque DELT y POST completo negro mate",150],
+  [10,"Reparar moldura de estribo RH o LH",80],
+  [11,"Reparar y pintar moldura de estribo (negro mate)",150],
+  [12,"Pulir faro delantero RH o LH",120],
+  [13,"Reparar tapa de retrovisor ext",70],
+  [14,"Reparar y pintar seguro de espejo (negro mate)",60],
+  [15,"Reparar y pintar tapiz de maletera",150],
+  [16,"Reparar moldura de maletera",80],
+  [17,"Reparar y pintar mandil de guardaf. delant RH o LH",60],
+  [18,"Reparar y pintar mandil inf de motor chico",80],
+  [19,"Reparar y pintar mandil inf de motor grande",120],
+  [20,"Reparar esquinero posterior RH o LH",60],
+  [21,"Reparar y pintar fender de guardaf. delt (negro mate)",80],
+  [22,"Reparar moldura de puerta",70],
+  [23,"Reparar y pintar moldura de puerta",80],
+  [24,"Reparar tapa de neblinero",50],
+  [25,"Reparar y pintar tapa de neblinero (negro mate)",70],
+  [26,"Reparar y pintar escarpín RH o LH",60],
+  [27,"Reparar máscara delantera",80],
+  [28,"Reparar y pintar máscara delantera",150],
+  [29,"Reparar y pintar tapiz de puerta",150],
+  [30,"Reparar depósito de agua",80],
+  [31,"Reparar y pintar tablero",380],
+  [32,"Reparar portacerradura o mascarón",180],
+  [33,"Pulir faro neblinero",70],
+  [34,"Reparar vaso de rueda",60],
+  [35,"Reparar y pintar vaso de rueda",120]
+].map(function(x){
+  return {id:x[0], nombre_servicio:x[1], precio_sin_igv:x[2], activo:true};
+});
+
 let categoriaRegistroActual = "lavado";
 let serviciosSeleccionadosRegistro = [];
 const IGV_AUTOCAMIONES = 0.18;
@@ -3415,7 +3460,6 @@ async function cargarServiciosAutoCamiones(){
   });
 
   try{
-
     const respuesta = await fetch(
       SUPABASE_URL +
       "/rest/v1/servicios_autocamiones?select=id,nombre_servicio,precio_sin_igv,activo&activo=eq.true&order=id.asc",
@@ -3442,7 +3486,6 @@ async function cargarServiciosAutoCamiones(){
 
     selects.forEach(function(select){
       select.innerHTML = '<option value="">Seleccione el servicio</option>';
-
       serviciosAutoCamiones.forEach(function(servicio){
         const option = document.createElement("option");
         option.value = String(servicio.id);
@@ -3450,68 +3493,32 @@ async function cargarServiciosAutoCamiones(){
         option.dataset.precioSinIgv = Number(servicio.precio_sin_igv || 0).toFixed(2);
         select.appendChild(option);
       });
-
       select.disabled = false;
     });
 
     seleccionarServicioLavado(document.getElementById("servicioLavado")?.value || "");
-
-    // Mantener compatibilidad con módulos existentes.
     seleccionarServicioPorNombre("pasadoServicio", "Lavado básico");
     if(categoriaRegistroActual === "lavado") renderizarServiciosSeleccionadosRegistro();
 
   }catch(error){
-
     console.error("Error cargando servicios:", error);
-
     selects.forEach(function(select){
       select.innerHTML = '<option value="">❌ No se pudieron cargar los servicios</option>';
       select.disabled = true;
     });
-
     mostrarAlerta("No se pudieron cargar los servicios: " + error.message,"error");
     throw error;
   }
 }
 
+// Para Planchado y Pintura NO esperamos a Supabase.
+// El catálogo ya está disponible desde que se carga el HTML.
 async function cargarServiciosPlanchadoPintura(){
-  if(!document.getElementById("selectorServiciosPintura")) return;
-
-  try{
-    const respuesta=await fetch(
-      SUPABASE_URL+
-      "/rest/v1/planchado_pintura_autocamiones?select=id,nombre_servicio,precio_sin_igv,activo&activo=eq.true&order=id.asc",
-      {
-        method:"GET",
-        headers:{
-          "apikey":SUPABASE_KEY,
-          "Authorization":"Bearer "+SUPABASE_KEY
-        },
-        cache:"no-store"
-      }
-    );
-
-    if(!respuesta.ok){
-      const texto=await respuesta.text();
-      throw new Error("Supabase HTTP "+respuesta.status+(texto?": "+texto:""));
-    }
-
-    serviciosPlanchadoPintura=await respuesta.json();
-
-    if(!Array.isArray(serviciosPlanchadoPintura) || !serviciosPlanchadoPintura.length){
-      throw new Error("No hay servicios activos en planchado_pintura_autocamiones.");
-    }
-
-    if(categoriaRegistroActual === "pintura") renderizarServiciosSeleccionadosRegistro();
-  }catch(error){
-    console.error("Error cargando Planchado y Pintura:",error);
-    select.innerHTML='<option value="">❌ No se pudieron cargar los servicios</option>';
-    select.disabled=true;
-    mostrarAlerta("No se pudieron cargar los servicios de Planchado y Pintura: "+error.message,"error");
-    throw error;
+  renderizarDropdownServiciosPintura();
+  if(categoriaRegistroActual === "pintura"){
+    renderizarServiciosSeleccionadosRegistro();
   }
 }
-
 
 function catalogoRegistroActual(){
   return categoriaRegistroActual === "pintura"
@@ -3526,7 +3533,7 @@ function renderizarServiciosSeleccionadosRegistro(){
 
   if(hidden){
     hidden.innerHTML='<option value="">Seleccione el servicio</option>';
-    if(categoriaRegistroActual === "pintura" && serviciosSeleccionadosRegistro[0]){
+    if(serviciosSeleccionadosRegistro[0]){
       const o=document.createElement("option");
       o.value=String(serviciosSeleccionadosRegistro[0].id);
       o.textContent=serviciosSeleccionadosRegistro[0].nombre_servicio;
@@ -3535,16 +3542,210 @@ function renderizarServiciosSeleccionadosRegistro(){
     }
   }
 
+  const texto=document.getElementById("textoServiciosPintura");
+  if(texto){
+    texto.textContent=serviciosSeleccionadosRegistro.length
+      ? serviciosSeleccionadosRegistro.length + (serviciosSeleccionadosRegistro.length===1 ? " servicio seleccionado" : " servicios seleccionados")
+      : "Seleccione el servicio";
+  }
+
+  renderizarDropdownServiciosPintura();
+
   if(!serviciosSeleccionadosRegistro.length){
     cont.innerHTML='<span class="servicios-vacio">No hay servicios seleccionados</span>';
     return;
   }
 
   cont.innerHTML=serviciosSeleccionadosRegistro.map(function(s){
-    const precio=Number(s.precio_sin_igv||0).toFixed(2);
-    return '<span class="servicio-chip">'+esc(s.nombre_servicio)+' <span class="servicio-chip-precio">S/ '+precio+'</span><button type="button" class="servicio-chip-remove" onclick="quitarServicioRegistro(\''+String(s.id).replace(/'/g,"\\'")+'\')" title="Quitar">×</button></span>';
+    return '<span class="servicio-chip">'+esc(s.nombre_servicio)+'<button type="button" class="servicio-chip-remove" onclick="quitarServicioRegistro('+String(s.id)+')" title="Quitar">×</button></span>';
   }).join("");
 }
+
+function renderizarDropdownServiciosPintura(){
+  const menu=document.getElementById("dropdownServiciosPintura");
+  if(!menu) return;
+
+  const lista=document.getElementById("listaServiciosPintura");
+  if(!lista) return;
+
+  if(!Array.isArray(serviciosPlanchadoPintura) || !serviciosPlanchadoPintura.length){
+    lista.innerHTML='<div style="padding:10px;color:#6b7280;">No hay servicios disponibles.</div>';
+    return;
+  }
+
+  const ids=new Set(serviciosSeleccionadosRegistro.map(function(s){return String(s.id);}));
+  const buscador=document.getElementById("buscadorServiciosPintura");
+  const q=String(buscador ? buscador.value : "").trim().toLowerCase();
+  const serviciosFiltrados=serviciosPlanchadoPintura.filter(function(s){
+    return String(s.nombre_servicio||"").toLowerCase().includes(q);
+  });
+
+  if(!serviciosFiltrados.length){
+    lista.innerHTML='<div class="servicio-desplegable-sin-resultados">No se encontraron servicios.</div>';
+    return;
+  }
+
+  lista.innerHTML=serviciosFiltrados.map(function(s){
+    const id=String(s.id);
+    const checked=ids.has(id) ? ' checked' : '';
+    return '<label class="servicio-desplegable-item">'+
+      '<input type="checkbox" value="'+esc(id)+'"'+checked+' onchange="seleccionarServicioDesdeDropdown(this.value,this.checked)">'+
+      '<span>'+esc(s.nombre_servicio)+'</span>'+
+    '</label>';
+  }).join("");
+}
+
+function filtrarServiciosPintura(texto){
+  const buscador=document.getElementById("buscadorServiciosPintura");
+  if(buscador && buscador.value!==String(texto||"")) buscador.value=String(texto||"");
+  renderizarDropdownServiciosPintura();
+}
+
+function toggleServiciosPinturaDropdown(event){
+  if(event) event.stopPropagation();
+  const menu=document.getElementById("dropdownServiciosPintura");
+  if(!menu) return;
+  const abrir=menu.style.display !== "block";
+  menu.style.display = abrir ? "block" : "none";
+  renderizarDropdownServiciosPintura();
+  if(abrir){
+    const buscador=document.getElementById("buscadorServiciosPintura");
+    if(buscador){ setTimeout(function(){ buscador.focus(); buscador.select(); },0); }
+  }
+}
+
+function seleccionarServicioDesdeDropdown(id, marcado){
+  const servicio=serviciosPlanchadoPintura.find(function(s){return String(s.id)===String(id);});
+  if(!servicio) return;
+  if(marcado){
+    if(!serviciosSeleccionadosRegistro.some(function(s){return String(s.id)===String(id);})){ serviciosSeleccionadosRegistro.push(servicio); }
+  }else{
+    serviciosSeleccionadosRegistro=serviciosSeleccionadosRegistro.filter(function(s){return String(s.id)!==String(id);});
+  }
+  renderizarServiciosSeleccionadosRegistro();
+}
+
+document.addEventListener("click", function(event){
+  const cont=document.querySelector("#selectorServiciosPintura .servicio-desplegable");
+  const menu=document.getElementById("dropdownServiciosPintura");
+  if(cont && menu && !cont.contains(event.target)) menu.style.display="none";
+});
+
+function catalogoRegistroActual(){
+  return categoriaRegistroActual === "pintura"
+    ? serviciosPlanchadoPintura
+    : serviciosAutoCamiones;
+}
+
+function renderizarServiciosSeleccionadosRegistro(){
+  const cont=document.getElementById("serviciosSeleccionadosRegistro");
+  const hidden=document.getElementById("servicio");
+  if(!cont) return;
+
+  if(hidden){
+    hidden.innerHTML='<option value="">Seleccione el servicio</option>';
+    if(serviciosSeleccionadosRegistro[0]){
+      const o=document.createElement("option");
+      o.value=String(serviciosSeleccionadosRegistro[0].id);
+      o.textContent=serviciosSeleccionadosRegistro[0].nombre_servicio;
+      hidden.appendChild(o);
+      hidden.value=String(serviciosSeleccionadosRegistro[0].id);
+    }
+  }
+
+  const texto=document.getElementById("textoServiciosPintura");
+  if(texto){
+    texto.textContent=serviciosSeleccionadosRegistro.length
+      ? serviciosSeleccionadosRegistro.length + (serviciosSeleccionadosRegistro.length===1 ? " servicio seleccionado" : " servicios seleccionados")
+      : "Seleccione el servicio";
+  }
+
+  renderizarDropdownServiciosPintura();
+
+  if(!serviciosSeleccionadosRegistro.length){
+    cont.innerHTML='<span class="servicios-vacio">No hay servicios seleccionados</span>';
+    return;
+  }
+
+  // En Planchado y Pintura se muestran solo los nombres, nunca los precios.
+  cont.innerHTML=serviciosSeleccionadosRegistro.map(function(s){
+    return '<span class="servicio-chip">'+esc(s.nombre_servicio)+'<button type="button" class="servicio-chip-remove" onclick="quitarServicioRegistro(\''+String(s.id).replace(/'/g,"\\'")+'\')" title="Quitar">×</button></span>';
+  }).join("");
+}
+
+function renderizarDropdownServiciosPintura(){
+  const menu=document.getElementById("dropdownServiciosPintura");
+  if(!menu) return;
+
+  if(!serviciosPlanchadoPintura.length){
+    menu.innerHTML='<div style="padding:10px;color:#6b7280;">Cargando servicios...</div>';
+    return;
+  }
+
+  const ids=new Set(serviciosSeleccionadosRegistro.map(function(s){return String(s.id);}));
+  const buscador=document.getElementById("buscadorServiciosPintura");
+  const lista=document.getElementById("listaServiciosPintura");
+  if(!lista) return;
+  const q=String(buscador ? buscador.value : "").trim().toLowerCase();
+  const serviciosFiltrados=serviciosPlanchadoPintura.filter(function(s){
+    return String(s.nombre_servicio||"").toLowerCase().includes(q);
+  });
+
+  if(!serviciosFiltrados.length){
+    lista.innerHTML='<div class="servicio-desplegable-sin-resultados">No se encontraron servicios.</div>';
+    return;
+  }
+
+  lista.innerHTML=serviciosFiltrados.map(function(s){
+    const id=String(s.id);
+    const checked=ids.has(id) ? ' checked' : '';
+    return '<label class="servicio-desplegable-item">'+
+      '<input type="checkbox" value="'+esc(id)+'"'+checked+' onchange="seleccionarServicioDesdeDropdown(this.value,this.checked)">'+
+      '<span>'+esc(s.nombre_servicio)+'</span>'+
+    '</label>';
+  }).join("");
+}
+
+function filtrarServiciosPintura(texto){
+  const buscador=document.getElementById("buscadorServiciosPintura");
+  if(buscador && buscador.value!==String(texto||"")) buscador.value=String(texto||"");
+  renderizarDropdownServiciosPintura();
+}
+
+function toggleServiciosPinturaDropdown(event){
+  if(event) event.stopPropagation();
+  const menu=document.getElementById("dropdownServiciosPintura");
+  if(!menu) return;
+  const abrir=menu.style.display !== "block";
+  menu.style.display = abrir ? "block" : "none";
+  renderizarDropdownServiciosPintura();
+  if(abrir){
+    const buscador=document.getElementById("buscadorServiciosPintura");
+    if(buscador){ setTimeout(function(){ buscador.focus(); buscador.select(); },0); }
+  }
+}
+
+function seleccionarServicioDesdeDropdown(id, marcado){
+  const servicio=serviciosPlanchadoPintura.find(function(s){return String(s.id)===String(id);});
+  if(!servicio) return;
+
+  if(marcado){
+    if(!serviciosSeleccionadosRegistro.some(function(s){return String(s.id)===String(id);})){
+      serviciosSeleccionadosRegistro.push(servicio);
+    }
+  }else{
+    serviciosSeleccionadosRegistro=serviciosSeleccionadosRegistro.filter(function(s){return String(s.id)!==String(id);});
+  }
+  renderizarServiciosSeleccionadosRegistro();
+}
+
+document.addEventListener("click", function(event){
+  const cont=document.querySelector("#selectorServiciosPintura .servicio-desplegable");
+  const menu=document.getElementById("dropdownServiciosPintura");
+  if(cont && menu && !cont.contains(event.target)){
+    menu.style.display="none";
+  }
+});
 
 function buscarServiciosRegistro(texto){
   const box=document.getElementById("resultadosServiciosRegistro");
