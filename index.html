@@ -3009,8 +3009,11 @@ Cancelar
 <script>
 
 /* =====================================================
-   CONFIGURACIÓN API
+   CONFIGURACIÓN API GOOGLE DRIVE - AUTOCAMIONES
 ===================================================== */
+
+const API_URL =
+"https://script.google.com/macros/s/AKfycbzXf6SLWgak3CDeCuITNDwcC_ov1I368Hb_fvdoYNIDn3tGwshDuQ8BJppbFrpFVBCU/exec";
 
 /* =====================================================
    SUPABASE AUTOCAMIONES
@@ -3452,49 +3455,103 @@ reader.readAsDataURL(file);
 ===================================================== */
 
 async function enviarDrive(datos){
-  if(!supabaseClient){
-    if(window.supabase && window.supabase.createClient){
-      supabaseClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
-    }else{
-      throw new Error("Supabase JS no está disponible.");
+
+  if(!API_URL){
+    throw new Error(
+      "No se ha configurado la URL de Google Apps Script para Drive."
+    );
+  }
+
+  /*
+    AutoCamiones utiliza Google Drive para almacenar:
+    - Fotos de ingreso
+    - Fotos de VIN
+    - Fotos finales
+    - Archivos de facturas
+
+    Supabase conserva únicamente los enlaces devueltos por Drive.
+  */
+
+  const controller = new AbortController();
+
+  const timeout = setTimeout(function(){
+    controller.abort();
+  }, 180000);
+
+  try{
+
+    const separador =
+      API_URL.includes("?") ? "&" : "?";
+
+    const respuesta = await fetch(
+      API_URL +
+      separador +
+      "t=" +
+      Date.now(),
+      {
+        method:"POST",
+        headers:{
+          "Content-Type":"text/plain;charset=utf-8"
+        },
+        body:JSON.stringify(datos),
+        redirect:"follow",
+        cache:"no-store",
+        signal:controller.signal
+      }
+    );
+
+    const texto = await respuesta.text();
+
+    if(!respuesta.ok){
+      throw new Error(
+        "Google Apps Script HTTP " +
+        respuesta.status +
+        (texto ? ": " + texto : "")
+      );
     }
+
+    if(!texto){
+      throw new Error(
+        "Google Apps Script no devolvió ninguna respuesta."
+      );
+    }
+
+    let resultado;
+
+    try{
+      resultado = JSON.parse(texto);
+    }catch(error){
+      throw new Error(
+        "La respuesta de Google Apps Script no es un JSON válido."
+      );
+    }
+
+    if(!resultado || resultado.ok !== true){
+      throw new Error(
+        resultado && resultado.mensaje
+          ? resultado.mensaje
+          : "Google Drive no pudo guardar el archivo."
+      );
+    }
+
+    return resultado;
+
+  }catch(error){
+
+    if(error.name === "AbortError"){
+      throw new Error(
+        "Google Drive tardó más de 3 minutos en responder. " +
+        "La fotografía puede haberse guardado, pero no se recibió " +
+        "el enlace para completar el registro."
+      );
+    }
+
+    throw error;
+
+  }finally{
+    clearTimeout(timeout);
   }
 
-  async function subirDataUrl(dataUrl, carpeta, nombreBase, extension="jpg"){
-    if(!dataUrl) return "";
-    const match=String(dataUrl).match(/^data:([^;]+);base64,(.+)$/);
-    if(!match) throw new Error("Formato de archivo no válido.");
-    const mime=match[1] || "application/octet-stream";
-    const bytes=Uint8Array.from(atob(match[2]),c=>c.charCodeAt(0));
-    const blob=new Blob([bytes],{type:mime});
-    const ruta=carpeta+"/"+String(nombreBase)+"."+extension;
-    const {error}=await supabaseClient.storage.from(STORAGE_BUCKET).upload(ruta,blob,{contentType:mime,upsert:true});
-    if(error) throw error;
-    return supabaseClient.storage.from(STORAGE_BUCKET).getPublicUrl(ruta).data.publicUrl;
-  }
-
-  if(datos.accion==="guardarFotos"){
-    const r={ok:true};
-    if(datos.fotoIngreso) r.fotoIngreso=await subirDataUrl(datos.fotoIngreso,"vehiculos/ingreso",datos.id);
-    if(datos.fotoVIN) r.fotoVIN=await subirDataUrl(datos.fotoVIN,"vehiculos/vin",datos.id);
-    return r;
-  }
-  if(datos.accion==="guardarFotoFinal"){
-    return {ok:true,fotoFinal:await subirDataUrl(datos.fotoFinal,"vehiculos/final",datos.id)};
-  }
-  if(datos.accion==="guardarFactura"){
-    const match=String(datos.archivo||"").match(/^data:([^;]+);base64,(.+)$/);
-    if(!match) throw new Error("El archivo no tiene un formato válido.");
-    const mime=datos.mimeType||match[1]||"application/octet-stream";
-    const bytes=Uint8Array.from(atob(match[2]),c=>c.charCodeAt(0));
-    const blob=new Blob([bytes],{type:mime});
-    const seguro=String(datos.nombreArchivo||"archivo").replace(/[^a-zA-Z0-9._-]/g,"_");
-    const ruta="facturacion/"+String(datos.id)+"/"+seguro;
-    const {error}=await supabaseClient.storage.from(STORAGE_BUCKET).upload(ruta,blob,{contentType:mime,upsert:true});
-    if(error) throw error;
-    return {ok:true,archivoFactura:supabaseClient.storage.from(STORAGE_BUCKET).getPublicUrl(ruta).data.publicUrl};
-  }
-  throw new Error("Acción de archivo no soportada.");
 }
 
 async function registrar(){
