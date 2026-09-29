@@ -1147,6 +1147,12 @@ html, body {
 .servicio-desplegable-item:hover{background:#f3f4f6;}
 .servicio-desplegable-item input{width:16px;height:16px;margin:0;accent-color:#2563eb;flex:0 0 auto;}
 .servicios-seleccionados{display:flex;flex-wrap:wrap;gap:7px;margin-top:9px;min-height:36px;align-items:center;}
+/* En Planchado y Pintura, el detalle de servicios ocupa todo el ancho del formulario. */
+#selectorServiciosPintura + #serviciosSeleccionadosRegistro,
+.campo-servicio-registro #serviciosSeleccionadosRegistro{width:100%;max-width:100%;box-sizing:border-box;}
+@media(max-width:700px){
+  .campo-servicio-registro #serviciosSeleccionadosRegistro{width:100%;}
+}
 .servicio-chip{display:inline-flex;align-items:center;gap:7px;padding:7px 9px;background:#eef2ff;border:1px solid #c7d2fe;border-radius:7px;font-size:13px;}
 .servicio-chip-remove{border:0;background:transparent;color:#dc2626;font-size:18px;line-height:1;cursor:pointer;padding:0;}
 .servicios-vacio{color:#6b7280;font-size:13px;}
@@ -1164,6 +1170,7 @@ html, body {
 .pyp-servicio-quitar{border:0;background:transparent;color:#dc2626;font-size:18px;cursor:pointer;padding:0;}
 .pyp-total-general{margin-top:10px;padding:10px 12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:7px;text-align:right;font-weight:700;font-size:14px;}
 .pyp-precio-lista{margin-left:auto;color:#475569;font-size:12px;white-space:nowrap;}
+.pyp-otro-nombre,.pyp-precio-manual{width:100%;box-sizing:border-box;padding:6px 7px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;}
 @media(max-width:700px){.pyp-servicio-fila{grid-template-columns:minmax(0,1fr) 72px 68px 82px 90px 28px;gap:5px}.pyp-precio-lista{display:none;}}
 </style>
 <style>
@@ -3693,12 +3700,6 @@ function renderizarServiciosSeleccionadosRegistro(){
 function renderizarDropdownServiciosPintura(){
   const menu=document.getElementById("dropdownServiciosPintura");
   if(!menu) return;
-
-  if(!serviciosPlanchadoPintura.length){
-    menu.innerHTML='<div style="padding:10px;color:#6b7280;">Cargando servicios...</div>';
-    return;
-  }
-
   const ids=new Set(serviciosSeleccionadosRegistro.map(function(s){return String(s.id);}));
   const buscador=document.getElementById("buscadorServiciosPintura");
   const lista=document.getElementById("listaServiciosPintura");
@@ -3707,21 +3708,25 @@ function renderizarDropdownServiciosPintura(){
   const serviciosFiltrados=serviciosPlanchadoPintura.filter(function(s){
     return String(s.nombre_servicio||"").toLowerCase().includes(q);
   });
-
-  if(!serviciosFiltrados.length){
-    lista.innerHTML='<div class="servicio-desplegable-sin-resultados">No se encontraron servicios.</div>';
-    return;
+  let html='';
+  if(serviciosFiltrados.length){
+    html=serviciosFiltrados.map(function(s){
+      const id=String(s.id);
+      const checked=ids.has(id) ? ' checked' : '';
+      return '<label class="servicio-desplegable-item">'+
+        '<input type="checkbox" value="'+esc(id)+'"'+checked+' onchange="seleccionarServicioDesdeDropdown(this.value,this.checked)">'+
+        '<span>'+esc(s.nombre_servicio)+'</span>'+
+        '<span class="pyp-precio-lista">S/ '+Number(s.precio_sin_igv||0).toFixed(2)+'</span>'+
+      '</label>';
+    }).join("");
+  } else {
+    html='<div class="servicio-desplegable-sin-resultados">No se encontraron servicios.</div>';
   }
-
-  lista.innerHTML=serviciosFiltrados.map(function(s){
-    const id=String(s.id);
-    const checked=ids.has(id) ? ' checked' : '';
-    return '<label class="servicio-desplegable-item">'+
-      '<input type="checkbox" value="'+esc(id)+'"'+checked+' onchange="seleccionarServicioDesdeDropdown(this.value,this.checked)">'+
-      '<span>'+esc(s.nombre_servicio)+'</span>'+
-      '<span class="pyp-precio-lista">S/ '+Number(s.precio_sin_igv||0).toFixed(2)+'</span>'+
-    '</label>';
-  }).join("");
+  const otroSeleccionado=ids.has('OTRO');
+  html += '<label class="servicio-desplegable-item" style="border-top:1px solid #e5e7eb;margin-top:4px;padding-top:8px;">'+
+    '<input type="checkbox" value="OTRO"'+(otroSeleccionado?' checked':'')+' onchange="seleccionarOtroPyp(this.checked)">'+
+    '<span><strong>Otros</strong></span><span class="pyp-precio-lista">Manual</span></label>';
+  lista.innerHTML=html;
 }
 
 function filtrarServiciosPintura(texto){
@@ -4437,13 +4442,21 @@ function renderizarServiciosSeleccionadosRegistro(){
     const precio=Number(s.precio_sin_igv||0);
     const descuento=descuentoServicioPyp(s);
     const total=totalItemPyp(s);
+    const esOtro=String(s.id)==='OTRO';
+    const nombreHtml=esOtro
+      ? '<input class="pyp-otro-nombre" type="text" value="'+esc(s.nombre_servicio||'')+'" placeholder="Escriba el servicio" oninput="cambiarNombreOtroPyp(this.value)">'
+      : '<strong>'+esc(s.nombre_servicio)+'</strong>';
+    const precioHtml=esOtro
+      ? '<input class="pyp-precio-manual" type="number" min="0" step="0.01" value="'+precio.toFixed(2)+'" aria-label="Precio de Otros" onchange="cambiarPrecioOtroPyp(this.value)">'
+      : formatoSolesPyp(precio);
+    const idArg=esOtro ? '\'OTRO\'' : Number(s.id);
     return '<div class="pyp-servicio-fila">'+
-      '<div class="pyp-servicio-nombre"><strong>'+esc(s.nombre_servicio)+'</strong></div>'+
-      '<div class="pyp-servicio-precio">'+formatoSolesPyp(precio)+'</div>'+
-      '<input class="pyp-cantidad" type="number" min="0.5" step="0.5" value="'+q+'" aria-label="Cantidad de '+esc(s.nombre_servicio)+'" onchange="cambiarCantidadServicioPyp('+Number(s.id)+',this.value)" oninput="cambiarCantidadServicioPyp('+Number(s.id)+',this.value,false)">'+
-      '<input class="pyp-descuento" type="number" min="0" step="0.01" value="'+descuento.toFixed(2)+'" aria-label="Descuento de '+esc(s.nombre_servicio)+'" onchange="cambiarDescuentoServicioPyp('+Number(s.id)+',this.value)" oninput="cambiarDescuentoServicioPyp('+Number(s.id)+',this.value,false)">'+
+      '<div class="pyp-servicio-nombre">'+nombreHtml+'</div>'+
+      '<div class="pyp-servicio-precio">'+precioHtml+'</div>'+
+      '<input class="pyp-cantidad" type="number" min="0.5" step="0.5" value="'+q+'" aria-label="Cantidad de servicio" onchange="cambiarCantidadServicioPyp('+idArg+',this.value)" oninput="cambiarCantidadServicioPyp('+idArg+',this.value,false)">'+
+      '<input class="pyp-descuento" type="number" min="0" step="0.01" value="'+descuento.toFixed(2)+'" aria-label="Descuento del servicio" onchange="cambiarDescuentoServicioPyp('+idArg+',this.value)" oninput="cambiarDescuentoServicioPyp('+idArg+',this.value,false)">'+
       '<div class="pyp-servicio-total">'+formatoSolesPyp(total)+'</div>'+
-      '<button type="button" class="pyp-servicio-quitar" onclick="quitarServicioRegistro('+Number(s.id)+')" title="Quitar">×</button></div>';
+      '<button type="button" class="pyp-servicio-quitar" onclick="quitarServicioRegistro('+idArg+')" title="Quitar">×</button></div>';
   }).join('');
   cont.insertAdjacentHTML('beforeend','<div class="pyp-total-general">Total servicios: '+formatoSolesPyp(totalPyp())+'</div>');
 }
@@ -4478,6 +4491,37 @@ function actualizarTotalFilaPyp(id,s){
   const totalGeneral=cont.querySelector('.pyp-total-general');
   if(totalGeneral) totalGeneral.textContent='Total servicios: '+formatoSolesPyp(totalPyp());
 }
+function seleccionarOtroPyp(marcado){
+  if(marcado){
+    if(!serviciosSeleccionadosRegistro.some(function(s){return String(s.id)==='OTRO';})){
+      serviciosSeleccionadosRegistro.push({id:'OTRO',nombre_servicio:'',precio_sin_igv:0,activo:true,cantidad:1,descuento:0,esOtro:true});
+    }
+  }else{
+    serviciosSeleccionadosRegistro=serviciosSeleccionadosRegistro.filter(function(s){return String(s.id)!=='OTRO';});
+  }
+  renderizarServiciosSeleccionadosRegistro();
+}
+function cambiarNombreOtroPyp(valor){
+  const s=serviciosSeleccionadosRegistro.find(function(x){return String(x.id)==='OTRO';});
+  if(!s) return;
+  s.nombre_servicio=String(valor||'');
+  actualizarNombreOtroHiddenPyp();
+}
+function cambiarPrecioOtroPyp(valor){
+  const s=serviciosSeleccionadosRegistro.find(function(x){return String(x.id)==='OTRO';});
+  if(!s) return;
+  let p=Number(valor);
+  if(!Number.isFinite(p)||p<0) p=0;
+  s.precio_sin_igv=Math.round(p*100)/100;
+  if(s.descuento>s.precio_sin_igv*cantidadServicioPyp(s)) s.descuento=s.precio_sin_igv*cantidadServicioPyp(s);
+  renderizarServiciosSeleccionadosRegistro();
+}
+function actualizarNombreOtroHiddenPyp(){
+  const hidden=document.getElementById('servicio');
+  const s=serviciosSeleccionadosRegistro.find(function(x){return String(x.id)==='OTRO';});
+  if(hidden && s){ hidden.innerHTML=''; const o=document.createElement('option'); o.value='OTRO'; o.textContent=s.nombre_servicio||'Otros'; hidden.appendChild(o); hidden.value='OTRO'; }
+}
+
 function seleccionarServicioDesdeDropdown(id, marcado){
   const servicio=serviciosPlanchadoPintura.find(function(s){return String(s.id)===String(id);});
   if(!servicio) return;
@@ -9645,5 +9689,31 @@ programarCierreAutomatico1930();
 }
 </style>
 
+
+<style id="autocamiones-pyp-ancho-final">
+/* El detalle de servicios de PYP nunca debe desbordar la pantalla/formulario. */
+#gridRegistro .campo-servicio-registro,
+#gridRegistro .campo-servicio-registro #selectorServiciosPintura,
+#gridRegistro .campo-servicio-registro #serviciosSeleccionadosRegistro{
+  min-width:0 !important;
+  max-width:100% !important;
+  box-sizing:border-box !important;
+}
+#gridRegistro .campo-servicio-registro #serviciosSeleccionadosRegistro{
+  width:100% !important;
+  overflow-x:hidden !important;
+}
+#gridRegistro .campo-servicio-registro .pyp-servicio-fila{
+  width:100% !important;
+  max-width:100% !important;
+  min-width:0 !important;
+  box-sizing:border-box !important;
+}
+@media(max-width:700px){
+  #gridRegistro .campo-servicio-registro .pyp-servicio-fila{
+    grid-template-columns:minmax(0,1fr) 72px 68px 82px 90px 28px !important;
+  }
+}
+</style>
 </body>
 </html>
