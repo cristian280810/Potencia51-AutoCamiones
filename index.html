@@ -1112,6 +1112,13 @@ html, body {
     }
 }
 
+/* Jerarquía de tipo Servicio/Nuevo: subopciones de Lavado y Adicionales */
+#tiposLavado{display:flex;justify-content:center;align-items:center;gap:30px;margin:12px 0 0;}
+#tiposLavado .tipo-option{flex:0 0 auto;width:auto;padding:8px 14px;border:1px solid transparent;border-radius:7px;background:transparent;display:flex;align-items:center;gap:7px;cursor:pointer;font-weight:600;}
+#tiposLavado .tipo-option.active{background:#f1f5f9;border-color:#e5e7eb;}
+#tiposLavado .tipo-option input{display:inline-block;margin:0;accent-color:#2563eb;}
+@media(max-width:700px){#tiposLavado{gap:18px;flex-wrap:nowrap;}#tiposLavado .tipo-option{white-space:nowrap;padding:7px 10px;}}
+
 /* Selector Placa / VIN */
 .identificador-registro{margin-bottom:16px;}
 .identificador-opciones{display:flex;justify-content:center;align-items:center;gap:34px;width:100%;}
@@ -1610,6 +1617,17 @@ onclick="seleccionarCategoriaRegistro('pintura')">
 
 </label>
 
+
+<div id="tiposLavado" class="tipos-lavado">
+  <label id="opcionServicioLavado" class="tipo-option active">
+    <input type="radio" name="tipoLavado" value="Servicio" checked onchange="cambiarTipoLavado('Servicio')">
+    🔧 Servicio
+  </label>
+  <label id="opcionNuevoLavado" class="tipo-option">
+    <input type="radio" name="tipoLavado" value="Nuevo" onchange="cambiarTipoLavado('Nuevo')">
+    🚘 Nuevo
+  </label>
+</div>
 </div>
 
 </div>
@@ -1767,23 +1785,31 @@ value="">
 
 <div class="form-group servicio-multiple-group full">
   <label>Servicio *</label>
-  <div class="servicio-buscador">
-    <div class="servicio-search-wrap">
-      <span class="servicio-search-icon">🔍</span>
-      <input id="buscarServicioRegistro" type="text" placeholder="Buscar servicio..." autocomplete="off" oninput="buscarServiciosRegistro(this.value)">
+
+  <div id="selectorServicioLavado">
+    <select id="servicioLavado" onchange="seleccionarServicioLavado(this.value)">
+      <option value="">⏳ Cargando servicios...</option>
+    </select>
+  </div>
+
+  <div id="selectorServiciosPintura" style="display:none;">
+    <div class="servicio-buscador">
+      <div class="servicio-search-wrap">
+        <span class="servicio-search-icon">🔍</span>
+        <input id="buscarServicioRegistro" type="text" placeholder="Buscar servicio..." autocomplete="off" oninput="buscarServiciosRegistro(this.value)">
+      </div>
+      <button type="button" class="btn-add-servicio" onclick="agregarServicioDesdeBusqueda()" title="Agregar servicio">＋</button>
     </div>
-    <button type="button" class="btn-add-servicio" onclick="agregarServicioDesdeBusqueda()" title="Agregar servicio">＋</button>
+    <div id="resultadosServiciosRegistro" class="servicio-resultados" style="display:none"></div>
+    <div id="serviciosSeleccionadosRegistro" class="servicios-seleccionados">
+      <span class="servicios-vacio">No hay servicios seleccionados</span>
+    </div>
   </div>
-  <div id="resultadosServiciosRegistro" class="servicio-resultados" style="display:none"></div>
-  <div id="serviciosSeleccionadosRegistro" class="servicios-seleccionados">
-    <span class="servicios-vacio">No hay servicios seleccionados</span>
-  </div>
+
   <select id="servicio" style="display:none" aria-hidden="true">
     <option value="">Seleccione el servicio</option>
   </select>
 </div>
-
-
 
 <!-- =====================================================
      FOTO INGRESO
@@ -3159,7 +3185,7 @@ const IGV_AUTOCAMIONES = 0.18;
 async function cargarServiciosAutoCamiones(){
 
   const selects = [
-    document.getElementById("servicio"),
+    document.getElementById("servicioLavado"),
     document.getElementById("pasadoServicio")
   ].filter(Boolean);
 
@@ -3208,6 +3234,8 @@ async function cargarServiciosAutoCamiones(){
       select.disabled = false;
     });
 
+    seleccionarServicioLavado(document.getElementById("servicioLavado")?.value || "");
+
     // Mantener compatibilidad con módulos existentes.
     seleccionarServicioPorNombre("pasadoServicio", "Lavado básico");
     if(categoriaRegistroActual === "lavado") renderizarServiciosSeleccionadosRegistro();
@@ -3227,11 +3255,7 @@ async function cargarServiciosAutoCamiones(){
 }
 
 async function cargarServiciosPlanchadoPintura(){
-  const select=document.getElementById("servicio");
-  if(!select) return;
-
-  select.innerHTML='<option value="">⏳ Cargando servicios...</option>';
-  select.disabled=true;
+  if(!document.getElementById("selectorServiciosPintura")) return;
 
   try{
     const respuesta=await fetch(
@@ -3258,16 +3282,6 @@ async function cargarServiciosPlanchadoPintura(){
       throw new Error("No hay servicios activos en planchado_pintura_autocamiones.");
     }
 
-    select.innerHTML='<option value="">Seleccione el servicio</option>';
-    serviciosPlanchadoPintura.forEach(function(servicio){
-      const option=document.createElement("option");
-      option.value=String(servicio.id);
-      option.textContent=servicio.nombre_servicio;
-      option.dataset.precioSinIgv=Number(servicio.precio_sin_igv||0).toFixed(2);
-      select.appendChild(option);
-    });
-
-    select.disabled=false;
     if(categoriaRegistroActual === "pintura") renderizarServiciosSeleccionadosRegistro();
   }catch(error){
     console.error("Error cargando Planchado y Pintura:",error);
@@ -3292,7 +3306,7 @@ function renderizarServiciosSeleccionadosRegistro(){
 
   if(hidden){
     hidden.innerHTML='<option value="">Seleccione el servicio</option>';
-    if(serviciosSeleccionadosRegistro[0]){
+    if(categoriaRegistroActual === "pintura" && serviciosSeleccionadosRegistro[0]){
       const o=document.createElement("option");
       o.value=String(serviciosSeleccionadosRegistro[0].id);
       o.textContent=serviciosSeleccionadosRegistro[0].nombre_servicio;
@@ -3628,32 +3642,60 @@ function seleccionarCategoriaRegistro(categoria){
   const categoriaLavado=document.getElementById("categoriaLavado");
   const categoriaPintura=document.getElementById("categoriaPintura");
   const tiposLavado=document.getElementById("tiposLavado");
+  const selectorLavado=document.getElementById("selectorServicioLavado");
+  const selectorPintura=document.getElementById("selectorServiciosPintura");
 
   categoriaRegistroActual = categoria === "pintura" ? "pintura" : "lavado";
-
   limpiarServiciosSeleccionadosRegistro();
 
   if(categoriaRegistroActual === "pintura"){
     categoriaLavado.classList.remove("active");
     categoriaPintura.classList.add("active");
-    tiposLavado.style.display="none";
-
-    const radioServicio=document.querySelector('input[name="tipo"][value="Servicio"]');
-    if(radioServicio){
-      radioServicio.checked=true;
-      cambiarTipo("Servicio");
-    }
-
+    if(tiposLavado) tiposLavado.style.display="none";
+    if(selectorLavado) selectorLavado.style.display="none";
+    if(selectorPintura) selectorPintura.style.display="block";
+    cambiarTipo("Servicio");
     cargarServiciosPlanchadoPintura().catch(function(error){
       console.warn("No se pudo cargar el catálogo de Planchado y Pintura:", error);
     });
   }else{
     categoriaLavado.classList.add("active");
     categoriaPintura.classList.remove("active");
-    tiposLavado.style.display="flex";
+    if(tiposLavado) tiposLavado.style.display="flex";
+    if(selectorLavado) selectorLavado.style.display="block";
+    if(selectorPintura) selectorPintura.style.display="none";
     cargarServiciosAutoCamiones().catch(function(error){
       console.warn("No se pudo cargar el catálogo de Lavado y Adicionales:", error);
     });
+  }
+}
+
+function cambiarTipoLavado(tipo){
+  const servicio=document.getElementById("opcionServicioLavado");
+  const nuevo=document.getElementById("opcionNuevoLavado");
+  if(tipo === "Nuevo"){
+    servicio.classList.remove("active");
+    nuevo.classList.add("active");
+  }else{
+    servicio.classList.add("active");
+    nuevo.classList.remove("active");
+  }
+}
+
+function seleccionarServicioLavado(id){
+  const select=document.getElementById("servicioLavado");
+  const hidden=document.getElementById("servicio");
+  if(hidden){
+    hidden.innerHTML='<option value="">Seleccione el servicio</option>';
+    if(select && select.value){
+      const option=select.options[select.selectedIndex];
+      const copia=document.createElement("option");
+      copia.value=option.value;
+      copia.textContent=option.textContent;
+      copia.dataset.precioSinIgv=option.dataset.precioSinIgv || "0";
+      hidden.appendChild(copia);
+      hidden.value=select.value;
+    }
   }
 }
 
@@ -3891,7 +3933,15 @@ async function registrar(){
     const vin=normalizarValorInterno(document.getElementById("vin").value);
     const marca=document.getElementById("marca").value;
     const modelo="";
-    const serviciosSeleccionados=obtenerServiciosSeleccionadosRegistro();
+    let serviciosSeleccionados=[];
+    if(categoriaRegistroActual === "pintura"){
+      serviciosSeleccionados=obtenerServiciosSeleccionadosRegistro();
+    }else{
+      const selectLavado=document.getElementById("servicioLavado");
+      const idServicio=selectLavado ? String(selectLavado.value || "") : "";
+      const servicioLavado=serviciosAutoCamiones.find(function(s){return String(s.id)===idServicio;});
+      if(servicioLavado) serviciosSeleccionados=[servicioLavado];
+    }
     const servicioSeleccionado=serviciosSeleccionados[0] || null;
     const servicio=serviciosSeleccionados.map(function(s){return s.nombre_servicio;}).join(" + ");
     const precioTotalSinIgv=serviciosSeleccionados.reduce(function(total,s){return total+Number(s.precio_sin_igv||0);},0);
@@ -5473,6 +5523,11 @@ function limpiarFormulario(){
   document.getElementById("fotoIngreso").value="";
   document.getElementById("fotoVIN").value="";
   limpiarServiciosSeleccionadosRegistro();
+  const selectLavadoReset=document.getElementById("servicioLavado");
+  if(selectLavadoReset) selectLavadoReset.value="";
+  const radioServicioLavado=document.querySelector('input[name="tipoLavado"][value="Servicio"]');
+  if(radioServicioLavado){ radioServicioLavado.checked=true; cambiarTipoLavado("Servicio"); }
+  seleccionarServicioLavado("");
   const radio=document.querySelector('input[name="tipo"][value="Servicio"]');
   if(radio) radio.checked=true;
   cambiarTipo("Servicio");
