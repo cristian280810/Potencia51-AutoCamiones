@@ -176,7 +176,7 @@ textarea{
     display:none;
 }
 
-/* Subopciones de Servicio de Lavado y Adicionales: selección tipo radio */
+/* Subopciones de Servicio de lavado y adicionales: selección tipo radio */
 #tiposLavado{
     display:flex;
     justify-content:center;
@@ -1454,6 +1454,10 @@ html, body {
 <style>
 #vin { text-transform: none !important; }
 #vin::placeholder { text-transform: none !important; }
+</style>
+
+<style>
+#placa::placeholder, #vin::placeholder { text-transform: none !important; }
 </style>
 </head>
 
@@ -3129,6 +3133,8 @@ let supabaseClient = null;
 ===================================================== */
 
 let serviciosAutoCamiones = [];
+let serviciosPlanchadoPintura = [];
+let categoriaRegistroActual = "lavado";
 const IGV_AUTOCAMIONES = 0.18;
 
 async function cargarServiciosAutoCamiones(){
@@ -3201,6 +3207,63 @@ async function cargarServiciosAutoCamiones(){
   }
 }
 
+async function cargarServiciosPlanchadoPintura(){
+  const select=document.getElementById("servicio");
+  if(!select) return;
+
+  select.innerHTML='<option value="">⏳ Cargando servicios...</option>';
+  select.disabled=true;
+
+  try{
+    const respuesta=await fetch(
+      SUPABASE_URL+
+      "/rest/v1/planchado_pintura_autocamiones?select=id,nombre_servicio,precio_sin_igv,activo&activo=eq.true&order=id.asc",
+      {
+        method:"GET",
+        headers:{
+          "apikey":SUPABASE_KEY,
+          "Authorization":"Bearer "+SUPABASE_KEY
+        },
+        cache:"no-store"
+      }
+    );
+
+    if(!respuesta.ok){
+      const texto=await respuesta.text();
+      throw new Error("Supabase HTTP "+respuesta.status+(texto?": "+texto:""));
+    }
+
+    serviciosPlanchadoPintura=await respuesta.json();
+
+    if(!Array.isArray(serviciosPlanchadoPintura) || !serviciosPlanchadoPintura.length){
+      throw new Error("No hay servicios activos en planchado_pintura_autocamiones.");
+    }
+
+    select.innerHTML='<option value="">Seleccione el servicio</option>';
+    serviciosPlanchadoPintura.forEach(function(servicio){
+      const option=document.createElement("option");
+      option.value=String(servicio.id);
+      option.textContent=servicio.nombre_servicio;
+      option.dataset.precioSinIgv=Number(servicio.precio_sin_igv||0).toFixed(2);
+      select.appendChild(option);
+    });
+
+    select.disabled=false;
+  }catch(error){
+    console.error("Error cargando Planchado y Pintura:",error);
+    select.innerHTML='<option value="">❌ No se pudieron cargar los servicios</option>';
+    select.disabled=true;
+    mostrarAlerta("No se pudieron cargar los servicios de Planchado y Pintura: "+error.message,"error");
+    throw error;
+  }
+}
+
+function obtenerCatalogoRegistro(){
+  return categoriaRegistroActual === "pintura"
+    ? serviciosPlanchadoPintura
+    : serviciosAutoCamiones;
+}
+
 function seleccionarServicioPorNombre(selectId, nombre){
   const select = document.getElementById(selectId);
   if(!select) return false;
@@ -3242,7 +3305,11 @@ function obtenerServicioSeleccionado(selectId){
   const select = document.getElementById(selectId);
   if(!select || !select.value) return null;
 
-  const servicio = serviciosAutoCamiones.find(function(s){
+  const catalogo = selectId === "servicio"
+    ? obtenerCatalogoRegistro()
+    : serviciosAutoCamiones;
+
+  const servicio = catalogo.find(function(s){
     return String(s.id) === String(select.value);
   });
 
@@ -3257,7 +3324,8 @@ function obtenerServicioSeleccionado(selectId){
     nombre: servicio.nombre_servicio,
     precioSinIgv: precioSinIgv,
     igv: igv,
-    precioConIgv: precioConIgv
+    precioConIgv: precioConIgv,
+    categoria: categoriaRegistroActual
   };
 }
 
@@ -3430,7 +3498,9 @@ function seleccionarCategoriaRegistro(categoria){
   const categoriaPintura=document.getElementById("categoriaPintura");
   const tiposLavado=document.getElementById("tiposLavado");
 
-  if(categoria==="pintura"){
+  categoriaRegistroActual = categoria === "pintura" ? "pintura" : "lavado";
+
+  if(categoriaRegistroActual === "pintura"){
     categoriaLavado.classList.remove("active");
     categoriaPintura.classList.add("active");
     tiposLavado.style.display="none";
@@ -3440,10 +3510,17 @@ function seleccionarCategoriaRegistro(categoria){
       radioServicio.checked=true;
       cambiarTipo("Servicio");
     }
+
+    cargarServiciosPlanchadoPintura().catch(function(error){
+      console.warn("No se pudo cargar el catálogo de Planchado y Pintura:", error);
+    });
   }else{
     categoriaLavado.classList.add("active");
     categoriaPintura.classList.remove("active");
     tiposLavado.style.display="flex";
+    cargarServiciosAutoCamiones().catch(function(error){
+      console.warn("No se pudo cargar el catálogo de Lavado y Adicionales:", error);
+    });
   }
 }
 
@@ -3700,11 +3777,11 @@ async function registrar(){
     const fotoIngreso=await comprimirFoto(archivoIngreso);
     const fotoVIN=archivoVIN?await comprimirFoto(archivoVIN):"";
     const fotos=await enviarDrive({accion:"guardarFotos",id,fotoIngreso,fotoVIN});
-    if(!fotos||fotos.ok!==true) throw new Error("No se pudieron guardar las fotografías en Supabase Storage.");
+    if(!fotos||fotos.ok!==true) throw new Error("No se pudieron guardar las fotografías en Google Drive.");
 
     const fila={
       id,tipo,placa:tipo==="Servicio"?placa:"",vin:tipo==="Nuevo"?vin:"",marca,modelo,
-      servicio,servicio_id:servicioSeleccionado.id,precio_sin_igv:servicioSeleccionado.precioSinIgv,
+      servicio,servicio_id:categoriaRegistroActual === "pintura" ? null : servicioSeleccionado.id,precio_sin_igv:servicioSeleccionado.precioSinIgv,
       igv:servicioSeleccionado.igv,precio_con_igv:servicioSeleccionado.precioConIgv,facturado:false,
       fecha_facturacion:null,estado:"Lavando",hora_inicio_lavado:new Date().toISOString(),hora_salida:null,
       observaciones,observaciones_finales:"",foto_ingreso:fotos.fotoIngreso||"",foto_final:"",foto_vin:fotos.fotoVIN||""
@@ -4116,6 +4193,21 @@ function iniciarRealtimeSupabase(){
           cargarServiciosAutoCamiones().catch(function(error){
             console.warn("No se pudo actualizar el catálogo de servicios:", error);
           });
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event:"*",
+          schema:"public",
+          table:"planchado_pintura_autocamiones"
+        },
+        function(){
+          if(categoriaRegistroActual==="pintura"){
+            cargarServiciosPlanchadoPintura().catch(function(error){
+              console.warn("No se pudo actualizar el catálogo de Planchado y Pintura:", error);
+            });
+          }
         }
       )
       .subscribe(function(status){
@@ -8348,10 +8440,19 @@ async function(){
   cambiarTipo("Servicio");
   configurarTodosLosRangosDeFechas();
 
+  categoriaRegistroActual="lavado";
   try{
     await cargarServiciosAutoCamiones();
   }catch(error){
-    console.warn("El catálogo de servicios no pudo cargarse al iniciar:", error);
+    console.warn("El catálogo de Lavado y Adicionales no pudo cargarse al iniciar:", error);
+  }
+
+  try{
+    await cargarServiciosPlanchadoPintura();
+    categoriaRegistroActual="lavado";
+    await cargarServiciosAutoCamiones();
+  }catch(error){
+    console.warn("El catálogo de Planchado y Pintura no pudo cargarse al iniciar:", error);
   }
 
   [
