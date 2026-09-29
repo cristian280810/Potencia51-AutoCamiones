@@ -3463,6 +3463,7 @@ let serviciosPlanchadoPintura = [
 
 let categoriaRegistroActual = "lavado";
 let serviciosSeleccionadosRegistro = [];
+let ultimoTipoRegistro = null;
 const IGV_AUTOCAMIONES = 0.18;
 
 async function cargarServiciosAutoCamiones(){
@@ -4164,6 +4165,13 @@ function seleccionarServicioLavado(id){
 ===================================================== */
 
 function cambiarTipo(tipo){
+  // Al cambiar entre Servicio y Nuevo, los servicios de Planchado y Pintura
+  // seleccionados pertenecen al modo anterior y deben restablecerse.
+  if(ultimoTipoRegistro !== null && ultimoTipoRegistro !== tipo && categoriaRegistroActual === "pintura"){
+    limpiarServiciosSeleccionadosRegistro();
+  }
+  ultimoTipoRegistro = tipo;
+
   const gridRegistro = document.getElementById("gridRegistro");
   if (gridRegistro) {
     gridRegistro.classList.toggle("modo-vin", tipo === "Nuevo");
@@ -9690,28 +9698,25 @@ programarCierreAutomatico1930();
 </style>
 
 
-<style id="autocamiones-pyp-ancho-final">
-/* El detalle de servicios de PYP nunca debe desbordar la pantalla/formulario. */
-#gridRegistro .campo-servicio-registro,
-#gridRegistro .campo-servicio-registro #selectorServiciosPintura,
-#gridRegistro .campo-servicio-registro #serviciosSeleccionadosRegistro{
-  min-width:0 !important;
-  max-width:100% !important;
-  box-sizing:border-box !important;
-}
-#gridRegistro .campo-servicio-registro #serviciosSeleccionadosRegistro{
-  width:100% !important;
-  overflow-x:hidden !important;
-}
-#gridRegistro .campo-servicio-registro .pyp-servicio-fila{
-  width:100% !important;
-  max-width:100% !important;
-  min-width:0 !important;
-  box-sizing:border-box !important;
-}
-@media(max-width:700px){
-  #gridRegistro .campo-servicio-registro .pyp-servicio-fila{
-    grid-template-columns:minmax(0,1fr) 72px 68px 82px 90px 28px !important;
+
+
+<style id="autocamiones-pyp-servicios-fullwidth-real">
+/* PYP: en modo SERVICIO, el detalle de servicios ocupa las dos columnas del formulario. */
+@media (min-width:701px){
+  #gridRegistro:not(.modo-vin) .campo-servicio-registro #serviciosSeleccionadosRegistro{
+    width:calc(200% + 14px) !important;
+    max-width:none !important;
+    min-width:0 !important;
+    box-sizing:border-box !important;
+    overflow-x:hidden !important;
+    position:relative !important;
+    z-index:3 !important;
+  }
+  #gridRegistro:not(.modo-vin) .campo-servicio-registro #serviciosSeleccionadosRegistro .pyp-servicio-fila{
+    width:100% !important;
+    max-width:100% !important;
+    min-width:0 !important;
+    box-sizing:border-box !important;
   }
 }
 </style>
