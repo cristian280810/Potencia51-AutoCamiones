@@ -1080,6 +1080,37 @@ html, body {
     zoom: 0.85;
 }
 
+
+/* Subopciones Servicio/Nuevo: siempre en una sola fila, también en móvil */
+#tiposLavado{
+    flex-direction:row !important;
+    justify-content:center !important;
+    align-items:center !important;
+    flex-wrap:nowrap !important;
+    width:100%;
+    border-left:none !important;
+    padding:8px 0 4px 0 !important;
+    margin-top:0;
+    gap:28px !important;
+}
+
+@media(max-width:700px){
+    #tiposLavado{
+        flex-direction:row !important;
+        flex-wrap:nowrap !important;
+        justify-content:center !important;
+        gap:18px !important;
+        padding:6px 0 4px 0 !important;
+        border-left:none !important;
+    }
+
+    #tiposLavado .tipo-option{
+        flex:0 0 auto !important;
+        width:auto !important;
+        white-space:nowrap;
+        padding:7px 10px !important;
+    }
+}
 </style>
 <style>
 .facturacion-estado.facturado-pagado{background:#dcfce7;color:#166534;}
@@ -8397,6 +8428,6 @@ programarCierreAutomatico1930();
 </script>
 
 
-<div class="version-app">V2.0 Dashboard</div>
+<div class="version-app">V5.5 Dashboard</div>
 </body>
 </html>
