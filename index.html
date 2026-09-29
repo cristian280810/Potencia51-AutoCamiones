@@ -807,7 +807,7 @@ th{
 .estado-cot-pyp.aprobada{background:#ecfdf5;color:#166534;}
 .estado-cot-pyp.facturada{background:#eff6ff;color:#1d4ed8;}
 .estado-cot-pyp.anulada{background:#f3f4f6;color:#6b7280;}
-.cotizacion-detalle-pyp{margin-top:16px;padding:14px;border:1px solid #dbe2ea;border-radius:10px;background:#f8fafc;}
+.cotizacion-detalle-pyp{margin-top:16px;padding:14px;border:1px solid #dbe2ea;border-radius:10px;background:#f8fafc;}.cotizacion-detalle-pyp-inline{padding:14px 16px;background:#f8fafc;border:1px solid #dbe2ea;border-radius:0 0 10px 10px;text-align:left}.pyp-detalle-header-inline{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px}.pyp-detalle-header-inline strong{display:block;font-size:14px;color:#172033}.pyp-detalle-header-inline small{display:block;margin-top:3px;color:#64748b;font-size:11px}.pyp-detalle-inline-table{width:100%;border-collapse:collapse;background:#fff;font-size:12px}.pyp-detalle-inline-table th{background:#203a5b;color:#fff;padding:8px;text-align:left}.pyp-detalle-inline-table td{padding:8px;border-bottom:1px solid #e2e8f0;color:#334155}.pyp-detalle-inline-table td:nth-child(1),.pyp-detalle-inline-table td:nth-child(4){text-align:center}.pyp-detalle-inline-table td:nth-child(5),.pyp-detalle-inline-table td:nth-child(6),.pyp-detalle-inline-table td:nth-child(7){text-align:right;white-space:nowrap}.pyp-detalle-total-inline{margin-top:10px;text-align:right;font-size:14px;color:#172033}.
 
 .pyp-acciones-cot{display:flex;gap:6px;flex-wrap:wrap;align-items:center;}
 .btn-ver-cot-pyp{background:#eef5ff!important;color:#174ea6!important;border:1px solid #b9d3f7!important;}
@@ -4098,10 +4098,10 @@ function renderizarCotizacionesPyp(){
       (estado==="Pendiente" ? '<button type="button" class="btn btn-aprobar-cot-pyp" style="padding:6px 9px;font-size:12px" onclick="aprobarCotizacionPyp(\''+id+'\')">✓ Aprobar</button>' :
        estado==="Aprobada" ? (c.facturacion_id ? '<button type="button" class="btn btn-secondary" style="padding:6px 9px;font-size:12px" onclick="mostrarModuloAdministracion(\'facturacion\')">🧾 En Facturación</button>' : '<button type="button" class="btn btn-secondary" style="padding:6px 9px;font-size:12px" onclick="pasarCotizacionAFacturacion(\''+id+'\')">🧾 Pasar a facturación</button>') : '')+
       '</div>';
-    return '<tr>'+
+    return '<tr id="filaCotPyp-'+id+'">'+
       '<td><strong>'+esc(c.correlativo||"—")+'</strong></td>'+
       '<td>'+esc(String(c.created_at||"").slice(0,10))+'</td>'+
-      '<td>'+esc(c.tipo||"")+'</td>'+
+      '<td>'+esc(c.tipo_registro||c.tipo||"")+'</td>'+
       '<td>'+esc(identificador)+'</td>'+
       '<td>'+esc(c.marca||"")+'</td>'+
       '<td class="num">'+formatoSolesCotPyp(c.subtotal_bruto)+'</td>'+
@@ -4109,7 +4109,8 @@ function renderizarCotizacionesPyp(){
       '<td class="num"><strong>'+formatoSolesCotPyp(c.total)+'</strong></td>'+
       '<td><span class="estado-cot-pyp '+claseEstadoCotPyp(estado)+'">'+esc(estado)+'</span></td>'+
       '<td style="white-space:nowrap">'+acciones+'</td>'+
-    '</tr>';
+    '</tr>'+
+    '<tr id="detalleFilaCotPyp-'+id+'" style="display:none"><td colspan="10" style="padding:0;border-top:0"><div id="contenidoDetalleCotPyp-'+id+'" class="cotizacion-detalle-pyp-inline"></div></td></tr>';
   }).join("");
 }
 
@@ -4182,7 +4183,47 @@ function construirPdfCotizacionPyp(cotizacion,detalle){
 }
 
 async function verCotizacionPyp(id){
-  try{const c=cotizacionesPyp.find(function(x){return String(x.id)===String(id);});if(!c) return;const d=await obtenerDetalleCotizacionPyp(id);const doc=construirPdfCotizacionPyp(c,d);const url=doc.output("bloburl");window.open(url,"_blank");}catch(e){console.error(e);mostrarAlerta("No se pudo abrir la cotización.","error");}
+  const fila=document.getElementById("detalleFilaCotPyp-"+id);
+  const contenido=document.getElementById("contenidoDetalleCotPyp-"+id);
+  if(!fila || !contenido) return;
+  if(fila.style.display!=="none"){
+    fila.style.display="none";
+    contenido.innerHTML="";
+    return;
+  }
+  // Cerrar cualquier otra cotización abierta para facilitar la revisión.
+  document.querySelectorAll('[id^="detalleFilaCotPyp-"]').forEach(function(el){el.style.display="none";});
+  document.querySelectorAll('[id^="contenidoDetalleCotPyp-"]').forEach(function(el){el.innerHTML="";});
+  const c=cotizacionesPyp.find(function(x){return String(x.id)===String(id);});
+  if(!c) return;
+  contenido.innerHTML='<div style="padding:16px;text-align:center;color:#64748b">Cargando detalle...</div>';
+  fila.style.display="table-row";
+  try{
+    const d=await obtenerDetalleCotizacionPyp(id);
+    const tipo=String(c.tipo_registro||c.tipo||"Servicio");
+    const identificador=tipo.toLowerCase()==="nuevo"?(c.vin||"—"):(c.placa||"—");
+    let html='<div class="pyp-detalle-header-inline">'+
+      '<div><strong>Detalle de '+esc(c.correlativo||"Cotización")+'</strong><small>'+esc(c.marca||"")+" · "+esc(identificador)+"</small></div>"+
+      '<button type="button" class="btn btn-secondary" style="padding:6px 10px;font-size:12px" onclick="verCotizacionPyp('+id+')">✕ Ocultar detalle</button>' +
+    '</div>';
+    html+='<div style="overflow-x:auto"><table class="pyp-detalle-inline-table"><thead><tr><th>Item</th><th>Servicio</th><th>Tipo de trabajo</th><th>Cantidad</th><th>Precio unit.</th><th>Descuento</th><th>Subtotal</th></tr></thead><tbody>';
+    if(!d.length){html+='<tr><td colspan="7" style="text-align:center">No hay servicios registrados.</td></tr>';}
+    else d.forEach(function(x){html+='<tr>'+
+      '<td>'+esc(x.item||"")+'</td>'+
+      '<td><strong>'+esc(x.servicio||"")+'</strong></td>'+
+      '<td>'+esc(x.tipo_trabajo||"")+'</td>'+
+      '<td>'+Number(x.cantidad||0).toLocaleString("es-PE",{maximumFractionDigits:2})+'</td>'+
+      '<td>'+formatoSolesCotPyp(x.precio_unitario)+'</td>'+
+      '<td>'+formatoSolesCotPyp(x.descuento)+'</td>'+
+      '<td><strong>'+formatoSolesCotPyp(x.subtotal)+'</strong></td>'+
+      '</tr>';});
+    html+='</tbody></table></div>';
+    html+='<div class="pyp-detalle-total-inline">Total: <strong>'+formatoSolesCotPyp(c.total)+'</strong></div>';
+    contenido.innerHTML=html;
+  }catch(e){
+    console.error(e);
+    contenido.innerHTML='<div style="padding:16px;color:#b91c1c">No se pudo cargar el detalle de la cotización.</div>';
+  }
 }
 
 async function descargarCotizacionPyp(id){
