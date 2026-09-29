@@ -1450,6 +1450,11 @@ html, body {
 .facturas-emitidas-fecha{min-width:82px !important;}
 .facturas-emitidas-monto{min-width:72px !important;}
 </style>
+
+<style>
+#vin { text-transform: none !important; }
+#vin::placeholder { text-transform: none !important; }
+</style>
 </head>
 
 <body>
@@ -1647,7 +1652,6 @@ id="vin"
 type="text"
 placeholder="Ingrese Nro. de VIN"
 autocomplete="off"
-style="text-transform:uppercase"
 oninput="const inicio=this.selectionStart; const fin=this.selectionEnd; this.value=this.value.toUpperCase(); try{this.setSelectionRange(inicio,fin);}catch(e){}">
 
 </div>
