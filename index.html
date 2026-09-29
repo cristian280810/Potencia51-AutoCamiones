@@ -1111,6 +1111,39 @@ html, body {
         padding:7px 10px !important;
     }
 }
+
+/* Selector Placa / VIN */
+.identificador-registro{margin-bottom:16px;}
+.identificador-opciones{display:flex;justify-content:center;align-items:center;gap:34px;width:100%;}
+.identificador-option{display:flex;align-items:center;gap:7px;padding:8px 16px;border-radius:7px;cursor:pointer;font-weight:600;color:#111827;}
+.identificador-option input{margin:0;accent-color:#2563eb;}
+.identificador-option.active{background:#f1f5f9;}
+
+/* Buscador y selección múltiple de servicios */
+.servicio-multiple-group{position:relative;}
+.servicio-buscador{display:flex;align-items:center;gap:8px;width:100%;}
+.servicio-search-wrap{position:relative;flex:1;}
+.servicio-search-wrap input{width:100%;padding:10px 12px 10px 36px;border:1px solid #d1d5db;border-radius:7px;box-sizing:border-box;}
+.servicio-search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:15px;pointer-events:none;}
+.btn-add-servicio{width:42px;height:40px;border:0;border-radius:7px;background:#2563eb;color:#fff;font-size:24px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.btn-add-servicio:hover{background:#1d4ed8;}
+.servicio-resultados{position:absolute;left:0;right:50px;top:calc(100% + 38px);z-index:80;background:#fff;border:1px solid #d1d5db;border-radius:7px;box-shadow:0 8px 20px rgba(0,0,0,.12);max-height:230px;overflow-y:auto;}
+.servicio-resultado-item{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 12px;border-bottom:1px solid #f1f5f9;cursor:pointer;}
+.servicio-resultado-item:last-child{border-bottom:0;}
+.servicio-resultado-item:hover{background:#f8fafc;}
+.servicio-resultado-nombre{flex:1;}
+.servicio-resultado-precio{font-weight:700;white-space:nowrap;}
+.servicio-resultado-add{border:0;background:#e0ecff;color:#1d4ed8;border-radius:6px;width:30px;height:30px;font-size:20px;cursor:pointer;}
+.servicios-seleccionados{display:flex;flex-wrap:wrap;gap:7px;margin-top:9px;min-height:36px;align-items:center;}
+.servicio-chip{display:inline-flex;align-items:center;gap:7px;padding:7px 9px;background:#eef2ff;border:1px solid #c7d2fe;border-radius:7px;font-size:13px;}
+.servicio-chip-precio{font-weight:700;}
+.servicio-chip-remove{border:0;background:transparent;color:#dc2626;font-size:18px;line-height:1;cursor:pointer;padding:0;}
+.servicios-vacio{color:#6b7280;font-size:13px;}
+@media(max-width:700px){
+  .identificador-opciones{gap:12px;}
+  .identificador-option{padding:7px 10px;}
+  .servicio-resultados{right:50px;}
+}
 </style>
 <style>
 .facturacion-estado.facturado-pagado{background:#dcfce7;color:#166534;}
@@ -1584,37 +1617,17 @@ onclick="seleccionarCategoriaRegistro('pintura')">
 
 <div class="card">
 
-<div id="tiposLavado" class="tipo-container" style="margin-bottom:16px;">
-
-<label
-id="opcionServicio"
-class="tipo-option active">
-
-<input
-type="radio"
-name="tipo"
-value="Servicio"
-checked
-onchange="cambiarTipo('Servicio')">
-
-🔧 Servicio
-
-</label>
-
-<label
-id="opcionNuevo"
-class="tipo-option">
-
-<input
-type="radio"
-name="tipo"
-value="Nuevo"
-onchange="cambiarTipo('Nuevo')">
-
-🚘 Nuevo
-
-</label>
-
+<div id="identificadorRegistro" class="identificador-registro">
+  <div class="identificador-opciones">
+    <label id="opcionPlaca" class="identificador-option active">
+      <input type="radio" name="tipo" value="Servicio" checked onchange="cambiarTipo('Servicio')">
+      <span>◉</span> Placa
+    </label>
+    <label id="opcionVIN" class="identificador-option">
+      <input type="radio" name="tipo" value="Nuevo" onchange="cambiarTipo('Nuevo')">
+      <span>◉</span> VIN
+    </label>
+  </div>
 </div>
 
 <div class="form-grid">
@@ -1752,17 +1765,22 @@ value="">
      SERVICIO
 ===================================================== -->
 
-<div
-class="form-group">
-
-<label>
-Servicio *
-</label>
-
-<select id="servicio">
-  <option value="">⏳ Cargando servicios...</option>
-</select>
-
+<div class="form-group servicio-multiple-group full">
+  <label>Servicio *</label>
+  <div class="servicio-buscador">
+    <div class="servicio-search-wrap">
+      <span class="servicio-search-icon">🔍</span>
+      <input id="buscarServicioRegistro" type="text" placeholder="Buscar servicio..." autocomplete="off" oninput="buscarServiciosRegistro(this.value)">
+    </div>
+    <button type="button" class="btn-add-servicio" onclick="agregarServicioDesdeBusqueda()" title="Agregar servicio">＋</button>
+  </div>
+  <div id="resultadosServiciosRegistro" class="servicio-resultados" style="display:none"></div>
+  <div id="serviciosSeleccionadosRegistro" class="servicios-seleccionados">
+    <span class="servicios-vacio">No hay servicios seleccionados</span>
+  </div>
+  <select id="servicio" style="display:none" aria-hidden="true">
+    <option value="">Seleccione el servicio</option>
+  </select>
 </div>
 
 
@@ -3135,6 +3153,7 @@ let supabaseClient = null;
 let serviciosAutoCamiones = [];
 let serviciosPlanchadoPintura = [];
 let categoriaRegistroActual = "lavado";
+let serviciosSeleccionadosRegistro = [];
 const IGV_AUTOCAMIONES = 0.18;
 
 async function cargarServiciosAutoCamiones(){
@@ -3189,9 +3208,9 @@ async function cargarServiciosAutoCamiones(){
       select.disabled = false;
     });
 
-    // Mantener Lavado básico como opción inicial si existe en el catálogo.
-    seleccionarServicioPorNombre("servicio", "Lavado básico");
+    // Mantener compatibilidad con módulos existentes.
     seleccionarServicioPorNombre("pasadoServicio", "Lavado básico");
+    if(categoriaRegistroActual === "lavado") renderizarServiciosSeleccionadosRegistro();
 
   }catch(error){
 
@@ -3249,6 +3268,7 @@ async function cargarServiciosPlanchadoPintura(){
     });
 
     select.disabled=false;
+    if(categoriaRegistroActual === "pintura") renderizarServiciosSeleccionadosRegistro();
   }catch(error){
     console.error("Error cargando Planchado y Pintura:",error);
     select.innerHTML='<option value="">❌ No se pudieron cargar los servicios</option>';
@@ -3256,6 +3276,117 @@ async function cargarServiciosPlanchadoPintura(){
     mostrarAlerta("No se pudieron cargar los servicios de Planchado y Pintura: "+error.message,"error");
     throw error;
   }
+}
+
+
+function catalogoRegistroActual(){
+  return categoriaRegistroActual === "pintura"
+    ? serviciosPlanchadoPintura
+    : serviciosAutoCamiones;
+}
+
+function renderizarServiciosSeleccionadosRegistro(){
+  const cont=document.getElementById("serviciosSeleccionadosRegistro");
+  const hidden=document.getElementById("servicio");
+  if(!cont) return;
+
+  if(hidden){
+    hidden.innerHTML='<option value="">Seleccione el servicio</option>';
+    if(serviciosSeleccionadosRegistro[0]){
+      const o=document.createElement("option");
+      o.value=String(serviciosSeleccionadosRegistro[0].id);
+      o.textContent=serviciosSeleccionadosRegistro[0].nombre_servicio;
+      hidden.appendChild(o);
+      hidden.value=String(serviciosSeleccionadosRegistro[0].id);
+    }
+  }
+
+  if(!serviciosSeleccionadosRegistro.length){
+    cont.innerHTML='<span class="servicios-vacio">No hay servicios seleccionados</span>';
+    return;
+  }
+
+  cont.innerHTML=serviciosSeleccionadosRegistro.map(function(s){
+    const precio=Number(s.precio_sin_igv||0).toFixed(2);
+    return '<span class="servicio-chip">'+esc(s.nombre_servicio)+' <span class="servicio-chip-precio">S/ '+precio+'</span><button type="button" class="servicio-chip-remove" onclick="quitarServicioRegistro(\''+String(s.id).replace(/'/g,"\\'")+'\')" title="Quitar">×</button></span>';
+  }).join("");
+}
+
+function buscarServiciosRegistro(texto){
+  const box=document.getElementById("resultadosServiciosRegistro");
+  if(!box) return;
+  const q=String(texto||"").trim().toLowerCase();
+  if(!q){ box.style.display="none"; box.innerHTML=""; return; }
+
+  const ids=new Set(serviciosSeleccionadosRegistro.map(function(s){return String(s.id);}));
+  const resultados=catalogoRegistroActual().filter(function(s){
+    return !ids.has(String(s.id)) && String(s.nombre_servicio||"").toLowerCase().includes(q);
+  }).slice(0,12);
+
+  if(!resultados.length){
+    box.innerHTML='<div style="padding:10px;color:#6b7280;">No se encontraron servicios.</div>';
+    box.style.display="block";
+    return;
+  }
+
+  box.innerHTML=resultados.map(function(s){
+    return '<div class="servicio-resultado-item" onclick="agregarServicioRegistro(\''+String(s.id).replace(/'/g,"\\'")+'\')">'+
+      '<span class="servicio-resultado-nombre">'+esc(s.nombre_servicio)+'</span>'+
+      '<span class="servicio-resultado-precio">S/ '+Number(s.precio_sin_igv||0).toFixed(2)+'</span>'+
+      '<button type="button" class="servicio-resultado-add" onclick="event.stopPropagation(); agregarServicioRegistro(\''+String(s.id).replace(/'/g,"\\'")+'\')">＋</button>'+
+    '</div>';
+  }).join("");
+  box.style.display="block";
+}
+
+function agregarServicioRegistro(id){
+  const servicio=catalogoRegistroActual().find(function(s){return String(s.id)===String(id);});
+  if(!servicio) return;
+  if(serviciosSeleccionadosRegistro.some(function(s){return String(s.id)===String(id);})) return;
+  serviciosSeleccionadosRegistro.push(servicio);
+  renderizarServiciosSeleccionadosRegistro();
+  const input=document.getElementById("buscarServicioRegistro");
+  if(input){ input.value=""; }
+  const box=document.getElementById("resultadosServiciosRegistro");
+  if(box){ box.style.display="none"; box.innerHTML=""; }
+}
+
+function agregarServicioDesdeBusqueda(){
+  const input=document.getElementById("buscarServicioRegistro");
+  const q=String(input ? input.value : "").trim().toLowerCase();
+  if(!q){
+    mostrarAlerta("Escriba el nombre del servicio que desea agregar.","error");
+    return;
+  }
+  const ids=new Set(serviciosSeleccionadosRegistro.map(function(s){return String(s.id);}));
+  const catalogo=catalogoRegistroActual();
+  const exacto=catalogo.find(function(s){return !ids.has(String(s.id)) && String(s.nombre_servicio||"").toLowerCase()===q;});
+  const coincidencias=catalogo.filter(function(s){return !ids.has(String(s.id)) && String(s.nombre_servicio||"").toLowerCase().includes(q);});
+  const servicio=exacto || (coincidencias.length===1 ? coincidencias[0] : null);
+  if(!servicio){
+    buscarServiciosRegistro(q);
+    mostrarAlerta(coincidencias.length>1 ? "Seleccione uno de los resultados y pulse +." : "No se encontró el servicio.","error");
+    return;
+  }
+  agregarServicioRegistro(servicio.id);
+}
+
+function quitarServicioRegistro(id){
+  serviciosSeleccionadosRegistro=serviciosSeleccionadosRegistro.filter(function(s){return String(s.id)!==String(id);});
+  renderizarServiciosSeleccionadosRegistro();
+}
+
+function limpiarServiciosSeleccionadosRegistro(){
+  serviciosSeleccionadosRegistro=[];
+  renderizarServiciosSeleccionadosRegistro();
+  const input=document.getElementById("buscarServicioRegistro");
+  if(input) input.value="";
+  const box=document.getElementById("resultadosServiciosRegistro");
+  if(box){box.style.display="none";box.innerHTML="";}
+}
+
+function obtenerServiciosSeleccionadosRegistro(){
+  return serviciosSeleccionadosRegistro.slice();
 }
 
 function obtenerCatalogoRegistro(){
@@ -3500,6 +3631,8 @@ function seleccionarCategoriaRegistro(categoria){
 
   categoriaRegistroActual = categoria === "pintura" ? "pintura" : "lavado";
 
+  limpiarServiciosSeleccionadosRegistro();
+
   if(categoriaRegistroActual === "pintura"){
     categoriaLavado.classList.remove("active");
     categoriaPintura.classList.add("active");
@@ -3532,8 +3665,8 @@ function cambiarTipo(tipo){
   const campoPlaca=document.getElementById("campoPlaca");
   const campoVIN=document.getElementById("campoVIN");
   const campoFotoVIN=document.getElementById("campoFotoVIN");
-  const opcionServicio=document.getElementById("opcionServicio");
-  const opcionNuevo=document.getElementById("opcionNuevo");
+  const opcionServicio=document.getElementById("opcionPlaca");
+  const opcionNuevo=document.getElementById("opcionVIN");
   if(tipo==="Nuevo"){
     campoPlaca.style.display="none";
     campoVIN.style.display="flex";
@@ -3758,15 +3891,19 @@ async function registrar(){
     const vin=normalizarValorInterno(document.getElementById("vin").value);
     const marca=document.getElementById("marca").value;
     const modelo="";
-    const servicioSeleccionado=obtenerServicioSeleccionado("servicio");
-    const servicio=servicioSeleccionado ? servicioSeleccionado.nombre : "";
+    const serviciosSeleccionados=obtenerServiciosSeleccionadosRegistro();
+    const servicioSeleccionado=serviciosSeleccionados[0] || null;
+    const servicio=serviciosSeleccionados.map(function(s){return s.nombre_servicio;}).join(" + ");
+    const precioTotalSinIgv=serviciosSeleccionados.reduce(function(total,s){return total+Number(s.precio_sin_igv||0);},0);
+    const igvTotal=Number((precioTotalSinIgv*IGV_AUTOCAMIONES).toFixed(2));
+    const precioTotalConIgv=Number((precioTotalSinIgv+igvTotal).toFixed(2));
     const observaciones=document.getElementById("observaciones").value.trim();
     const archivoIngreso=document.getElementById("fotoIngreso").files[0];
     const archivoVIN=document.getElementById("fotoVIN").files[0];
 
     if(tipo==="Servicio" && !placa){ mostrarAlerta("Debe ingresar la placa.","error"); return; }
     if(tipo==="Nuevo" && !vin){ mostrarAlerta("Debe ingresar el VIN.","error"); return; }
-    if(!marca || !servicioSeleccionado){ mostrarAlerta("Seleccione un servicio válido del catálogo.","error"); return; }
+    if(!marca || !serviciosSeleccionados.length){ mostrarAlerta("Seleccione al menos un servicio válido del catálogo.","error"); return; }
     if(!archivoIngreso){ mostrarAlerta("Debe adjuntar la foto de ingreso.","error"); return; }
     if(tipo==="Nuevo" && !archivoVIN){ mostrarAlerta("Debe adjuntar la foto del VIN para registrar un vehículo nuevo.","error"); return; }
 
@@ -3781,8 +3918,8 @@ async function registrar(){
 
     const fila={
       id,tipo,placa:tipo==="Servicio"?placa:"",vin:tipo==="Nuevo"?vin:"",marca,modelo,
-      servicio,servicio_id:categoriaRegistroActual === "pintura" ? null : servicioSeleccionado.id,precio_sin_igv:servicioSeleccionado.precioSinIgv,
-      igv:servicioSeleccionado.igv,precio_con_igv:servicioSeleccionado.precioConIgv,facturado:false,
+      servicio,servicio_id:servicioSeleccionado ? servicioSeleccionado.id : null,precio_sin_igv:precioTotalSinIgv,
+      igv:igvTotal,precio_con_igv:precioTotalConIgv,facturado:false,
       fecha_facturacion:null,estado:"Lavando",hora_inicio_lavado:new Date().toISOString(),hora_salida:null,
       observaciones,observaciones_finales:"",foto_ingreso:fotos.fotoIngreso||"",foto_final:"",foto_vin:fotos.fotoVIN||""
     };
@@ -5328,9 +5465,17 @@ function exportarExcel(){
 ===================================================== */
 
 function limpiarFormulario(){
-  document.getElementById("placa").value=""; document.getElementById("vin").value=""; document.getElementById("modelo").value=""; document.getElementById("observaciones").value=""; document.getElementById("marca").value=""; seleccionarServicioPorNombre("servicio","Lavado básico");
-  document.getElementById("fotoIngreso").value=""; document.getElementById("fotoVIN").value="";
-  document.querySelector('input[name="tipo"][value="Servicio"]').checked=true; cambiarTipo("Servicio");
+  document.getElementById("placa").value="";
+  document.getElementById("vin").value="";
+  document.getElementById("modelo").value="";
+  document.getElementById("observaciones").value="";
+  document.getElementById("marca").value="";
+  document.getElementById("fotoIngreso").value="";
+  document.getElementById("fotoVIN").value="";
+  limpiarServiciosSeleccionadosRegistro();
+  const radio=document.querySelector('input[name="tipo"][value="Servicio"]');
+  if(radio) radio.checked=true;
+  cambiarTipo("Servicio");
 }
 
 function mostrarPopup(titulo, mensaje, tipo){
@@ -8432,6 +8577,14 @@ function configurarTodosLosRangosDeFechas(){
 /* =====================================================
    INICIO
 ===================================================== */
+
+document.addEventListener("click", function(event){
+  const box=document.getElementById("resultadosServiciosRegistro");
+  const input=document.getElementById("buscarServicioRegistro");
+  if(box && input && !box.contains(event.target) && !input.contains(event.target)){
+    box.style.display="none";
+  }
+});
 
 document.addEventListener(
 "DOMContentLoaded",
