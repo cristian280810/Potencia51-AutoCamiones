@@ -1819,7 +1819,7 @@ html, body {
   grid-template-columns:minmax(0,1fr) minmax(0,1fr) !important;
   grid-template-areas:
     "vehiculo marca"
-    ". fotoIngreso" !important;
+    "fotoIngreso ." !important;
   align-items:start !important;
 }
 
@@ -1877,6 +1877,147 @@ html, body {
   }
 }
 </style>
+
+<style id="pyp-foto-ingreso-servicio-izquierda-final">
+/* PYP -> SERVICIO: Foto de ingreso en la columna izquierda, debajo de Placa. */
+@media (min-width:701px){
+  #registro #gridRegistro.modo-pyp:not(.modo-vin) > #campoFotoIngreso{
+    grid-column:1 !important;
+    grid-row:2 !important;
+    grid-area:auto !important;
+    width:100% !important;
+    display:block !important;
+  }
+}
+</style>
+
+
+<style id="pyp-layout-real-final">
+/* CORRECCIÓN REAL: el contenedor correcto es #registrar (no existe #registro). */
+
+/* PYP: ocultar el selector normal de servicio del form-grid */
+#registrar #gridRegistro.modo-pyp .campo-servicio-registro{
+  display:none !important;
+}
+
+/* PYP SERVICIO: Placa | Marca / Foto de ingreso | vacío */
+#registrar #gridRegistro.modo-pyp:not(.modo-vin){
+  display:grid !important;
+  grid-template-columns:minmax(0,1fr) minmax(0,1fr) !important;
+  grid-template-rows:auto auto !important;
+  column-gap:16px !important;
+  row-gap:16px !important;
+}
+
+#registrar #gridRegistro.modo-pyp:not(.modo-vin) > #campoPlaca{
+  grid-column:1 !important;
+  grid-row:1 !important;
+  grid-area:auto !important;
+  display:flex !important;
+}
+
+#registrar #gridRegistro.modo-pyp:not(.modo-vin) > #campoMarca{
+  grid-column:2 !important;
+  grid-row:1 !important;
+  grid-area:auto !important;
+  display:flex !important;
+}
+
+#registrar #gridRegistro.modo-pyp:not(.modo-vin) > #campoFotoIngreso{
+  grid-column:1 !important;
+  grid-row:2 !important;
+  grid-area:auto !important;
+  display:flex !important;
+  width:100% !important;
+}
+
+/* PYP NUEVO: VIN | Foto VIN / Marca | Foto ingreso */
+#registrar #gridRegistro.modo-pyp.modo-vin{
+  display:grid !important;
+  grid-template-columns:minmax(0,1fr) minmax(0,1fr) !important;
+  grid-template-rows:auto auto !important;
+  column-gap:16px !important;
+  row-gap:16px !important;
+}
+
+#registrar #gridRegistro.modo-pyp.modo-vin > #campoVIN{
+  grid-column:1 !important;
+  grid-row:1 !important;
+  grid-area:auto !important;
+  display:flex !important;
+}
+
+#registrar #gridRegistro.modo-pyp.modo-vin > #campoFotoVIN{
+  grid-column:2 !important;
+  grid-row:1 !important;
+  grid-area:auto !important;
+  display:flex !important;
+}
+
+#registrar #gridRegistro.modo-pyp.modo-vin > #campoMarca{
+  grid-column:1 !important;
+  grid-row:2 !important;
+  grid-area:auto !important;
+  display:flex !important;
+}
+
+#registrar #gridRegistro.modo-pyp.modo-vin > #campoFotoIngreso{
+  grid-column:2 !important;
+  grid-row:2 !important;
+  grid-area:auto !important;
+  display:flex !important;
+}
+
+/* El bloque de servicios está FUERA del grid y SIEMPRE ocupa todo el ancho. */
+#registrar #pypServiciosPanel{
+  display:block !important;
+  width:100% !important;
+  max-width:100% !important;
+  min-width:0 !important;
+  box-sizing:border-box !important;
+  margin:16px 0 0 !important;
+  clear:both !important;
+}
+
+#registrar #pypServiciosPanel #selectorServiciosPintura,
+#registrar #pypServiciosPanel #serviciosSeleccionadosRegistro,
+#registrar #pypServiciosPanel .pyp-agregar-servicio-linea{
+  width:100% !important;
+  max-width:100% !important;
+  min-width:0 !important;
+  box-sizing:border-box !important;
+}
+
+/* Observaciones debajo del bloque completo de PYP */
+#registrar #pypServiciosPanel + #campoObservaciones{
+  display:block !important;
+  width:100% !important;
+  max-width:100% !important;
+  margin-top:16px !important;
+  box-sizing:border-box !important;
+}
+
+@media(max-width:700px){
+  #registrar #gridRegistro.modo-pyp:not(.modo-vin),
+  #registrar #gridRegistro.modo-pyp.modo-vin{
+    grid-template-columns:1fr !important;
+    grid-template-rows:auto !important;
+    row-gap:14px !important;
+  }
+
+  #registrar #gridRegistro.modo-pyp:not(.modo-vin) > #campoPlaca,
+  #registrar #gridRegistro.modo-pyp:not(.modo-vin) > #campoMarca,
+  #registrar #gridRegistro.modo-pyp:not(.modo-vin) > #campoFotoIngreso,
+  #registrar #gridRegistro.modo-pyp.modo-vin > #campoVIN,
+  #registrar #gridRegistro.modo-pyp.modo-vin > #campoFotoVIN,
+  #registrar #gridRegistro.modo-pyp.modo-vin > #campoMarca,
+  #registrar #gridRegistro.modo-pyp.modo-vin > #campoFotoIngreso{
+    grid-column:1 !important;
+    grid-row:auto !important;
+  }
+}
+</style>
+
 </head>
 
 <body>
