@@ -1795,11 +1795,7 @@ html, body {
     }
 }
 
-<style>
-.btn-cotizacion-pyp{background:#0f3b67 !important;color:#fff !important;border:1px solid #0f3b67 !important;}
-.btn-cotizacion-pyp:hover{background:#0b2f53 !important;}
-</style>
-</style>
+
 
 
 <style id="pyp-reestructura-definitiva">
@@ -2018,6 +2014,27 @@ html, body {
 }
 </style>
 
+
+<style id="btn-cotizacion-pyp-final">
+#btnCotizacionPyp.btn-cotizacion-pyp{
+  background:#2563eb !important;
+  background-image:none !important;
+  color:#ffffff !important;
+  border:1px solid #2563eb !important;
+  box-shadow:none !important;
+}
+#btnCotizacionPyp.btn-cotizacion-pyp:hover{
+  background:#1d4ed8 !important;
+  border-color:#1d4ed8 !important;
+}
+#btnCotizacionPyp.btn-cotizacion-pyp:disabled,
+#btnCotizacionPyp.btn-cotizacion-pyp[disabled]{
+  background:#2563eb !important;
+  color:#ffffff !important;
+  border-color:#2563eb !important;
+  opacity:.65 !important;
+}
+</style>
 </head>
 
 <body>
@@ -4448,26 +4465,178 @@ async function obtenerDetalleCotizacionPyp(id){
 function construirPdfCotizacionPyp(cotizacion,detalle){
   const jsPDFRef=window.jspdf&&window.jspdf.jsPDF;
   if(!jsPDFRef) throw new Error("No se pudo cargar el generador de PDF.");
+
   const doc=new jsPDFRef({orientation:"landscape",unit:"mm",format:"a4"});
-  const pageW=doc.internal.pageSize.getWidth(), pageH=doc.internal.pageSize.getHeight();
-  const tipo=String(cotizacion.tipo_registro||cotizacion.tipo||"Servicio");
+  const pageW=doc.internal.pageSize.getWidth();
+  const pageH=doc.internal.pageSize.getHeight();
+  const tipo=String(cotizacion.tipo_registro||cotizacion.tipo||"Taller");
   const identificador=tipo.toLowerCase()==="nuevo"?(cotizacion.vin||"—"):(cotizacion.placa||"—");
   const fecha=String(cotizacion.fecha||cotizacion.created_at||"").slice(0,10)||formatoFechaCotizacionPyp();
-  try{doc.addImage(LOGO_COTIZACION_PYP_BASE64,"PNG",10,8,72,29);}catch(e){doc.setFont("helvetica","bold");doc.setFontSize(18);doc.text("POTENCIA 51",10,20);}
-  doc.setFont("helvetica","bolditalic");doc.setFontSize(9);doc.setTextColor(55,73,92);doc.text("Especialistas en Servicios Automotrices | Taller de Planchado y Pintura",10,44);
-  doc.setTextColor(0,0,0);doc.setFont("helvetica","bold");doc.setFontSize(10);doc.text(cotizacion.correlativo||"—",pageW-10,23,{align:"right"});
-  doc.setFontSize(10);doc.setTextColor(31,41,55);doc.text("DATOS DEL CLIENTE Y VEHÍCULO",10,56);
-  const rows=[["Cliente:",cotizacion.cliente||"—","Placa / VIN:",identificador],["Teléfono / Email:",(cotizacion.telefono||cotizacion.email)||"—","Marca / Modelo:",cotizacion.marca||"—"],["Fecha:",fecha,"Año / Color:","—"]];
-  let y=61; const x1=10,x2=125,boxX1=28,boxX2=168;
-  rows.forEach(function(r){doc.setFont("helvetica","bold");doc.text(r[0],x1,y+4);doc.setFont("helvetica","normal");doc.setDrawColor(185,198,213);doc.setFillColor(255,255,255);doc.rect(boxX1,y,74,7,"FD");doc.text(String(r[1]||"—"),boxX1+2,y+4.7);doc.setFont("helvetica","bold");doc.text(r[2],x2,y+4);doc.setFont("helvetica","normal");doc.rect(boxX2,y,38,7,"FD");doc.text(String(r[3]||"—"),boxX2+2,y+4.7);y+=8;});
-  const tableRows=detalle.map(function(d,i){return [String(i+1),String(d.servicio||"Otros"),String(d.tipo_trabajo||d.servicio||""),formatoCantidadPyp(Number(d.cantidad||1)),formatoSolesPyp(Number(d.precio_unitario||0)),formatoSolesPyp(Number(d.descuento||0)),formatoSolesPyp(Number(d.subtotal||0))];});
-  doc.autoTable({startY:88,margin:{left:8,right:8},head:[["Item","Pieza / Paño / Servicio","Tipo de Trabajo","Cant.","Precio Unit. (S/)","Descuento (S/)","Subtotal (S/)"]],body:tableRows,theme:"grid",styles:{font:"helvetica",fontSize:8.5,cellPadding:1.7,textColor:[31,41,55],lineColor:[185,198,213],lineWidth:.25,overflow:"linebreak",valign:"middle"},headStyles:{fontStyle:"bold",fillColor:[31,55,85],textColor:[255,255,255],halign:"center"},columnStyles:{0:{cellWidth:14,halign:"center"},1:{cellWidth:75},2:{cellWidth:75},3:{cellWidth:22,halign:"center"},4:{cellWidth:36,halign:"right"},5:{cellWidth:36,halign:"right"},6:{cellWidth:38,halign:"right"}},alternateRowStyles:{fillColor:[248,250,252]}});
-  let sy=(doc.lastAutoTable?.finalY||88)+10;if(sy>pageH-55){doc.addPage();sy=20;}
-  const subtotal=Number(cotizacion.subtotal_bruto||0),igv=Number(cotizacion.igv||0),total=Number(cotizacion.total||0);
-  doc.setFont("helvetica","bolditalic");doc.setFontSize(8);doc.setTextColor(82,100,120);doc.text("NOTAS / CONDICIONES DEL SERVICIO:",10,sy);doc.setFont("helvetica","italic");doc.text("1. Cotización válida por 15 días calendario.",10,sy+6);doc.text("2. Garantía de pintura: 12 meses frente a decoloración o desprendimiento.",10,sy+12);doc.text("3. Presupuesto no incluye daños ocultos encontrados al desarme",10,sy+18);
-  const rx=pageW-75;doc.setTextColor(31,41,55);doc.setFont("helvetica","bold");doc.setFontSize(9);doc.text("Subtotal Bruto:",rx-4,sy+2,{align:"right"});doc.text(formatoSolesPyp(subtotal),pageW-10,sy+2,{align:"right"});doc.text("IGV (18%):",rx-4,sy+9,{align:"right"});doc.text(formatoSolesPyp(igv),pageW-10,sy+9,{align:"right"});doc.setFillColor(230,244,252);doc.rect(rx,sy+13,67,9,"F");doc.setFontSize(11);doc.text("TOTAL (S/):",rx+30,sy+19,{align:"right"});doc.text(formatoSolesPyp(total),pageW-10,sy+19,{align:"right"});doc.setDrawColor(31,55,85);doc.setLineWidth(1.2);doc.line(rx+30,sy+24,pageW-10,sy+24);
-  if(cotizacion.observaciones){doc.setFont("helvetica","bold");doc.setFontSize(8);doc.setTextColor(55,65,81);doc.text("Observaciones:",10,sy+31);doc.setFont("helvetica","normal");doc.text(doc.splitTextToSize(cotizacion.observaciones,150),10,sy+36);}
-  doc.setFont("helvetica","normal");doc.setFontSize(7);doc.setTextColor(120,120,120);doc.text("Cotización "+(cotizacion.correlativo||"")+" | Potencia 51 AutoCamiones",10,pageH-8);
+
+  try{
+    doc.addImage(LOGO_COTIZACION_PYP_BASE64,"PNG",10,8,72,29);
+  }catch(e){
+    doc.setFont("helvetica","bold");
+    doc.setFontSize(18);
+    doc.setTextColor(31,41,55);
+    doc.text("POTENCIA 51",10,20);
+  }
+
+  doc.setFont("helvetica","bolditalic");
+  doc.setFontSize(9);
+  doc.setTextColor(55,73,92);
+  doc.text("Especialistas en Servicios Automotrices | Taller de Planchado y Pintura",10,44);
+
+  doc.setTextColor(0,0,0);
+  doc.setFont("helvetica","bold");
+  doc.setFontSize(10);
+  doc.text(cotizacion.correlativo||"—",pageW-10,23,{align:"right"});
+
+  doc.setFontSize(10);
+  doc.setTextColor(31,41,55);
+  doc.text("DATOS DEL CLIENTE Y VEHÍCULO",10,56);
+
+  const rows=[
+    ["Cliente:",cotizacion.cliente||"—","Placa:",identificador],
+    ["Teléfono / Email:",(cotizacion.telefono||cotizacion.email)||"—","Marca / Modelo:",cotizacion.marca||"—"],
+    ["Fecha:",fecha,"Año / Color:","—"]
+  ];
+
+  // Diseño de cabecera A4 horizontal: campos blancos y bien separados.
+  // Los valores largos se ajustan dentro de su casilla para evitar cortes.
+  const xLabelL=10, boxXL=34, boxWL=78;
+  const xLabelR=150, boxXR=195, boxWR=92;
+  let y=61;
+
+  function dibujarCampo(label,xLabel,xBox,boxW,value){
+    const boxH=8;
+    doc.setFont("helvetica","bold");
+    doc.setFontSize(8.8);
+    doc.setTextColor(31,41,55);
+    doc.text(label,xLabel,y+5.1);
+
+    // Forzar fondo blanco para evitar casillas negras/sombreadas.
+    doc.setDrawColor(185,198,213);
+    doc.setLineWidth(.3);
+    doc.setFillColor(255,255,255);
+    doc.rect(xBox,y,boxW,boxH,"FD");
+
+    doc.setFont("helvetica","normal");
+    doc.setTextColor(31,41,55);
+    const texto=String(value||"—").replace(/\s+/g," ").trim()||"—";
+    let fs=8.3;
+    doc.setFontSize(fs);
+    let lineas=doc.splitTextToSize(texto,boxW-4);
+    if(lineas.length>1){
+      fs=7.2;
+      doc.setFontSize(fs);
+      lineas=doc.splitTextToSize(texto,boxW-4).slice(0,2);
+    }
+    const lineH=3.4;
+    const base=y+(boxH-(lineas.length*lineH))/2+2.8;
+    doc.text(lineas, xBox+2, base, {baseline:"middle"});
+  }
+
+  rows.forEach(function(r){
+    dibujarCampo(r[0],xLabelL,boxXL,boxWL,r[1]);
+    dibujarCampo(r[2],xLabelR,boxXR,boxWR,r[3]);
+    y+=9;
+  });
+
+  const tableRows=detalle.map(function(d,i){
+    return [
+      String(i+1),
+      String(d.servicio||"Otros"),
+      String(d.tipo_trabajo||d.servicio||""),
+      formatoCantidadPyp(Number(d.cantidad||1)),
+      formatoSolesPyp(Number(d.precio_unitario||0)),
+      formatoSolesPyp(Number(d.descuento||0)),
+      formatoSolesPyp(Number(d.subtotal||0))
+    ];
+  });
+
+  doc.autoTable({
+    startY:91,
+    margin:{left:8,right:8},
+    tableWidth:"auto",
+    head:[["Item","Pieza / Paño / Servicio","Tipo de Trabajo","Cant.","Precio Unit. (S/)","Descuento (S/)","Subtotal (S/)"]],
+    body:tableRows,
+    theme:"grid",
+    styles:{
+      font:"helvetica",
+      fontSize:8.2,
+      cellPadding:1.6,
+      textColor:[31,41,55],
+      lineColor:[185,198,213],
+      lineWidth:.25,
+      overflow:"linebreak",
+      valign:"middle"
+    },
+    headStyles:{
+      fontStyle:"bold",
+      fillColor:[31,55,85],
+      textColor:[255,255,255],
+      halign:"center",
+      fontSize:8.1
+    },
+    columnStyles:{
+      0:{cellWidth:12,halign:"center"},
+      1:{cellWidth:64},
+      2:{cellWidth:64},
+      3:{cellWidth:19,halign:"center"},
+      4:{cellWidth:40,halign:"right"},
+      5:{cellWidth:39,halign:"right"},
+      6:{cellWidth:43,halign:"right"}
+    },
+    alternateRowStyles:{fillColor:[248,250,252]}
+  });
+
+  let sy=(doc.lastAutoTable?.finalY||91)+10;
+  if(sy>pageH-55){doc.addPage();sy=20;}
+
+  const subtotal=Number(cotizacion.subtotal_bruto||0);
+  const igv=Number(cotizacion.igv||0);
+  const total=Number(cotizacion.total||0);
+
+  doc.setFont("helvetica","bolditalic");
+  doc.setFontSize(8);
+  doc.setTextColor(82,100,120);
+  doc.text("NOTAS / CONDICIONES DEL SERVICIO:",10,sy);
+  doc.setFont("helvetica","italic");
+  doc.text("1. Cotización válida por 15 días calendario.",10,sy+6);
+  doc.text("2. Garantía de pintura: 12 meses frente a decoloración o desprendimiento.",10,sy+12);
+  doc.text("3. Presupuesto no incluye daños ocultos encontrados al desarme",10,sy+18);
+
+  const rx=pageW-75;
+  doc.setTextColor(31,41,55);
+  doc.setFont("helvetica","bold");
+  doc.setFontSize(9);
+  doc.text("Subtotal Bruto:",rx-4,sy+2,{align:"right"});
+  doc.text(formatoSolesPyp(subtotal),pageW-10,sy+2,{align:"right"});
+  doc.text("IGV (18%):",rx-4,sy+9,{align:"right"});
+  doc.text(formatoSolesPyp(igv),pageW-10,sy+9,{align:"right"});
+  doc.setFillColor(230,244,252);
+  doc.rect(rx,sy+13,67,9,"F");
+  doc.setFontSize(11);
+  doc.text("TOTAL (S/):",rx+30,sy+19,{align:"right"});
+  doc.text(formatoSolesPyp(total),pageW-10,sy+19,{align:"right"});
+  doc.setDrawColor(31,55,85);
+  doc.setLineWidth(1.2);
+  doc.line(rx+30,sy+24,pageW-10,sy+24);
+
+  if(cotizacion.observaciones){
+    doc.setFont("helvetica","bold");
+    doc.setFontSize(8);
+    doc.setTextColor(55,65,81);
+    doc.text("Observaciones:",10,sy+31);
+    doc.setFont("helvetica","normal");
+    doc.text(doc.splitTextToSize(cotizacion.observaciones,150),10,sy+36);
+  }
+
+  doc.setFont("helvetica","normal");
+  doc.setFontSize(7);
+  doc.setTextColor(120,120,120);
+  doc.text("Cotización "+(cotizacion.correlativo||"")+" | Potencia 51 AutoCamiones",10,pageH-8);
   return doc;
 }
 
@@ -5139,7 +5308,8 @@ function cambiarCantidadServicioPyp(rowId, valor, volverARenderizar){
   const s = buscarFilaPyp(rowId);
   if(!s) return;
 
-  let q=Number(valor);
+  const texto=String(valor==null?'':valor).trim().replace(',', '.');
+  let q=Number(texto);
   if(!Number.isFinite(q) || q<=0) q=1;
   q=Math.round(q*2)/2;
   s.cantidad=q;
@@ -5229,7 +5399,7 @@ function renderizarServiciosSeleccionadosRegistro(){
       return '<div class="pyp-servicio-fila">'+
         '<div class="pyp-servicio-nombre">'+nombreHtml+'</div>'+ 
         '<div class="pyp-servicio-precio">'+precioHtml+'</div>'+ 
-        '<input class="pyp-cantidad" type="number" min="0.5" step="0.5" value="'+q+'" aria-label="Cantidad de servicio" onchange="cambiarCantidadServicioPyp(\''+rowId+'\',this.value)" oninput="cambiarCantidadServicioPyp(\''+rowId+'\',this.value,false)">'+ 
+        '<input class="pyp-cantidad" type="number" min="0.5" step="0.5" inputmode="decimal" value="'+q+'" aria-label="Cantidad de servicio" onchange="cambiarCantidadServicioPyp(\''+rowId+'\',this.value)" onblur="cambiarCantidadServicioPyp(\''+rowId+'\',this.value)">'+ 
         '<input class="pyp-descuento" type="number" min="0" step="0.01" value="'+descuento.toFixed(2)+'" aria-label="Descuento del servicio" onchange="cambiarDescuentoServicioPyp(\''+rowId+'\',this.value)" oninput="cambiarDescuentoServicioPyp(\''+rowId+'\',this.value,false)">'+ 
         '<div class="pyp-servicio-total">'+formatoSolesPyp(total)+'</div>'+ 
         '<button type="button" class="pyp-servicio-quitar" onclick="quitarServicioRegistro(\''+rowId+'\')" title="Quitar">×</button></div>';
