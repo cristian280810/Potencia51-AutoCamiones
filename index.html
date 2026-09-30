@@ -1801,6 +1801,82 @@ html, body {
 </style>
 </style>
 
+
+<style id="pyp-reestructura-definitiva">
+/* =====================================================
+   PYP: estructura independiente del form-grid
+   ===================================================== */
+
+/* Durante PYP, el selector normal de Servicio no ocupa una celda.
+   El detalle de servicios vive debajo del grid. */
+#registro #gridRegistro.modo-pyp .campo-servicio-registro{
+  display:none !important;
+}
+
+/* PYP - SERVICIO: Placa | Marca / (vacío) | Foto de ingreso */
+#registro #gridRegistro.modo-pyp:not(.modo-vin){
+  display:grid !important;
+  grid-template-columns:minmax(0,1fr) minmax(0,1fr) !important;
+  grid-template-areas:
+    "vehiculo marca"
+    ". fotoIngreso" !important;
+  align-items:start !important;
+}
+
+/* PYP - NUEVO: VIN | Foto VIN / Marca | Foto ingreso */
+#registro #gridRegistro.modo-pyp.modo-vin{
+  display:grid !important;
+  grid-template-columns:minmax(0,1fr) minmax(0,1fr) !important;
+  grid-template-areas:
+    "vehiculo fotoVIN"
+    "marca fotoIngreso" !important;
+  align-items:start !important;
+}
+
+/* El panel PYP ya está fuera de #gridRegistro y ocupa toda la tarjeta. */
+#registro #pypServiciosPanel{
+  display:block !important;
+  width:100% !important;
+  max-width:100% !important;
+  min-width:0 !important;
+  box-sizing:border-box !important;
+  margin:16px 0 0 !important;
+  position:relative !important;
+  clear:both !important;
+}
+
+#registro #pypServiciosPanel #selectorServiciosPintura,
+#registro #pypServiciosPanel #serviciosSeleccionadosRegistro,
+#registro #pypServiciosPanel .pyp-agregar-servicio-linea{
+  width:100% !important;
+  max-width:100% !important;
+  min-width:0 !important;
+  box-sizing:border-box !important;
+}
+
+/* Observaciones queda SIEMPRE debajo del bloque completo de servicios PYP. */
+#registro #pypServiciosPanel + #campoObservaciones{
+  display:block !important;
+  width:100% !important;
+  max-width:100% !important;
+  min-width:0 !important;
+  box-sizing:border-box !important;
+  margin-top:16px !important;
+}
+
+@media(max-width:700px){
+  #registro #gridRegistro.modo-pyp,
+  #registro #gridRegistro.modo-pyp.modo-vin{
+    display:grid !important;
+    grid-template-columns:1fr !important;
+    grid-template-areas:
+      "vehiculo"
+      "fotoVIN"
+      "marca"
+      "fotoIngreso" !important;
+  }
+}
+</style>
 </head>
 
 <body>
@@ -2083,24 +2159,6 @@ value="">
     </select>
   </div>
 
-  <div id="selectorServiciosPintura" style="display:none;">
-    <div class="servicio-desplegable">
-      <button type="button" id="btnServiciosPintura" class="servicio-desplegable-btn" onclick="toggleServiciosPinturaDropdown(event)">
-        <span id="textoServiciosPintura">Seleccione el servicio</span>
-        <span class="servicio-desplegable-flecha">▾</span>
-      </button>
-      <div id="dropdownServiciosPintura" class="servicio-desplegable-menu" style="display:none;">
-        <div class="servicio-desplegable-buscador">
-          <input id="buscadorServiciosPintura" type="text" placeholder="Buscar servicio..." autocomplete="off" oninput="filtrarServiciosPintura(this.value)" onclick="event.stopPropagation()">
-        </div>
-        <div id="listaServiciosPintura" class="servicio-desplegable-lista"></div>
-      </div>
-    </div>
-    <div id="serviciosSeleccionadosRegistro" class="servicios-seleccionados">
-      <span class="servicios-vacio">No hay servicios seleccionados</span>
-    </div>
-  </div>
-
   <select id="servicio" style="display:none" aria-hidden="true">
     <option value="">Seleccione el servicio</option>
   </select>
@@ -2127,6 +2185,48 @@ capture="environment">
 </div>
 
 
+
+
+
+</div>
+
+
+
+
+
+
+
+<!-- PYP: bloque de servicios FUERA del form-grid -->
+<!-- =====================================================
+     DETALLE DE SERVICIOS DE PLANCHADO Y PINTURA
+     Fuera del form-grid para evitar superposiciones.
+===================================================== -->
+<div id="pypServiciosPanel" class="pyp-servicios-panel" style="display:none;">
+  <div id="selectorServiciosPintura">
+    <div class="servicio-desplegable">
+      <button type="button" id="btnServiciosPintura" class="servicio-desplegable-btn" onclick="toggleServiciosPinturaDropdown(event)">
+        <span id="textoServiciosPintura">Seleccione el servicio</span>
+        <span class="servicio-desplegable-flecha">▾</span>
+      </button>
+      <div id="dropdownServiciosPintura" class="servicio-desplegable-menu" style="display:none;">
+        <div class="servicio-desplegable-buscador">
+          <input id="buscadorServiciosPintura" type="text" placeholder="Buscar servicio..." autocomplete="off" oninput="filtrarServiciosPintura(this.value)" onclick="event.stopPropagation()">
+        </div>
+        <div id="listaServiciosPintura" class="servicio-desplegable-lista"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="serviciosSeleccionadosRegistro" class="servicios-seleccionados">
+    <div class="pyp-servicio-fila pyp-servicio-encabezado" style="border-bottom:2px solid #cbd5e1;font-weight:700;font-size:12px;color:#475569;padding-bottom:6px;">
+      <div>Servicio</div><div style="text-align:right;">Precio</div><div style="text-align:center;">Cantidad</div><div style="text-align:center;">Descuento</div><div style="text-align:right;">Total</div><div></div>
+    </div>
+    <div class="pyp-agregar-servicio-linea">
+      <button type="button" class="pyp-agregar-servicio-btn" onclick="abrirSelectorPypAgregar(event)">＋ Agregar servicio</button>
+    </div>
+  </div>
+</div>
+
 <!-- =====================================================
      OBSERVACIONES
 ===================================================== -->
@@ -2144,10 +2244,6 @@ id="observaciones"
 placeholder="Observaciones de ingreso"></textarea>
 
 </div>
-
-
-</div>
-
 
 <div
 id="loadingRegistro"
@@ -4525,8 +4621,14 @@ function seleccionarCategoriaRegistro(categoria){
   const tiposLavado=document.getElementById("tiposLavado");
   const selectorLavado=document.getElementById("selectorServicioLavado");
   const selectorPintura=document.getElementById("selectorServiciosPintura");
+  const pypServiciosPanel=document.getElementById("pypServiciosPanel");
 
   categoriaRegistroActual = categoria === "pintura" ? "pintura" : "lavado";
+
+  const gridRegistroPyp = document.getElementById("gridRegistro");
+  if(gridRegistroPyp){
+    gridRegistroPyp.classList.toggle("modo-pyp", categoriaRegistroActual === "pintura");
+  }
 
   // En Planchado y Pintura no mostramos la etiqueta superior "Servicio *";
   // la identificación del detalle queda en la cabecera de la tabla (Servicio).
@@ -4548,6 +4650,7 @@ function seleccionarCategoriaRegistro(categoria){
     // y los mismos campos de identificación/fotos que Lavado y Adicionales.
     if(tiposLavado) tiposLavado.style.display="flex";
     if(selectorLavado) selectorLavado.style.display="none";
+    if(pypServiciosPanel) pypServiciosPanel.style.display="block";
     if(selectorPintura) selectorPintura.style.display="block";
     // En Planchado y Pintura no se usa el selector superior de servicios:
     // los servicios se agregan únicamente con el botón punteado "＋ Agregar servicio".
@@ -4563,6 +4666,7 @@ function seleccionarCategoriaRegistro(categoria){
     categoriaPintura.classList.remove("active");
     if(tiposLavado) tiposLavado.style.display="flex";
     if(selectorLavado) selectorLavado.style.display="block";
+    if(pypServiciosPanel) pypServiciosPanel.style.display="none";
     if(selectorPintura) selectorPintura.style.display="none";
     const tipoActual = document.querySelector('input[name="tipoLavado"]:checked')?.value || "Servicio";
     cambiarTipo(tipoActual);
@@ -4870,6 +4974,76 @@ function totalPyp(){
     return t + totalItemPyp(s);
   },0);
 }
+function pypRowId(s){
+  // Identificador estable para cada fila de Planchado y Pintura.
+  // "OTRO" se mantiene como identificador especial.
+  return String(s && s.id != null ? s.id : 'OTRO');
+}
+
+function cambiarCantidadServicioPyp(id, valor, volverARenderizar){
+  const s=serviciosSeleccionadosRegistro.find(function(x){
+    return String(x.id)===String(id);
+  });
+  if(!s) return;
+
+  let q=Number(valor);
+  if(!Number.isFinite(q) || q<=0) q=1;
+  // Las cantidades de PYP se manejan en incrementos de 0.5.
+  q=Math.round(q*2)/2;
+  s.cantidad=q;
+
+  const maxDescuento=Number(s.precio_sin_igv||0)*q;
+  if(Number(s.descuento||0)>maxDescuento){
+    s.descuento=maxDescuento;
+  }
+
+  if(volverARenderizar!==false){
+    renderizarServiciosSeleccionadosRegistro();
+  }else{
+    // Para oninput actualizamos únicamente los valores calculados.
+    renderizarServiciosSeleccionadosRegistro();
+  }
+}
+
+function cambiarDescuentoServicioPyp(id, valor, volverARenderizar){
+  const s=serviciosSeleccionadosRegistro.find(function(x){
+    return String(x.id)===String(id);
+  });
+  if(!s) return;
+
+  let d=Number(valor);
+  if(!Number.isFinite(d) || d<0) d=0;
+  const maxDescuento=Number(s.precio_sin_igv||0)*cantidadServicioPyp(s);
+  s.descuento=Math.min(d,maxDescuento);
+
+  if(volverARenderizar!==false){
+    renderizarServiciosSeleccionadosRegistro();
+  }else{
+    renderizarServiciosSeleccionadosRegistro();
+  }
+}
+
+function seleccionarOtroPyp(marcado){
+  const id='OTRO';
+  if(marcado){
+    if(!serviciosSeleccionadosRegistro.some(function(s){return String(s.id)===id;})){
+      serviciosSeleccionadosRegistro.push({
+        id:id,
+        nombre_servicio:'',
+        precio_sin_igv:0,
+        cantidad:1,
+        descuento:0,
+        activo:true
+      });
+    }
+  }else{
+    serviciosSeleccionadosRegistro=serviciosSeleccionadosRegistro.filter(function(s){
+      return String(s.id)!==id;
+    });
+  }
+  renderizarServiciosSeleccionadosRegistro();
+}
+
 function renderizarServiciosSeleccionadosRegistro(){
   const cont=document.getElementById('serviciosSeleccionadosRegistro');
   const hidden=document.getElementById('servicio');
@@ -10377,5 +10551,431 @@ programarCierreAutomatico1930();
   min-height:0 !important;
 }
 </style>
+
+<style id="pyp-layout-fix-servicio-final">
+/* PYP: el detalle de servicios debe ir debajo de Servicio + Foto de ingreso, sin superponerse. */
+@media (min-width:701px){
+  #registro #gridRegistro:not(.modo-vin){
+    grid-template-columns:minmax(0,1fr) minmax(0,1fr) !important;
+    grid-template-areas:
+      "vehiculo marca"
+      "servicioLabel fotoIngreso"
+      "detallePyp detallePyp"
+      "observaciones observaciones" !important;
+    align-items:start !important;
+    row-gap:10px !important;
+  }
+
+  #registro #gridRegistro:not(.modo-vin) .campo-servicio-registro{
+    display:contents !important;
+  }
+
+  #registro #gridRegistro:not(.modo-vin) .campo-servicio-registro > label{
+    grid-area:servicioLabel !important;
+    display:block !important;
+    margin:0 !important;
+    align-self:start !important;
+  }
+
+  #registro #gridRegistro:not(.modo-vin) .campo-servicio-registro > #selectorServicioLavado{
+    display:none !important;
+  }
+
+  #registro #gridRegistro:not(.modo-vin) .campo-servicio-registro > #selectorServiciosPintura{
+    display:block !important;
+    grid-area:detallePyp !important;
+    width:100% !important;
+    min-width:0 !important;
+  }
+
+  #registro #gridRegistro:not(.modo-vin) #serviciosSeleccionadosRegistro{
+    width:100% !important;
+    max-width:100% !important;
+    min-width:0 !important;
+    box-sizing:border-box !important;
+    overflow:visible !important;
+  }
+
+  #registro #gridRegistro:not(.modo-vin) #serviciosSeleccionadosRegistro .pyp-servicio-fila{
+    width:100% !important;
+    max-width:100% !important;
+    box-sizing:border-box !important;
+  }
+
+  #registro #gridRegistro:not(.modo-vin) #campoFotoIngreso{
+    grid-area:fotoIngreso !important;
+    align-self:start !important;
+  }
+
+  #registro #gridRegistro:not(.modo-vin) #campoPlaca{grid-area:vehiculo !important;}
+  #registro #gridRegistro:not(.modo-vin) #campoMarca{grid-area:marca !important;}
+  #registro #gridRegistro:not(.modo-vin) #campoObservaciones{grid-area:observaciones !important;}
+}
+</style>
+
+<style id="pyp-layout-final-spacing">
+/* Ajuste final: en PYP, el detalle debe quedar claramente debajo de Foto de ingreso. */
+#registro #gridRegistro.modo-pyp:not(.modo-vin) #serviciosSeleccionadosRegistro{
+  padding-top:38px !important;
+  margin-top:0 !important;
+  position:relative !important;
+  z-index:1 !important;
+}
+#registro #gridRegistro.modo-pyp:not(.modo-vin) #campoFotoIngreso{
+  position:relative !important;
+  z-index:2 !important;
+}
+</style>
+
+<style id="pyp-servicio-espacio-foto">
+/* PYP SERVICIO: reservar el alto completo de Foto de ingreso antes del detalle. */
+@media (min-width:701px){
+  #registro #gridRegistro.modo-pyp:not(.modo-vin) #campoFotoIngreso{
+    margin-bottom:48px !important;
+  }
+  #registro #gridRegistro.modo-pyp:not(.modo-vin) #serviciosSeleccionadosRegistro{
+    margin-top:0 !important;
+    padding-top:0 !important;
+  }
+}
+</style>
+
+<style id="pyp-estructura-separada-definitiva">
+/* PYP: el detalle de servicios está fuera del form-grid. */
+#registro #gridRegistro.modo-pyp{
+  display:grid !important;
+  grid-template-columns:minmax(0,1fr) minmax(0,1fr) !important;
+  gap:16px !important;
+  align-items:start !important;
+}
+
+#registro #gridRegistro.modo-pyp .campo-servicio-registro{
+  display:none !important;
+}
+
+#registro #gridRegistro.modo-pyp:not(.modo-vin){
+  grid-template-areas:
+    "vehiculo marca"
+    ". fotoIngreso" !important;
+}
+
+#registro #gridRegistro.modo-pyp.modo-vin{
+  grid-template-areas:
+    "vehiculo fotoVIN"
+    "marca fotoIngreso" !important;
+}
+
+#registro #gridRegistro.modo-pyp #campoPlaca{grid-area:vehiculo !important;}
+#registro #gridRegistro.modo-pyp #campoVIN{grid-area:vehiculo !important;}
+#registro #gridRegistro.modo-pyp #campoMarca{grid-area:marca !important;}
+#registro #gridRegistro.modo-pyp #campoFotoVIN{grid-area:fotoVIN !important;}
+#registro #gridRegistro.modo-pyp #campoFotoIngreso{grid-area:fotoIngreso !important;}
+
+#registro #pypServiciosPanel{
+  width:100% !important;
+  max-width:100% !important;
+  box-sizing:border-box !important;
+  margin-top:14px !important;
+  position:relative !important;
+  z-index:2 !important;
+}
+
+#registro #pypServiciosPanel #selectorServiciosPintura{
+  display:block !important;
+  width:100% !important;
+}
+#registro #pypServiciosPanel #btnServiciosPintura{
+  display:none !important;
+}
+#registro #pypServiciosPanel .servicio-desplegable{
+  display:block !important;
+  width:100% !important;
+  height:0 !important;
+  overflow:visible !important;
+}
+#registro #pypServiciosPanel #serviciosSeleccionadosRegistro{
+  width:100% !important;
+  max-width:100% !important;
+  min-width:0 !important;
+  box-sizing:border-box !important;
+  display:block !important;
+  margin:0 !important;
+  padding:0 !important;
+  overflow:visible !important;
+}
+#registro #pypServiciosPanel .pyp-servicio-fila{
+  width:100% !important;
+  max-width:100% !important;
+  min-width:0 !important;
+  box-sizing:border-box !important;
+}
+
+@media(max-width:700px){
+  #registro #gridRegistro.modo-pyp{
+    grid-template-columns:1fr !important;
+    grid-template-areas:
+      "vehiculo"
+      "marca"
+      "fotoIngreso" !important;
+  }
+  #registro #gridRegistro.modo-pyp.modo-vin{
+    grid-template-areas:
+      "vehiculo"
+      "fotoVIN"
+      "marca"
+      "fotoIngreso" !important;
+  }
+}
+</style>
+
+<style id="pyp-observaciones-debajo-grid">
+/* PYP: el bloque de servicios es una fila propia dentro del grid;
+   Observaciones queda siempre debajo del detalle de servicios. */
+#registro #gridRegistro.modo-pyp{
+  display:grid !important;
+  grid-template-columns:minmax(0,1fr) minmax(0,1fr) !important;
+  align-items:start !important;
+}
+
+#registro #gridRegistro.modo-pyp .campo-servicio-registro{
+  display:none !important;
+}
+
+#registro #gridRegistro.modo-pyp #pypServiciosPanel{
+  grid-area:detallePyp !important;
+  display:block !important;
+  width:100% !important;
+  max-width:100% !important;
+  min-width:0 !important;
+  box-sizing:border-box !important;
+  margin:0 !important;
+  position:relative !important;
+  z-index:1 !important;
+}
+
+#registro #gridRegistro.modo-pyp #campoObservaciones{
+  grid-area:observaciones !important;
+  width:100% !important;
+  min-width:0 !important;
+  box-sizing:border-box !important;
+  margin:0 !important;
+  position:relative !important;
+  top:auto !important;
+}
+
+#registro #gridRegistro.modo-pyp:not(.modo-vin){
+  grid-template-areas:
+    "vehiculo marca"
+    ". fotoIngreso"
+    "detallePyp detallePyp"
+    "observaciones observaciones" !important;
+  row-gap:16px !important;
+}
+
+#registro #gridRegistro.modo-pyp.modo-vin{
+  grid-template-areas:
+    "vehiculo fotoVIN"
+    "marca fotoIngreso"
+    "detallePyp detallePyp"
+    "observaciones observaciones" !important;
+  row-gap:16px !important;
+}
+
+#registro #gridRegistro.modo-pyp #campoPlaca{grid-area:vehiculo !important;}
+#registro #gridRegistro.modo-pyp #campoVIN{grid-area:vehiculo !important;}
+#registro #gridRegistro.modo-pyp #campoMarca{grid-area:marca !important;}
+#registro #gridRegistro.modo-pyp #campoFotoVIN{grid-area:fotoVIN !important;}
+#registro #gridRegistro.modo-pyp #campoFotoIngreso{grid-area:fotoIngreso !important; align-self:start !important;}
+
+#registro #gridRegistro.modo-pyp #pypServiciosPanel #serviciosSeleccionadosRegistro{
+  width:100% !important;
+  max-width:100% !important;
+  min-width:0 !important;
+  box-sizing:border-box !important;
+  margin:0 !important;
+  padding:0 !important;
+  overflow:visible !important;
+}
+
+#registro #gridRegistro.modo-pyp #pypServiciosPanel .pyp-servicio-fila{
+  width:100% !important;
+  max-width:100% !important;
+  box-sizing:border-box !important;
+}
+
+@media(max-width:700px){
+  #registro #gridRegistro.modo-pyp,
+  #registro #gridRegistro.modo-pyp.modo-vin{
+    grid-template-columns:1fr !important;
+    row-gap:16px !important;
+  }
+  #registro #gridRegistro.modo-pyp:not(.modo-vin){
+    grid-template-areas:
+      "vehiculo"
+      "marca"
+      "fotoIngreso"
+      "detallePyp"
+      "observaciones" !important;
+  }
+  #registro #gridRegistro.modo-pyp.modo-vin{
+    grid-template-areas:
+      "vehiculo"
+      "fotoVIN"
+      "marca"
+      "fotoIngreso"
+      "detallePyp"
+      "observaciones" !important;
+  }
+}
+</style>
+
+<style id="pyp-nuevo-servicios-ancho-completo">
+/* PYP: el bloque de servicios ocupa toda la fila, especialmente en NUEVO. */
+@media (min-width:701px){
+  #registro #gridRegistro.modo-pyp #pypServiciosPanel{
+    display:block !important;
+    grid-area:auto !important;
+    grid-column:1 / -1 !important;
+    grid-row:3 !important;
+    width:100% !important;
+    max-width:none !important;
+    min-width:0 !important;
+    justify-self:stretch !important;
+    align-self:start !important;
+    box-sizing:border-box !important;
+  }
+  #registro #gridRegistro.modo-pyp #pypServiciosPanel #serviciosSeleccionadosRegistro{
+    width:100% !important;
+    max-width:none !important;
+    min-width:0 !important;
+    box-sizing:border-box !important;
+  }
+}
+
+@media (max-width:700px){
+  #registro #gridRegistro.modo-pyp #pypServiciosPanel{
+    grid-column:1 / -1 !important;
+    grid-row:auto !important;
+    width:100% !important;
+  }
+}
+</style>
 </body>
 </html>
+<style id="pyp-layout-structure-fix">
+/* =========================================================
+   PYP: EL DETALLE DE SERVICIOS DEBE SER UNA FILA PROPIA
+   Y NUNCA INVADIR FOTO DE INGRESO
+   ========================================================= */
+#registro #gridRegistro.modo-pyp{
+  display:grid !important;
+  grid-template-columns:minmax(0,1fr) minmax(0,1fr) !important;
+  align-items:start !important;
+}
+
+/* El contenedor original deja de ser una celda; sus elementos PYP
+   pasan a formar parte directamente del grid principal. */
+#registro #gridRegistro.modo-pyp .campo-servicio-registro{
+  display:contents !important;
+}
+#registro #gridRegistro.modo-pyp .campo-servicio-registro > label{
+  display:none !important;
+}
+
+/* En PYP no se usa el selector superior. El único acceso es
+   el botón punteado + Agregar servicio. */
+#registro #gridRegistro.modo-pyp #selectorServicioLavado{
+  display:none !important;
+}
+#registro #gridRegistro.modo-pyp #selectorServiciosPintura{
+  display:contents !important;
+}
+#registro #gridRegistro.modo-pyp #selectorServiciosPintura > .servicio-desplegable{
+  display:none !important;
+}
+
+#registro #gridRegistro.modo-pyp #serviciosSeleccionadosRegistro{
+  grid-area:detallePyp !important;
+  width:100% !important;
+  min-width:0 !important;
+  box-sizing:border-box !important;
+}
+
+#registro #gridRegistro.modo-pyp #campoPlaca{grid-area:vehiculo !important;}
+#registro #gridRegistro.modo-pyp #campoVIN{grid-area:vehiculo !important;}
+#registro #gridRegistro.modo-pyp #campoMarca{grid-area:marca !important;}
+#registro #gridRegistro.modo-pyp #campoFotoVIN{grid-area:fotoVIN !important;}
+#registro #gridRegistro.modo-pyp #campoFotoIngreso{grid-area:fotoIngreso !important;}
+#registro #gridRegistro.modo-pyp #campoObservaciones{grid-area:observaciones !important;}
+
+/* SERVICIO: Placa | Marca / Foto de ingreso / Detalle completo */
+#registro #gridRegistro.modo-pyp:not(.modo-vin){
+  grid-template-areas:
+    "vehiculo marca"
+    ". fotoIngreso"
+    "detallePyp detallePyp"
+    "observaciones observaciones" !important;
+}
+
+/* NUEVO: VIN | Foto VIN / Marca | Foto ingreso / Detalle completo */
+#registro #gridRegistro.modo-pyp.modo-vin{
+  grid-template-areas:
+    "vehiculo fotoVIN"
+    "marca fotoIngreso"
+    "detallePyp detallePyp"
+    "observaciones observaciones" !important;
+}
+
+@media(max-width:700px){
+  #registro #gridRegistro.modo-pyp,
+  #registro #gridRegistro.modo-pyp.modo-vin{
+    grid-template-columns:1fr !important;
+    grid-template-areas:
+      "vehiculo"
+      "marca"
+      "fotoIngreso"
+      "detallePyp"
+      "observaciones" !important;
+  }
+  #registro #gridRegistro.modo-pyp.modo-vin{
+    grid-template-areas:
+      "vehiculo"
+      "fotoVIN"
+      "marca"
+      "fotoIngreso"
+      "detallePyp"
+      "observaciones" !important;
+  }
+}
+</style>
+
+<style id="pyp-bajar-detalle-definitivo">
+/* PYP SERVICIO: SOLO BAJAR el bloque de detalle para que no se monte sobre Foto de ingreso. */
+@media (min-width:701px){
+  #registro #gridRegistro.modo-pyp:not(.modo-vin) #serviciosSeleccionadosRegistro{
+    margin-top:72px !important;
+    padding-top:0 !important;
+    position:relative !important;
+    z-index:1 !important;
+  }
+  #registro #gridRegistro.modo-pyp:not(.modo-vin) #campoFotoIngreso{
+    position:relative !important;
+    z-index:5 !important;
+  }
+}
+</style>
+
+<style id="pyp-servicio-solo-bajar-real">
+/* ÚLTIMO AJUSTE: en PYP > Servicio, bajar VISUALMENTE el detalle para que quede debajo de Foto de ingreso. */
+@media (min-width:701px){
+  #registro #gridRegistro.modo-pyp:not(.modo-vin) #serviciosSeleccionadosRegistro{
+    position:relative !important;
+    top:78px !important;
+    z-index:1 !important;
+  }
+  #registro #gridRegistro.modo-pyp:not(.modo-vin) #campoObservaciones{
+    position:relative !important;
+    top:78px !important;
+  }
+}
+</style>
