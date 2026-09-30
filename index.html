@@ -2063,9 +2063,6 @@ value="">
 
   <div id="selectorServiciosPintura" style="display:none;">
     <div class="servicio-desplegable">
-      <button type="button" id="btnServiciosPintura" class="pyp-boton-agregar-principal" onclick="toggleServiciosPinturaDropdown(event)">
-        <span class="pyp-boton-agregar-icono">＋</span> Agregar servicio
-      </button>
       <div id="dropdownServiciosPintura" class="servicio-desplegable-menu" style="display:none;">
         <div class="servicio-desplegable-buscador">
           <input id="buscadorServiciosPintura" type="text" placeholder="Buscar servicio..." autocomplete="off" oninput="filtrarServiciosPintura(this.value)" onclick="event.stopPropagation()">
@@ -3701,7 +3698,7 @@ function renderizarServiciosSeleccionadosRegistro(){
   renderizarDropdownServiciosPintura();
 
   if(!serviciosSeleccionadosRegistro.length){
-    cont.innerHTML='<span class="servicios-vacio">No hay servicios seleccionados</span>';
+    cont.innerHTML='<div class="pyp-agregar-servicio-linea"><button type="button" class="pyp-agregar-servicio-btn" onclick="abrirSelectorPypAgregar(event)">＋ Agregar servicio</button></div>';
     return;
   }
 
@@ -3778,7 +3775,8 @@ function seleccionarServicioDesdeDropdown(id, marcado){
 document.addEventListener("click", function(event){
   const cont=document.querySelector("#selectorServiciosPintura .servicio-desplegable");
   const menu=document.getElementById("dropdownServiciosPintura");
-  if(cont && menu && !cont.contains(event.target)) menu.style.display="none";
+  const botonAgregar=event.target.closest ? event.target.closest(".pyp-agregar-servicio-btn") : null;
+  if(cont && menu && !cont.contains(event.target) && !botonAgregar) menu.style.display="none";
 });
 
 function catalogoRegistroActual(){
@@ -4817,7 +4815,7 @@ function renderizarServiciosSeleccionadosRegistro(){
   }
   renderizarDropdownServiciosPintura();
   if(!serviciosSeleccionadosRegistro.length){
-    cont.innerHTML='<span class="servicios-vacio">No hay servicios seleccionados</span>';
+    cont.innerHTML='<div class="pyp-agregar-servicio-linea"><button type="button" class="pyp-agregar-servicio-btn" onclick="abrirSelectorPypAgregar(event)">＋ Agregar servicio</button></div>';
     return;
   }
   const encabezado='<div class="pyp-servicio-fila" style="border-bottom:2px solid #cbd5e1;font-weight:700;font-size:12px;color:#475569;padding-bottom:6px;">'+
@@ -4840,14 +4838,17 @@ function renderizarServiciosSeleccionadosRegistro(){
       '<button type="button" class="pyp-servicio-quitar" onclick="quitarServicioRegistro(\''+rowId+'\')" title="Quitar">×</button></div>';
   }).join('');
   cont.innerHTML=encabezado+filas+
-    '<div class="pyp-agregar-servicio-linea"><button type="button" class="pyp-agregar-servicio-btn" onclick="abrirSelectorPypAgregar()">＋ Agregar servicio</button></div>'+
+    '<div class="pyp-agregar-servicio-linea"><button type="button" class="pyp-agregar-servicio-btn" onclick="abrirSelectorPypAgregar(event)">＋ Agregar servicio</button></div>'+
     '<div class="pyp-total-general">Total servicios: '+formatoSolesPyp(totalPyp())+'</div>';
 }
-function abrirSelectorPypAgregar(){
-  const menu=document.getElementById('dropdownServiciosPintura'); if(!menu) return;
-  menu.style.display='block'; renderizarDropdownServiciosPintura();
+function abrirSelectorPypAgregar(event){
+  if(event) event.stopPropagation();
+  const menu=document.getElementById('dropdownServiciosPintura');
+  if(!menu) return;
+  menu.style.display='block';
+  renderizarDropdownServiciosPintura();
   const buscador=document.getElementById('buscadorServiciosPintura');
-  if(buscador){ setTimeout(function(){buscador.focus(); buscador.select();},0); }
+  if(buscador){ setTimeout(function(){ buscador.focus(); buscador.select(); },0); }
 }
 function cambiarCantidadServicioPyp(rowId,valor,render=true){
   const s=serviciosSeleccionadosRegistro.find(function(x){return pypRowId(x)===String(rowId);}); if(!s) return;
@@ -10311,6 +10312,7 @@ programarCierreAutomatico1930();
 .pyp-agregar-servicio-linea{grid-column:1/-1;width:100%;padding:10px 0 4px;}
 .pyp-agregar-servicio-btn{width:100%;border:1px dashed #2563eb;background:#eff6ff;color:#1d4ed8;border-radius:8px;padding:9px 12px;font-weight:700;cursor:pointer;}
 .pyp-agregar-servicio-btn:hover{background:#dbeafe;}
+#selectorServiciosPintura .servicio-desplegable-menu{z-index:1000;}
 .pyp-opcion-servicio{width:100%;display:flex;align-items:center;justify-content:space-between;text-align:left;border:0;background:#fff;cursor:pointer;padding:10px 12px;font:inherit;color:#111827;}
 .pyp-opcion-servicio:hover{background:#f1f5f9;}
 .pyp-opcion-otros{border-top:1px solid #e5e7eb;}
