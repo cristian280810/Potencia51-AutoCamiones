@@ -552,6 +552,64 @@ th{
     min-width:130px;
 }
 
+/* =====================================================
+   MODAL DE DUPLICADO
+===================================================== */
+.pyp-duplicado-modal .modal-content{
+    max-width:560px;
+    border-radius:16px;
+    padding:0;
+    overflow:hidden;
+}
+.pyp-duplicado-cabecera{
+    padding:24px 26px 14px;
+    text-align:center;
+}
+.pyp-duplicado-icono{
+    width:62px;
+    height:62px;
+    margin:0 auto 12px;
+    border-radius:50%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:#fff7ed;
+    color:#c2410c;
+    font-size:30px;
+}
+.pyp-duplicado-cabecera h3{
+    margin:0;
+    color:#172033;
+    font-size:21px;
+}
+.pyp-duplicado-cuerpo{
+    padding:0 26px 18px;
+    color:#4b5563;
+    line-height:1.5;
+}
+.pyp-duplicado-registro{
+    margin-top:10px;
+    padding:11px 13px;
+    border:1px solid #fed7aa;
+    border-radius:9px;
+    background:#fffaf5;
+    color:#374151;
+    font-size:13px;
+}
+.pyp-duplicado-registro strong{color:#111827;}
+.pyp-duplicado-acciones{
+    display:flex;
+    justify-content:flex-end;
+    gap:10px;
+    padding:16px 26px 22px;
+    background:#f8fafc;
+    border-top:1px solid #e5e7eb;
+}
+.pyp-duplicado-acciones .btn{min-width:135px;}
+.pyp-duplicado-cancelar{background:#e5e7eb !important;color:#374151 !important;border:1px solid #d1d5db !important;}
+.pyp-duplicado-continuar{background:#dc2626 !important;color:#fff !important;border:1px solid #dc2626 !important;}
+.pyp-duplicado-continuar:hover{background:#b91c1c !important;}
+
 @keyframes popupEntrada{
     from{
         opacity:0;
@@ -2904,7 +2962,8 @@ onclick="limpiarFormulario()">
         <label for="nuevaFacturaRuc">RUC</label>
         <input id="nuevaFacturaRuc" type="text" readonly placeholder="Se completa automáticamente" style="background:#f3f4f6;cursor:not-allowed;">
       </div>
-      <div class="form-group"><label>Fecha de emisión *</label><input id="nuevaFacturaEmision" type="date"></div>
+      <div class="form-group"><label>Fecha de emisión *</label><input id="nuevaFacturaEmision" type="date" onchange="sincronizarMesFacturacionNuevaFactura()"></div>
+      <div class="form-group"><label>Periodo de facturación *</label><input id="nuevaFacturaMesFacturacion" type="month"><small style="display:block;margin-top:5px;color:#6b7280;">Puede ser distinto al mes de emisión. Este periodo se utilizará para el Dashboard.</small></div>
       <div class="form-group"><label>Fecha de vencimiento</label><input id="nuevaFacturaVencimiento" type="date"></div>
       <div class="form-group"><label>Estado inicial</label><input id="nuevaFacturaEstadoPago" type="text" value="Pendiente" readonly></div>
       <div class="form-group"><label>Observaciones</label><input id="nuevaFacturaObservaciones" type="text" placeholder="Opcional"></div>
@@ -2960,7 +3019,8 @@ onclick="limpiarFormulario()">
         <label>RUC</label>
         <input id="adicionalFacturaRuc" type="text" readonly placeholder="Se completa automáticamente" style="background:#f3f4f6;cursor:not-allowed;">
       </div>
-      <div class="form-group"><label>Fecha de emisión *</label><input id="adicionalFacturaEmision" type="date"></div>
+      <div class="form-group"><label>Fecha de emisión *</label><input id="adicionalFacturaEmision" type="date" onchange="sincronizarMesFacturacionAdicional()"></div>
+      <div class="form-group"><label>Periodo de facturación *</label><input id="adicionalFacturaMesFacturacion" type="month"><small style="display:block;margin-top:5px;color:#6b7280;">Puede ser distinto al mes de emisión. Este periodo se utilizará para el Dashboard.</small></div>
       <div class="form-group"><label>Fecha de vencimiento</label><input id="adicionalFacturaVencimiento" type="date"></div>
       <div class="form-group"><label>Concepto / cargo por cobrar *</label><input id="adicionalFacturaConcepto" type="text" placeholder="Ej.: Reembolso de gasto, penalidad, alquiler, etc."></div>
       <div class="form-group"><label>Subtotal sin IGV *</label><input id="adicionalFacturaSubtotal" type="number" min="0" step="0.01" placeholder="0.00" oninput="calcularFacturaAdicional()"></div>
@@ -3615,6 +3675,26 @@ id="tablaHistorial">
 
     </div>
 
+</div>
+
+<!-- =====================================================
+     MODAL DUPLICADO
+===================================================== -->
+<div id="modalDuplicadoRegistro" class="modal pyp-duplicado-modal">
+  <div class="modal-content">
+    <div class="pyp-duplicado-cabecera">
+      <div class="pyp-duplicado-icono">⚠️</div>
+      <h3 id="duplicadoTitulo">Registro posiblemente duplicado</h3>
+    </div>
+    <div class="pyp-duplicado-cuerpo">
+      <p id="duplicadoTexto"></p>
+      <div id="duplicadoLista"></div>
+    </div>
+    <div class="pyp-duplicado-acciones">
+      <button type="button" class="btn pyp-duplicado-cancelar" onclick="cerrarModalDuplicado(false)">Cancelar</button>
+      <button type="button" class="btn pyp-duplicado-continuar" onclick="cerrarModalDuplicado(true)">Continuar de todas formas</button>
+    </div>
+  </div>
 </div>
 
 <!-- =====================================================
@@ -5880,18 +5960,46 @@ function analizarDuplicados(registrosExistentes,datos){
   }).map(function(r){return {registro:r,exacta:true,motivos:[tipo==="Nuevo"?"VIN igual":"Placa igual"]};});
 }
 
+let resolverDuplicadoPendiente=null;
+
+function cerrarModalDuplicado(resultado){
+  const modal=document.getElementById("modalDuplicadoRegistro");
+  if(modal) modal.classList.remove("active");
+  if(typeof resolverDuplicadoPendiente==="function"){
+    const resolver=resolverDuplicadoPendiente;
+    resolverDuplicadoPendiente=null;
+    resolver(!!resultado);
+  }
+}
+
+function abrirModalDuplicado(datos,coincidencias){
+  const modal=document.getElementById("modalDuplicadoRegistro");
+  const titulo=document.getElementById("duplicadoTitulo");
+  const texto=document.getElementById("duplicadoTexto");
+  const lista=document.getElementById("duplicadoLista");
+  if(!modal || !titulo || !texto || !lista){
+    return Promise.resolve(window.confirm("Ya existe un registro con el mismo "+(datos.tipo==="Nuevo"?"VIN":"placa")+". ¿Desea continuar de todas formas?"));
+  }
+  const campo=datos.tipo==="Nuevo" ? "VIN" : "placa";
+  titulo.textContent="Registro posiblemente duplicado";
+  texto.innerHTML=`Encontramos registros existentes con el mismo <strong>${esc(campo)}</strong>. Revise la información antes de continuar.`;
+  lista.innerHTML=coincidencias.slice(0,5).map(function(x,i){
+    const r=x.registro;
+    return `<div class="pyp-duplicado-registro"><strong>Registro ${i+1}</strong><br>
+      Tipo: ${esc(r.tipo||"—")} · Placa: ${esc(r.placa||"—")} · VIN: ${esc(r.vin||"—")}<br>
+      Estado: ${esc(r.estado||"—")} · Fecha: ${esc(formatearFechaHoraRegularizacion(r.hora_inicio_lavado)||"—")}
+    </div>`;
+  }).join("");
+  modal.classList.add("active");
+  return new Promise(function(resolve){ resolverDuplicadoPendiente=resolve; });
+}
+
 async function verificarDuplicadosAntesDeRegistrar(datos){
   try{
     const existentes=await obtenerTodosLosRegistros();
     const coincidencias=analizarDuplicados(existentes,datos);
     if(!coincidencias.length) return true;
-    let mensaje="⚠️ Ya existe un registro con el mismo "+(datos.tipo==="Nuevo"?"VIN":"placa")+".\n\n";
-    coincidencias.slice(0,5).forEach(function(x,i){
-      const r=x.registro;
-      mensaje+="REGISTRO "+(i+1)+"\n• Tipo: "+(r.tipo||"—")+"\n• Placa: "+(r.placa||"—")+"\n• VIN: "+(r.vin||"—")+"\n• Estado: "+(r.estado||"—")+"\n• Fecha: "+(formatearFechaHoraRegularizacion(r.hora_inicio_lavado)||"—")+"\n\n";
-    });
-    mensaje+="¿Desea continuar de todas formas?";
-    return window.confirm(mensaje);
+    return await abrirModalDuplicado(datos,coincidencias);
   }catch(error){ console.error(error); return true; }
 }
 
@@ -8540,6 +8648,28 @@ function obtenerSeleccionadosFacturacion(){
   }).filter(function(r){return r && !estaFacturadoFacturacion(r);});
 }
 
+function mesDesdeFechaFacturacion(fecha){
+  const valor=String(fecha||"").trim();
+  return /^\d{4}-\d{2}-\d{2}$/.test(valor) ? valor.slice(0,7) : "";
+}
+
+function sincronizarMesFacturacionNuevaFactura(){
+  const fecha=document.getElementById("nuevaFacturaEmision")?.value||"";
+  const mes=document.getElementById("nuevaFacturaMesFacturacion");
+  if(mes && !mes.value) mes.value=mesDesdeFechaFacturacion(fecha);
+}
+
+function sincronizarMesFacturacionAdicional(){
+  const fecha=document.getElementById("adicionalFacturaEmision")?.value||"";
+  const mes=document.getElementById("adicionalFacturaMesFacturacion");
+  if(mes && !mes.value) mes.value=mesDesdeFechaFacturacion(fecha);
+}
+
+function normalizarMesFacturacion(valor){
+  const v=String(valor||"").trim();
+  return /^\d{4}-\d{2}$/.test(v) ? v+"-01" : "";
+}
+
 function abrirModalNuevaFactura(){
   const seleccionados=obtenerSeleccionadosFacturacion();
   if(!seleccionados.length){
@@ -8561,6 +8691,7 @@ function abrirModalNuevaFactura(){
   document.getElementById("nuevaFacturaCliente").value="";
   document.getElementById("nuevaFacturaRuc").value="";
   document.getElementById("nuevaFacturaEmision").value=fechaHoy;
+  document.getElementById("nuevaFacturaMesFacturacion").value=mesDesdeFechaFacturacion(fechaHoy);
   document.getElementById("nuevaFacturaVencimiento").value="";
   document.getElementById("nuevaFacturaEstadoPago").value="Pendiente";
   document.getElementById("nuevaFacturaObservaciones").value="";
@@ -8585,6 +8716,7 @@ function abrirModalFacturaAdicional(){
   document.getElementById("adicionalFacturaCliente").value="";
   document.getElementById("adicionalFacturaRuc").value="";
   document.getElementById("adicionalFacturaEmision").value=fechaHoy;
+  document.getElementById("adicionalFacturaMesFacturacion").value=mesDesdeFechaFacturacion(fechaHoy);
   document.getElementById("adicionalFacturaVencimiento").value="";
   document.getElementById("adicionalFacturaConcepto").value="";
   document.getElementById("adicionalFacturaSubtotal").value="";
@@ -8631,13 +8763,14 @@ async function guardarFacturaAdicional(){
   const numero=document.getElementById("adicionalFacturaNumero").value.trim().toUpperCase();
   const cliente=document.getElementById("adicionalFacturaCliente").value.trim();
   const fechaEmision=document.getElementById("adicionalFacturaEmision").value;
+  const periodoFacturacion=normalizarMesFacturacion(document.getElementById("adicionalFacturaMesFacturacion").value);
   const fechaVencimiento=document.getElementById("adicionalFacturaVencimiento").value || null;
   const concepto=document.getElementById("adicionalFacturaConcepto").value.trim();
   const subtotal=Math.max(0,Number(document.getElementById("adicionalFacturaSubtotal").value||0));
   const observaciones=document.getElementById("adicionalFacturaObservaciones").value.trim();
   const archivo=document.getElementById("adicionalFacturaArchivo").files[0] || null;
-  if(!numero || !cliente || !fechaEmision || !concepto || subtotal<=0){
-    mostrarAlerta("Completa número de factura, cliente, fecha, concepto y un subtotal mayor a 0.","error");
+  if(!numero || !cliente || !fechaEmision || !periodoFacturacion || !concepto || subtotal<=0){
+    mostrarAlerta("Completa número de factura, cliente, fecha de emisión, mes de facturación, concepto y un subtotal mayor a 0.","error");
     return;
   }
   const igv=Number((subtotal*0.18).toFixed(2));
@@ -8653,6 +8786,7 @@ async function guardarFacturaAdicional(){
       body:JSON.stringify({
         numero_factura:numero,
         fecha_emision:fechaEmision,
+        periodo_facturacion:periodoFacturacion,
         fecha_vencimiento:fechaVencimiento,
         cliente:cliente,
         subtotal_sin_igv:Number(subtotal.toFixed(2)),
@@ -8727,12 +8861,13 @@ async function guardarNuevaFactura(){
   const cliente=document.getElementById("nuevaFacturaCliente").value.trim();
   const rucCliente=document.getElementById("nuevaFacturaRuc").value.trim();
   const fechaEmision=document.getElementById("nuevaFacturaEmision").value;
+  const periodoFacturacion=normalizarMesFacturacion(document.getElementById("nuevaFacturaMesFacturacion").value);
   const fechaVencimiento=document.getElementById("nuevaFacturaVencimiento").value || null;
   const observaciones=document.getElementById("nuevaFacturaObservaciones").value.trim();
   const archivo=document.getElementById("nuevaFacturaArchivo").files[0] || null;
 
-  if(!numero || !cliente || !rucCliente || !fechaEmision){
-    mostrarAlerta("Completa número de factura, selecciona un cliente y verifica la fecha de emisión.","error");
+  if(!numero || !cliente || !rucCliente || !fechaEmision || !periodoFacturacion){
+    mostrarAlerta("Completa número de factura, selecciona un cliente, fecha de emisión y mes de facturación.","error");
     return;
   }
 
@@ -8762,6 +8897,7 @@ async function guardarNuevaFactura(){
       body:JSON.stringify({
         numero_factura:numero,
         fecha_emision:fechaEmision,
+        periodo_facturacion:periodoFacturacion,
         fecha_vencimiento:fechaVencimiento,
         cliente:cliente,
         subtotal_sin_igv:Number(resumen.sinIgv.toFixed(2)),
@@ -8858,7 +8994,7 @@ const FACTURAS_EMITIDAS_POR_PAGINA=40;
 
 async function cargarFacturasEmitidas(){
   const headers={"apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY};
-  const selectCompleto="id,numero_factura,fecha_emision,fecha_vencimiento,cliente,subtotal_sin_igv,igv,total_con_igv,estado_pago,estado_factura,tipo_factura,concepto_adicional,fecha_pago,observaciones,created_at,archivo_factura,aplica_detraccion,numero_nota_credito,archivo_nota_credito,motivo_anulacion,fecha_anulacion,porcentaje_detraccion,monto_detraccion,monto_pago_directo,fecha_pago_directo,fecha_detraccion,estado_detraccion";
+  const selectCompleto="id,numero_factura,fecha_emision,periodo_facturacion,fecha_vencimiento,cliente,subtotal_sin_igv,igv,total_con_igv,estado_pago,estado_factura,tipo_factura,concepto_adicional,fecha_pago,observaciones,created_at,archivo_factura,aplica_detraccion,numero_nota_credito,archivo_nota_credito,motivo_anulacion,fecha_anulacion,porcentaje_detraccion,monto_detraccion,monto_pago_directo,fecha_pago_directo,fecha_detraccion,estado_detraccion";
   const selectCompatible="id,numero_factura,fecha_emision,fecha_vencimiento,cliente,subtotal_sin_igv,igv,total_con_igv,estado_pago,estado_factura,fecha_pago,observaciones,created_at,archivo_factura,aplica_detraccion,numero_nota_credito,archivo_nota_credito,motivo_anulacion,fecha_anulacion,porcentaje_detraccion,monto_detraccion,monto_pago_directo,fecha_pago_directo,fecha_detraccion,estado_detraccion";
   let respuesta=await fetch(SUPABASE_URL+"/rest/v1/facturas_autocamiones?select="+encodeURIComponent(selectCompleto)+"&order=fecha_emision.desc,created_at.desc",{method:"GET",headers,cache:"no-store"});
   let modoCompatible=false;
@@ -10053,11 +10189,22 @@ let detallesFacturasDashboard = [];
 
 async function cargarFacturasDashboard(){
   const headers={"apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY};
-  const respuesta = await fetch(SUPABASE_URL+"/rest/v1/facturas_autocamiones?select=id,numero_factura,fecha_emision,total_con_igv,estado_pago,estado_factura,fecha_pago,aplica_detraccion,monto_detraccion,monto_pago_directo,fecha_pago_directo,fecha_detraccion,estado_detraccion&order=fecha_emision.asc,created_at.asc",{
+  const selectConMes="id,numero_factura,fecha_emision,periodo_facturacion,total_con_igv,estado_pago,estado_factura,fecha_pago,aplica_detraccion,monto_detraccion,monto_pago_directo,fecha_pago_directo,fecha_detraccion,estado_detraccion";
+  const selectSinMes="id,numero_factura,fecha_emision,total_con_igv,estado_pago,estado_factura,fecha_pago,aplica_detraccion,monto_detraccion,monto_pago_directo,fecha_pago_directo,fecha_detraccion,estado_detraccion";
+  let respuesta=await fetch(SUPABASE_URL+"/rest/v1/facturas_autocamiones?select="+encodeURIComponent(selectConMes)+"&order=fecha_emision.asc,created_at.asc",{
     method:"GET",headers:headers,cache:"no-store"
   });
+  if(!respuesta.ok){
+    respuesta=await fetch(SUPABASE_URL+"/rest/v1/facturas_autocamiones?select="+encodeURIComponent(selectSinMes)+"&order=fecha_emision.asc,created_at.asc",{
+      method:"GET",headers:headers,cache:"no-store"
+    });
+  }
   if(!respuesta.ok) throw new Error("No se pudieron cargar las facturas del Dashboard: "+await respuesta.text());
   facturasDashboard = await respuesta.json();
+  facturasDashboard=facturasDashboard.map(function(f){
+    if(!f.periodo_facturacion) f.periodo_facturacion=(String(f.fecha_emision||"").slice(0,7)+"-01");
+    return f;
+  });
 
   // Relación factura -> vehículo para poder mostrar el estado real de pago
   // en cada registro del detalle del Dashboard.
@@ -10085,10 +10232,15 @@ function estadoDashboardVehiculo(r){
   return {texto:"Facturado - Pendiente de pago",clase:"facturado-pendiente",factura:numeroFactura};
 }
 
+function obtenerPeriodoFacturacionDashboard(f){
+  const mes=String(f?.periodo_facturacion||"").slice(0,7);
+  return mes ? mes : String(f?.fecha_emision||"").slice(0,7);
+}
+
 function filtrarFacturasDashboard(desde,hasta){
   return (facturasDashboard||[]).filter(function(f){
-    const fecha=String(f.fecha_emision||"").slice(0,10);
-    return (!desde || fecha>=desde) && (!hasta || fecha<=hasta);
+    const periodo=obtenerPeriodoFacturacionDashboard(f);
+    return (!desde || periodo >= String(desde).slice(0,7)) && (!hasta || periodo <= String(hasta).slice(0,7));
   });
 }
 
@@ -10259,7 +10411,7 @@ function renderGraficasDashboard(lista){
   const facturas=filtrarFacturasDashboard(desde,hasta);
   const porMesFacturacion={};
   facturas.forEach(function(f){
-    const clave=String(f.fecha_emision||"").slice(0,7);
+    const clave=obtenerPeriodoFacturacionDashboard(f);
     if(!clave) return;
     if(!porMesFacturacion[clave]) porMesFacturacion[clave]=0;
     porMesFacturacion[clave]+=Number(f.total_con_igv||0);
@@ -10601,7 +10753,7 @@ programarCierreAutomatico1930();
 </script>
 
 
-<div class="version-app">V7.0 Dashboard</div>
+<div class="version-app">V5.5 Dashboard</div>
 
 <style id="autocamiones-layout-final-override">
 /* =========================================================
