@@ -4797,7 +4797,9 @@ async function pasarCotizacionAFacturacion(id){
     const ahora=new Date().toISOString();
     const fila={
       id:vehiculoId,
-      tipo:cotizacion.tipo,
+      // La tabla de vehículos exige que tipo no sea NULL.
+      // Las cotizaciones PYP guardan normalmente el dato en tipo_registro.
+      tipo:String(cotizacion.tipo_registro || cotizacion.tipo || "Servicio").trim() || "Servicio",
       placa:cotizacion.placa||"",
       vin:cotizacion.vin||"",
       marca:cotizacion.marca||"",
@@ -10822,7 +10824,7 @@ programarCierreAutomatico1930();
 </script>
 
 
-<div class="version-app">V5.9 Dashboard</div>
+<div class="version-app">V5.5 Dashboard</div>
 
 <style id="autocamiones-layout-final-override">
 /* =========================================================
