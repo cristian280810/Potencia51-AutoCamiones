@@ -4562,6 +4562,14 @@ function claseEstadoCotPyp(estado){
   return String(estado||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
 }
 
+function formatearFechaCotizacionTabla(fecha){
+  if(!fecha) return "";
+  const texto=String(fecha).trim();
+  const m=texto.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if(m) return m[3]+"/"+m[2]+"/"+m[1];
+  return texto;
+}
+
 async function cargarCotizacionesPyp(){
   const tbody=document.getElementById("tablaCotizacionesPyp");
   if(tbody) tbody.innerHTML='<tr><td colspan="11" class="empty">Cargando cotizaciones...</td></tr>';
@@ -4604,7 +4612,7 @@ function renderizarCotizacionesPyp(){
       '</div>';
     return '<tr id="filaCotPyp-'+id+'">'+
       '<td><strong>'+esc(c.correlativo||"—")+'</strong></td>'+
-      '<td>'+esc(String(c.created_at||"").slice(0,10))+'</td>'+
+      '<td style="white-space:nowrap">'+esc(formatearFechaCotizacionTabla(c.created_at||""))+'</td>'+
       '<td>'+esc(c.tipo_registro||c.tipo||"")+'</td>'+
       '<td>'+esc(identificador)+'</td>'+
       '<td>'+esc(c.marca||"")+'</td>'+
@@ -7582,7 +7590,7 @@ function exportarContextoPDF(contexto){
     if(!lista.length){mostrarAlerta('No hay información para exportar.','error');return;}
     const filas=lista.map(function(r){
       const x=calcularImportesFacturacion(r.precio_sin_igv);
-      return `<tr><td>${escaparHtmlExportacion(fechaCortaFacturacion(obtenerFechaServicioFacturacion(r)))}</td><td>${(r.tipo || "Servicio")}</td><td>${escaparHtmlExportacion(r.placa||'')}</td><td>${escaparHtmlExportacion(r.vin||'')}</td><td>${escaparHtmlExportacion(r.marca||'')}</td><td>${escaparHtmlExportacion(r.servicio||'')}</td><td>S/ ${Number(x.sinIgv||0).toFixed(2)}</td><td>S/ ${Number(x.igv||0).toFixed(2)}</td><td>S/ ${Number(x.total||0).toFixed(2)}</td><td>${r.facturado?'Facturado':'Pendiente'}</td></tr>`;
+      return `<tr><td>${escaparHtmlExportacion(fechaCortaFacturacion(obtenerFechaServicioFacturacion(r)))}</td><td>${(r.tipo || "Servicio")}</td><td>${escaparHtmlExportacion(r.placa||'')}</td><td>${escaparHtmlExportacion(r.vin||'')}</td><td>${escaparHtmlExportacion(r.marca||'')}</td><td>${escaparHtmlExportacion(servicioMostrarFacturacion(r))}</td><td>S/ ${Number(x.sinIgv||0).toFixed(2)}</td><td>S/ ${Number(x.igv||0).toFixed(2)}</td><td>S/ ${Number(x.total||0).toFixed(2)}</td><td>${r.facturado?'Facturado':'Pendiente'}</td></tr>`;
     }).join('');
     abrirVentanaPDF('Facturación AutoCamiones',`<table><thead><tr><th>Fecha</th>
 <th>Placa</th><th>VIN</th><th>Marca</th><th>Servicio</th><th>Sin IGV</th><th>IGV</th><th>Total</th><th>Estado</th></tr></thead><tbody>${filas}</tbody></table>`);
@@ -8537,6 +8545,14 @@ function filtrarFacturacion(){
   return ordenarPorFechaModulo(lista,orden,obtenerFechaServicioFacturacion);
 }
 
+function servicioMostrarFacturacion(r){
+  const categoria=String(r && r.categoria_servicio || "").trim().toLowerCase();
+  // Planchado y Pintura se muestra como una sola categoría en Facturación,
+  // mientras que Lavado y servicios especiales conservan su nombre real.
+  if(categoria === "pintura" || categoria === "pyp" || categoria === "planchado y pintura") return "PYP";
+  return String(r && r.servicio || "").trim();
+}
+
 function renderFacturacion(){
   const tbody=document.getElementById("tablaFacturacion");
   if(!tbody) return;
@@ -8564,7 +8580,7 @@ function renderFacturacion(){
       <td><input type="checkbox" class="facturacion-check fila-facturacion" value="${esc(r.id)}" ${facturado?"disabled":""} ${facturacionSeleccionadosIds.has(String(r.id))?"checked":""} onchange="cambiarSeleccionFacturacion('${esc(r.id)}',this.checked)"></td>
       <td class="numero-registro">${inicio + pagina.indexOf(r) + 1}</td><td>${esc(fechaCortaFacturacion(obtenerFechaServicioFacturacion(r)))}</td>
       <td>${esc(r.tipo||"Servicio")}</td><td>${esc(r.placa||"")}</td><td>${esc(r.vin||"")}</td>
-      <td>${esc(r.marca||"")}</td><td>${esc(r.servicio||"")}</td>
+      <td>${esc(r.marca||"")}</td><td>${esc(servicioMostrarFacturacion(r))}</td>
       <td>S/ ${x.sinIgv.toFixed(2)}</td><td>S/ ${x.igv.toFixed(2)}</td><td><strong>S/ ${x.total.toFixed(2)}</strong></td>
       <td><span class="facturacion-estado ${facturado?"facturado":"pendiente"}">${facturado?"Facturado":"Pendiente"}</span></td>
       <td>${facturado && obtenerFacturaDashboardPorVehiculo(r.id) ? `<span class="factura-asociada-badge" title="Factura asociada">🧾 ${esc(obtenerFacturaDashboardPorVehiculo(r.id).numero_factura||"")}</span>` : "—"}</td>
@@ -10213,7 +10229,7 @@ function exportarFacturacionExcel(){
   if(typeof XLSX==="undefined"){mostrarAlerta("No se pudo cargar el módulo de Excel.","error");return;}
   const datos=lista.map(function(r){
     const x=calcularImportesFacturacion(r.precio_sin_igv);
-    return {"Fecha":fechaCortaFacturacion(obtenerFechaServicioFacturacion(r)),"Placa":r.placa||"","VIN":r.vin||"","Marca":r.marca||"","Modelo":r.modelo||"","Servicio":r.servicio||"","Precio sin IGV":Number(x.sinIgv.toFixed(2)),"IGV":Number(x.igv.toFixed(2)),"Total con IGV":Number(x.total.toFixed(2)),"Estado":r.facturado?"Facturado":"Pendiente","Factura asociada":(obtenerFacturaDashboardPorVehiculo(r.id)||{}).numero_factura||"","Periodo facturación":formatearPeriodoFacturacion(obtenerFacturaDashboardPorVehiculo(r.id)?.periodo_facturacion)||""};
+    return {"Fecha":fechaCortaFacturacion(obtenerFechaServicioFacturacion(r)),"Placa":r.placa||"","VIN":r.vin||"","Marca":r.marca||"","Modelo":r.modelo||"","Servicio":servicioMostrarFacturacion(r),"Precio sin IGV":Number(x.sinIgv.toFixed(2)),"IGV":Number(x.igv.toFixed(2)),"Total con IGV":Number(x.total.toFixed(2)),"Estado":r.facturado?"Facturado":"Pendiente","Factura asociada":(obtenerFacturaDashboardPorVehiculo(r.id)||{}).numero_factura||"","Periodo facturación":formatearPeriodoFacturacion(obtenerFacturaDashboardPorVehiculo(r.id)?.periodo_facturacion)||""};
   });
   const hoja=XLSX.utils.json_to_sheet(datos);const libro=XLSX.utils.book_new();XLSX.utils.book_append_sheet(libro,hoja,"Facturación");XLSX.writeFile(libro,"Facturacion_AutoCamiones.xlsx");
 }
