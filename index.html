@@ -1164,7 +1164,7 @@ html, body {
 }
 
 
-/* Subopciones Servicio/Nuevo: siempre en una sola fila, también en móvil */
+/* Subopciones Taller/Nuevo: siempre en una sola fila, también en móvil */
 #tiposLavado{
     flex-direction:row !important;
     justify-content:center !important;
@@ -1195,7 +1195,7 @@ html, body {
     }
 }
 
-/* Selector común Servicio/Nuevo para ambas categorías */
+/* Selector común Taller/Nuevo para ambas categorías */
 #tiposLavado{display:flex;justify-content:center;align-items:center;gap:30px;margin:12px 0 0;}
 #tiposLavado .tipo-option{flex:0 0 auto;width:auto;padding:8px 14px;border:1px solid transparent;border-radius:7px;background:transparent;display:flex;align-items:center;gap:7px;cursor:pointer;font-weight:600;}
 #tiposLavado .tipo-option.active{background:#f1f5f9;border-color:#e5e7eb;}
@@ -1767,7 +1767,7 @@ html, body {
 /* =========================================================
    CATEGORÍAS DE REGISTRO
    Dos categorías siempre lado a lado.
-   Servicio/Nuevo debajo, centrados y común a ambas categorías.
+   Taller/Nuevo debajo, centrados y común a ambas categorías.
    ========================================================= */
 
 #registrar .tipo-container{
@@ -2265,7 +2265,7 @@ onclick="seleccionarCategoriaRegistro('pintura')">
 
 <div id="tiposLavado" class="tipos-lavado">
   <label id="opcionServicioLavado" class="tipo-option active">
-    <input type="radio" name="tipoLavado" value="Servicio" checked onchange="cambiarTipoLavado('Servicio')">
+    <input type="radio" name="tipoLavado" value="Taller" checked onchange="cambiarTipoLavado('Taller')">
     🔧 Taller
   </label>
   <label id="opcionNuevoLavado" class="tipo-option">
@@ -2765,7 +2765,7 @@ onclick="limpiarFormulario()">
 <div class="facturacion-filtros" style="grid-template-columns:repeat(3,minmax(180px,1fr));">
 <div class="form-group"><label>Desde</label><input id="facturacionDesde" type="date" onchange="actualizarFacturacionAutomaticamente()"></div>
 <div class="form-group"><label>Hasta</label><input id="facturacionHasta" type="date" onchange="actualizarFacturacionAutomaticamente()"></div>
-<div class="form-group"><label>Tipo de atención</label><select id="facturacionTipo" onchange="cambiarTipoAtencionFacturacion()"><option value="">Todos</option><option value="Servicio">Servicio</option><option value="Nuevo">Nuevo</option></select></div>
+<div class="form-group"><label>Tipo de atención</label><select id="facturacionTipo" onchange="cambiarTipoAtencionFacturacion()"><option value="">Todos</option><option value="Taller">Taller</option><option value="Nuevo">Nuevo</option></select></div>
 <div class="form-group"><label>Marca</label><div id="facturacionMarca" class="servicios-multiselect">
 <button type="button" class="servicios-multiselect-btn" onclick="toggleFiltroMarcaFacturacion(event)"><span id="facturacionMarcaTexto">Todas las marcas</span><span>▾</span></button>
 <div id="facturacionMarcaMenu" class="servicios-multiselect-menu"></div>
@@ -3322,7 +3322,7 @@ onclick="buscarRegistroPasado()">
       <label for="filtroPasadoTipo">Tipo de registro</label>
       <select id="filtroPasadoTipo">
         <option value="">Todos los tipos</option>
-        <option value="Servicio">🔧 Servicio</option>
+        <option value="Taller">🔧 Taller</option>
         <option value="Nuevo">🚘 Nuevo</option>
       </select>
     </div>
@@ -3355,8 +3355,8 @@ onclick="buscarRegistroPasado()">
 <div class="tipo-container">
 
 <label id="opcionPasadoServicio" class="tipo-option active">
-<input type="radio" name="tipoPasado" value="Servicio" checked onchange="cambiarTipoPasado('Servicio')">
-🔧 Servicio
+<input type="radio" name="tipoPasado" value="Taller" checked onchange="cambiarTipoPasado('Taller')">
+🔧 Taller
 </label>
 
 <label id="opcionPasadoNuevo" class="tipo-option">
@@ -4624,6 +4624,13 @@ async function cargarCotizacionesPyp(){
   }
 }
 
+function normalizarTipoAtencion(valor){
+  const t=String(valor||"").trim().toLowerCase();
+  if(t==="nuevo") return "Nuevo";
+  if(t==="servicio" || t==="servicios" || t==="taller" || t==="talleres") return "Taller";
+  return String(valor||"").trim();
+}
+
 function renderizarCotizacionesPyp(){
   const tbody=document.getElementById("tablaCotizacionesPyp");
   if(!tbody) return;
@@ -4635,8 +4642,8 @@ function renderizarCotizacionesPyp(){
   tbody.innerHTML=lista.map(function(c){
     const id=esc(String(c.id||""));
     const estado=String(c.estado||"Pendiente");
-    const tipoCot=String(c.tipo_registro||c.tipo||"servicio").toLowerCase();
-    const identificador=tipoCot==="nuevo"?(c.vin||"—"):(c.placa||"—");
+    const tipoCot=normalizarTipoAtencion(c.tipo_registro||c.tipo||"Taller");
+    const identificador=tipoCot==="Nuevo"?(c.vin||"—"):(c.placa||"—");
     const numeroFacturaPyp=facturasRelacionadasPyp[String(c.facturacion_id||"")] || "";
     const facturaHtml=estado==="Facturada" ? (numeroFacturaPyp ? '<span class="pyp-factura-badge">'+esc(numeroFacturaPyp)+'</span>' : '<span class="pyp-factura-pendiente">Pendiente de número</span>') : '—';
     const acciones=
@@ -4649,7 +4656,7 @@ function renderizarCotizacionesPyp(){
     return '<tr id="filaCotPyp-'+id+'">'+
       '<td><strong>'+esc(c.correlativo||"—")+'</strong></td>'+
       '<td style="white-space:nowrap">'+esc(formatearFechaCotizacionTabla(c.created_at||""))+'</td>'+
-      '<td>'+esc(c.tipo_registro||c.tipo||"")+'</td>'+
+      '<td>'+esc(normalizarTipoAtencion(c.tipo_registro||c.tipo||"Taller"))+'</td>'+
       '<td>'+esc(identificador)+'</td>'+
       '<td>'+esc(c.marca||"")+'</td>'+
       '<td class="num">'+formatoSolesCotPyp(c.subtotal_bruto)+'</td>'+
@@ -4712,8 +4719,8 @@ function construirPdfCotizacionPyp(cotizacion,detalle){
   const doc=new jsPDFRef({orientation:"landscape",unit:"mm",format:"a4"});
   const pageW=doc.internal.pageSize.getWidth();
   const pageH=doc.internal.pageSize.getHeight();
-  const tipo=String(cotizacion.tipo_registro||cotizacion.tipo||"Taller");
-  const identificador=tipo.toLowerCase()==="nuevo"?(cotizacion.vin||"—"):(cotizacion.placa||"—");
+  const tipo=normalizarTipoAtencion(cotizacion.tipo_registro||cotizacion.tipo||"Taller");
+  const identificador=tipo==="Nuevo"?(cotizacion.vin||"—"):(cotizacion.placa||"—");
   const fecha=formatoFechaVisualCotizacionPyp(String(cotizacion.fecha||cotizacion.created_at||"").slice(0,10)||formatoFechaCotizacionPyp());
 
   try{
@@ -4800,7 +4807,7 @@ function construirPdfCotizacionPyp(cotizacion,detalle){
 
   doc.autoTable({
     startY:99,
-    margin:{left:9,right:9},
+    margin:{left:(pageW-250)/2,right:(pageW-250)/2},
     tableWidth:"wrap",
     head:[["Item","Tipo de Trabajo","Pieza / Paño / Servicio","Cant.","Precio Unit. (S/)","Descuento (S/)","Subtotal (S/)"]],
     body:tableRows,
@@ -4892,19 +4899,18 @@ async function verCotizacionPyp(id){
   fila.style.display="table-row";
   try{
     const d=await obtenerDetalleCotizacionPyp(id);
-    const tipo=String(c.tipo_registro||c.tipo||"Servicio");
+    const tipo=String(c.tipo_registro||c.tipo||"Taller");
     const identificador=tipo.toLowerCase()==="nuevo"?(c.vin||"—"):(c.placa||"—");
     let html='<div class="pyp-detalle-header-inline">'+
       '<div><strong>Detalle de '+esc(c.correlativo||"Cotización")+'</strong><small>'+esc(c.marca||"")+" · "+esc(identificador)+"</small></div>"+
       '<button type="button" class="btn btn-secondary" style="padding:6px 10px;font-size:12px" onclick="verCotizacionPyp('+id+')">✕ Ocultar detalle</button>' +
     '</div>';
-    html+='<div style="overflow-x:auto"><table class="pyp-detalle-inline-table"><thead><tr><th>Item</th><th>Servicio</th><th>Pieza</th><th>Tipo de trabajo</th><th>Cantidad</th><th>Precio unit.</th><th>Descuento</th><th>Subtotal</th></tr></thead><tbody>';
-    if(!d.length){html+='<tr><td colspan="8" style="text-align:center">No hay servicios registrados.</td></tr>';}
+    html+='<div style="overflow-x:auto"><table class="pyp-detalle-inline-table"><thead><tr><th>Item</th><th>Tipo de trabajo</th><th>Pieza / Paño / Servicio</th><th>Cantidad</th><th>Precio unit.</th><th>Descuento</th><th>Subtotal</th></tr></thead><tbody>';
+    if(!d.length){html+='<tr><td colspan="7" style="text-align:center">No hay servicios registrados.</td></tr>';}
     else d.forEach(function(x){html+='<tr>'+
       '<td>'+esc(x.item||"")+'</td>'+
-      '<td><strong>'+esc(x.servicio||"")+'</strong></td>'+
+      '<td><strong>'+esc(x.tipo_trabajo||x.servicio||"")+'</strong></td>'+
       '<td>'+esc(x.pieza||"")+'</td>'+
-      '<td>'+esc(x.tipo_trabajo||"")+'</td>'+
       '<td>'+Number(x.cantidad||0).toLocaleString("es-PE",{maximumFractionDigits:2})+'</td>'+
       '<td>'+formatoSolesCotPyp(x.precio_unitario)+'</td>'+
       '<td>'+formatoSolesCotPyp(x.descuento)+'</td>'+
@@ -4994,7 +5000,7 @@ async function confirmarPasarCotizacionAFacturacion(){
     const ahora=new Date().toISOString();
     const fila={
       id:vehiculoId,
-      tipo:String(cotizacion.tipo_registro || cotizacion.tipo || "Servicio").trim() || "Servicio",
+      tipo:String(cotizacion.tipo_registro || cotizacion.tipo || "Taller").trim() || "Servicio",
       placa:cotizacion.placa||"",
       vin:cotizacion.vin||"",
       marca:cotizacion.marca||"",
@@ -5295,7 +5301,7 @@ function seleccionarCategoriaRegistro(categoria){
   if(categoriaRegistroActual === "pintura"){
     categoriaLavado.classList.remove("active");
     categoriaPintura.classList.add("active");
-    // Planchado y Pintura usa exactamente el mismo selector Servicio/Nuevo
+    // Planchado y Pintura usa exactamente el mismo selector Taller/Nuevo
     // y los mismos campos de identificación/fotos que Lavado y Adicionales.
     if(tiposLavado) tiposLavado.style.display="flex";
     if(selectorLavado) selectorLavado.style.display="none";
@@ -5305,7 +5311,7 @@ function seleccionarCategoriaRegistro(categoria){
     // los servicios se agregan únicamente con el botón punteado "＋ Agregar servicio".
     const btnServiciosPintura = document.getElementById("btnServiciosPintura");
     if(btnServiciosPintura) btnServiciosPintura.style.display="none";
-    const tipoActual = document.querySelector('input[name="tipoLavado"]:checked')?.value || "Servicio";
+    const tipoActual = document.querySelector('input[name="tipoLavado"]:checked')?.value || "Taller";
     cambiarTipo(tipoActual);
     cargarServiciosPlanchadoPintura().catch(function(error){
       console.warn("No se pudo cargar el catálogo de Planchado y Pintura:", error);
@@ -5317,7 +5323,7 @@ function seleccionarCategoriaRegistro(categoria){
     if(selectorLavado) selectorLavado.style.display="block";
     if(pypServiciosPanel) pypServiciosPanel.style.display="none";
     if(selectorPintura) selectorPintura.style.display="none";
-    const tipoActual = document.querySelector('input[name="tipoLavado"]:checked')?.value || "Servicio";
+    const tipoActual = document.querySelector('input[name="tipoLavado"]:checked')?.value || "Taller";
     cambiarTipo(tipoActual);
     cargarServiciosAutoCamiones().then(function(){
       const selectLavado = document.getElementById("servicioLavado");
@@ -5343,8 +5349,8 @@ function cambiarTipoLavado(tipo){
     if(nuevo) nuevo.classList.remove("active");
   }
 
-  // El tipo de identificación depende directamente de Servicio/Nuevo:
-  // Servicio = Placa | Nuevo = VIN.
+  // El tipo de identificación depende directamente de Taller/Nuevo:
+  // Taller = Placa | Nuevo = VIN.
   cambiarTipo(tipo);
 }
 
@@ -5981,7 +5987,7 @@ async function guardarCotizacionPypEnSupabase(datos){
   const subtotalNeto = Number((subtotalBruto - descuentoTotal).toFixed(2));
   const payload={
     correlativo:fallbackCorrelativo,
-    tipo_registro:datos.tipo === "Nuevo" ? "nuevo" : "servicio",
+    tipo_registro:datos.tipo === "Nuevo" ? "Nuevo" : "Taller",
     placa:datos.placa||null,
     vin:datos.vin||null,
     marca:datos.marca||null,
@@ -6069,7 +6075,7 @@ async function generarCotizacionPyp(){
     const marca=(document.getElementById("marca")?.value||"").trim();
     const placa=(document.getElementById("placa")?.value||"").trim().toUpperCase();
     const vin=(document.getElementById("vin")?.value||"").trim().toUpperCase();
-    const tipo=document.querySelector('input[name="tipoLavado"]:checked')?.value||"Servicio";
+    const tipo=document.querySelector('input[name="tipoLavado"]:checked')?.value||"Taller";
     const identificador=tipo==="Nuevo" ? (vin||"—") : (placa||"—");
     if(tipo==="Nuevo" && !vin){
       const continuar=await confirmarVinVacioPyp();
@@ -6080,7 +6086,7 @@ async function generarCotizacionPyp(){
       return;
     }
 
-    if(tipo==="Servicio" && !placa){
+    if(tipo==="Taller" && !placa){
       const continuar=await confirmarPlacaVaciaPyp();
       if(!continuar) return;
     }
@@ -6185,7 +6191,7 @@ async function generarCotizacionPyp(){
 
     doc.autoTable({
       startY:99,
-      margin:{left:9,right:9},
+      margin:{left:(pageW-250)/2,right:(pageW-250)/2},
       tableWidth:"wrap",
       head:[["Item","Tipo de Trabajo","Pieza / Paño / Servicio","Cant.","Precio Unit. (S/)","Descuento (S/)","Subtotal (S/)"]],
       body:tableRows,
@@ -6239,9 +6245,9 @@ async function registrar(){
       await generarCotizacionPyp();
       return;
     }
-    // Servicio/Nuevo aplica a ambas categorías; lo único que cambia
+    // Taller/Nuevo aplica a ambas categorías; lo único que cambia
     // entre ellas es el catálogo de servicios.
-    const tipo = document.querySelector('input[name="tipoLavado"]:checked')?.value || "Servicio";
+    const tipo = document.querySelector('input[name="tipoLavado"]:checked')?.value || "Taller";
     const placa=normalizarValorInterno(document.getElementById("placa").value);
     const vin=normalizarValorInterno(document.getElementById("vin").value);
     const marca=document.getElementById("marca").value;
@@ -6271,13 +6277,13 @@ async function registrar(){
     const archivoIngreso=document.getElementById("fotoIngreso").files[0];
     const archivoVIN=document.getElementById("fotoVIN").files[0];
 
-    if(tipo==="Servicio" && !placa){ mostrarAlerta("Debe ingresar la placa.","error"); return; }
+    if(tipo==="Taller" && !placa){ mostrarAlerta("Debe ingresar la placa.","error"); return; }
     if(tipo==="Nuevo" && !vin){ mostrarAlerta("Debe ingresar el VIN.","error"); return; }
     if(!marca || !serviciosSeleccionados.length){ mostrarAlerta("Seleccione al menos un servicio válido del catálogo.","error"); return; }
     if(!archivoIngreso){ mostrarAlerta("Debe adjuntar la foto de ingreso.","error"); return; }
     if(tipo==="Nuevo" && !archivoVIN){ mostrarAlerta("Debe adjuntar la foto del VIN para registrar un vehículo nuevo.","error"); return; }
 
-    if(!await verificarDuplicadosAntesDeRegistrar({tipo,placa:tipo==="Servicio"?placa:"",vin:tipo==="Nuevo"?vin:""})) return;
+    if(!await verificarDuplicadosAntesDeRegistrar({tipo,placa:tipo==="Taller"?placa:"",vin:tipo==="Nuevo"?vin:""})) return;
 
     boton.disabled=true; loading.style.display="block";
     const id=(window.crypto&&crypto.randomUUID)?crypto.randomUUID():(Date.now().toString(36)+"-"+Math.random().toString(36).slice(2));
@@ -6287,7 +6293,7 @@ async function registrar(){
     if(!fotos||fotos.ok!==true) throw new Error("No se pudieron guardar las fotografías en Google Drive.");
 
     const fila={
-      id,tipo,placa:tipo==="Servicio"?placa:"",vin:tipo==="Nuevo"?vin:"",marca,modelo,
+      id,tipo,placa:tipo==="Taller"?placa:"",vin:tipo==="Nuevo"?vin:"",marca,modelo,
       servicio,servicio_id:servicioSeleccionado ? servicioSeleccionado.id : null,precio_sin_igv:precioTotalSinIgv,
       igv:igvTotal,precio_con_igv:precioTotalConIgv,categoria_servicio:"lavado",facturado:false,
       fecha_facturacion:null,estado:"Lavando",hora_inicio_lavado:new Date().toISOString(),hora_salida:null,
@@ -6336,12 +6342,13 @@ async function obtenerTodosLosRegistros(){
 }
 
 function analizarDuplicados(registrosExistentes,datos){
-  const tipo=String(datos.tipo||"");
+  const tipo=normalizarTipoAtencion(datos.tipo||"");
   const identificador=tipo==="Nuevo"?normalizarTexto(datos.vin):normalizarTexto(datos.placa);
   if(!identificador) return [];
   return (registrosExistentes||[]).filter(function(r){
+    const tipoExistente=normalizarTipoAtencion(r.tipo||"");
     const otro=tipo==="Nuevo"?normalizarTexto(r.vin):normalizarTexto(r.placa);
-    return String(r.tipo||"")===tipo && otro===identificador;
+    return tipoExistente===tipo && otro===identificador;
   }).map(function(r){return {registro:r,exacta:true,motivos:[tipo==="Nuevo"?"VIN igual":"Placa igual"]};});
 }
 
@@ -6640,7 +6647,7 @@ async function guardarRegistroPasado(){
     const observaciones=document.getElementById("pasadoObservaciones").value.trim();
     const archivoIngreso=document.getElementById("pasadoFotoIngreso").files[0];
     const archivoVIN=document.getElementById("pasadoFotoVIN").files[0];
-    if(tipo==="Servicio"&&!placa)throw new Error("Debe ingresar la placa.");
+    if(tipo==="Taller"&&!placa)throw new Error("Debe ingresar la placa.");
     if(tipo==="Nuevo"&&!vin)throw new Error("Debe ingresar el VIN.");
     if(!marca||!servicioSeleccionado)throw new Error("Seleccione marca y servicio.");
     if(!fecha)throw new Error("Debe indicar la fecha de ingreso / lavado.");
@@ -6650,7 +6657,7 @@ async function guardarRegistroPasado(){
     const fotos={fotoIngreso:actual.foto_ingreso||"",fotoVIN:actual.foto_vin||""};
     if(archivoIngreso)fotos.fotoIngreso=await enviarDrive({accion:"guardarFotos",id,fotoIngreso:await comprimirFoto(archivoIngreso)}).then(r=>r.fotoIngreso||fotos.fotoIngreso);
     if(archivoVIN)fotos.fotoVIN=await enviarDrive({accion:"guardarFotos",id,fotoVIN:await comprimirFoto(archivoVIN)}).then(r=>r.fotoVIN||fotos.fotoVIN);
-    const body={tipo,placa:tipo==="Servicio"?placa:"",vin:tipo==="Nuevo"?vin:"",marca,modelo:"",servicio:servicioSeleccionado.nombre,servicio_id:servicioSeleccionado.id,precio_sin_igv:servicioSeleccionado.precioSinIgv,igv:servicioSeleccionado.igv,precio_con_igv:servicioSeleccionado.precioConIgv,estado:actual.estado||"Finalizado",hora_inicio_lavado:convertirFechaLimaAISO(fecha),observaciones,observaciones_finales:actual.observaciones_finales||"",foto_ingreso:fotos.fotoIngreso,foto_final:actual.foto_final||"",foto_vin:fotos.fotoVIN,facturado:actual.facturado||false,fecha_facturacion:actual.fecha_facturacion||null};
+    const body={tipo,placa:tipo==="Taller"?placa:"",vin:tipo==="Nuevo"?vin:"",marca,modelo:"",servicio:servicioSeleccionado.nombre,servicio_id:servicioSeleccionado.id,precio_sin_igv:servicioSeleccionado.precioSinIgv,igv:servicioSeleccionado.igv,precio_con_igv:servicioSeleccionado.precioConIgv,estado:actual.estado||"Finalizado",hora_inicio_lavado:convertirFechaLimaAISO(fecha),observaciones,observaciones_finales:actual.observaciones_finales||"",foto_ingreso:fotos.fotoIngreso,foto_final:actual.foto_final||"",foto_vin:fotos.fotoVIN,facturado:actual.facturado||false,fecha_facturacion:actual.fecha_facturacion||null};
     let respuesta;
     if(registroPasadoSeleccionadoId){
       respuesta=await fetch(SUPABASE_URL+"/rest/v1/vehiculos_autocamiones?id=eq."+encodeURIComponent(id),{method:"PATCH",headers:{"apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY,"Content-Type":"application/json","Prefer":"return=minimal"},body:JSON.stringify(body)});
@@ -6667,8 +6674,8 @@ async function guardarRegistroPasado(){
 function limpiarCamposFormularioPasadoSinResultados(){
   ["pasadoPlaca","pasadoVIN","pasadoMarca","pasadoFecha","pasadoObservaciones","pasadoFotoIngreso","pasadoFotoVIN"].forEach(function(id){const el=document.getElementById(id);if(!el)return;el.value="";});
   seleccionarServicioPorNombre("pasadoServicio","Lavado básico");
-  const opcion=document.querySelector('input[name="tipoPasado"][value="Servicio"]');if(opcion)opcion.checked=true;
-  cambiarTipoPasado("Servicio");
+  const opcion=document.querySelector('input[name="tipoPasado"][value="Taller"]');if(opcion)opcion.checked=true;
+  cambiarTipoPasado("Taller");
   const fecha=document.getElementById("pasadoFecha");if(fecha)fecha.value=obtenerFechaHistorial(new Date().toISOString());
 }
 
@@ -6681,8 +6688,8 @@ function limpiarRegistroPasado(){
   if(buscar)buscar.value="";if(resultado)resultado.innerHTML="";
   ["pasadoPlaca","pasadoVIN","pasadoMarca","pasadoFecha","pasadoObservaciones","pasadoFotoIngreso","pasadoFotoVIN"].forEach(function(id){const el=document.getElementById(id);if(el)el.value="";});
   seleccionarServicioPorNombre("pasadoServicio","Lavado básico");
-  const radio=document.querySelector('input[name="tipoPasado"][value="Servicio"]');if(radio)radio.checked=true;
-  cambiarTipoPasado("Servicio"); actualizarModoEdicionPasado();
+  const radio=document.querySelector('input[name="tipoPasado"][value="Taller"]');if(radio)radio.checked=true;
+  cambiarTipoPasado("Taller"); actualizarModoEdicionPasado();
   const hoy=obtenerFechaHistorial(new Date().toISOString());if(document.getElementById("pasadoFecha"))document.getElementById("pasadoFecha").value=hoy;
 }
 
@@ -7773,7 +7780,7 @@ function exportarContextoPDF(contexto){
     if(!lista.length){mostrarAlerta('No hay información para exportar.','error');return;}
     const filas=lista.map(function(r){
       const x=calcularImportesFacturacion(r.precio_sin_igv);
-      return `<tr><td>${escaparHtmlExportacion(fechaCortaFacturacion(obtenerFechaServicioFacturacion(r)))}</td><td>${(r.tipo || "Servicio")}</td><td>${escaparHtmlExportacion(r.placa||'')}</td><td>${escaparHtmlExportacion(r.vin||'')}</td><td>${escaparHtmlExportacion(r.marca||'')}</td><td>${escaparHtmlExportacion(servicioMostrarFacturacion(r))}</td><td>S/ ${Number(x.sinIgv||0).toFixed(2)}</td><td>S/ ${Number(x.igv||0).toFixed(2)}</td><td>S/ ${Number(x.total||0).toFixed(2)}</td><td>${r.facturado?'Facturado':'Pendiente'}</td></tr>`;
+      return `<tr><td>${escaparHtmlExportacion(fechaCortaFacturacion(obtenerFechaServicioFacturacion(r)))}</td><td>${(r.tipo || "Taller")}</td><td>${escaparHtmlExportacion(r.placa||'')}</td><td>${escaparHtmlExportacion(r.vin||'')}</td><td>${escaparHtmlExportacion(r.marca||'')}</td><td>${escaparHtmlExportacion(servicioMostrarFacturacion(r))}</td><td>S/ ${Number(x.sinIgv||0).toFixed(2)}</td><td>S/ ${Number(x.igv||0).toFixed(2)}</td><td>S/ ${Number(x.total||0).toFixed(2)}</td><td>${r.facturado?'Facturado':'Pendiente'}</td></tr>`;
     }).join('');
     abrirVentanaPDF('Facturación AutoCamiones',`<table><thead><tr><th>Fecha</th>
 <th>Placa</th><th>VIN</th><th>Marca</th><th>Servicio</th><th>Sin IGV</th><th>IGV</th><th>Total</th><th>Estado</th></tr></thead><tbody>${filas}</tbody></table>`);
@@ -7888,12 +7895,12 @@ function limpiarFormulario(){
     seleccionarServicioPorNombre("servicioLavado", "Lavado básico");
     seleccionarServicioLavado(selectLavadoReset.value || "");
   }
-  const radioServicioLavado=document.querySelector('input[name="tipoLavado"][value="Servicio"]');
-  if(radioServicioLavado){ radioServicioLavado.checked=true; cambiarTipoLavado("Servicio"); }
+  const radioServicioLavado=document.querySelector('input[name="tipoLavado"][value="Taller"]');
+  if(radioServicioLavado){ radioServicioLavado.checked=true; cambiarTipoLavado("Taller"); }
   seleccionarServicioLavado("");
-  const radioServicio=document.querySelector('input[name="tipoLavado"][value="Servicio"]');
+  const radioServicio=document.querySelector('input[name="tipoLavado"][value="Taller"]');
   if(radioServicio) radioServicio.checked=true;
-  cambiarTipoLavado("Servicio");
+  cambiarTipoLavado("Taller");
 }
 
 function mostrarPopup(titulo, mensaje, tipo){
@@ -8515,7 +8522,7 @@ function obtenerRegistrosFacturacionParaFaceta(excluir){
     });
   }
   if(excluir!=="tipo" && tipo){
-    base=base.filter(function(r){return String(r.tipo||"").trim()===tipo;});
+    base=base.filter(function(r){return normalizarTipoAtencion(r.tipo||"")===normalizarTipoAtencion(tipo);});
   }
   if(excluir!=="marca" && marcas.length){
     base=base.filter(function(r){return marcas.includes(String(r.marca||"").trim());});
@@ -8763,7 +8770,7 @@ function renderFacturacion(){
     tbody.innerHTML+=`<tr>
       <td><input type="checkbox" class="facturacion-check fila-facturacion" value="${esc(r.id)}" ${facturado?"disabled":""} ${facturacionSeleccionadosIds.has(String(r.id))?"checked":""} onchange="cambiarSeleccionFacturacion('${esc(r.id)}',this.checked)"></td>
       <td class="numero-registro">${inicio + pagina.indexOf(r) + 1}</td><td>${esc(fechaCortaFacturacion(obtenerFechaServicioFacturacion(r)))}</td>
-      <td>${esc(r.tipo||"Servicio")}</td><td>${esc(r.placa||"")}</td><td>${esc(r.vin||"")}</td>
+      <td>${esc(normalizarTipoAtencion(r.tipo||"Taller"))}</td><td>${esc(r.placa||"")}</td><td>${esc(r.vin||"")}</td>
       <td>${esc(r.marca||"")}</td><td>${esc(servicioMostrarFacturacion(r))}</td>
       <td>S/ ${x.sinIgv.toFixed(2)}</td><td>S/ ${x.igv.toFixed(2)}</td><td><strong>S/ ${x.total.toFixed(2)}</strong></td>
       <td><span class="facturacion-estado ${facturado?"facturado":"pendiente"}">${facturado?"Facturado":"Pendiente"}</span></td>
@@ -8819,11 +8826,11 @@ function actualizarTiposAtencionFacturacion(){
   const base=obtenerRegistrosFacturacionParaFaceta("tipo");
   const tipos=new Set();
   base.forEach(function(r){
-    const t=String(r.tipo||"").trim();
+    const t=normalizarTipoAtencion(r.tipo||"");
     if(t) tipos.add(t);
   });
   if(!actual && !base.length){
-    ["Servicio","Nuevo"].forEach(function(t){tipos.add(t);});
+    ["Taller","Nuevo"].forEach(function(t){tipos.add(t);});
   }
   const opciones=Array.from(tipos).sort(function(a,b){return a.localeCompare(b,"es");});
   select.innerHTML='<option value="">Todos</option>'+opciones.map(function(t){return '<option value="'+esc(t)+'">'+esc(t)+'</option>';}).join("");
@@ -9799,7 +9806,7 @@ function renderFacturasEmitidas(){
     }else{
       accion=`<div class="factura-acciones-stack"><button type="button" class="btn btn-success" onclick="abrirModalPagosFactura('${esc(f.id)}')">💰 Registrar pagos</button><button type="button" class="btn btn-danger" onclick="abrirModalAnularFactura('${esc(f.id)}')">🚫 Anular factura</button></div>`;
     }
-    const tipoFactura=String(f.tipo_factura||"Servicio").trim().toLowerCase()==="adicional" ? `<br><small style="display:inline-block;margin-top:3px;padding:2px 6px;border-radius:999px;background:#ede9fe;color:#6d28d9;font-weight:700;">Adicional</small>` : "";
+    const tipoFactura=String(f.tipo_factura||"Taller").trim().toLowerCase()==="adicional" ? `<br><small style="display:inline-block;margin-top:3px;padding:2px 6px;border-radius:999px;background:#ede9fe;color:#6d28d9;font-weight:700;">Adicional</small>` : "";
     return `<tr><td>${inicio+i+1}</td><td><strong>${esc(f.numero_factura||"")}</strong>${tipoFactura}</td><td class="facturas-emitidas-nowrap facturas-emitidas-fecha">${esc(formatearFechaFacturaEmitida(f.fecha_emision)||"")}</td><td class="facturas-emitidas-nowrap facturas-emitidas-fecha">${esc(formatearFechaFacturaEmitida(f.fecha_vencimiento)||"—")}</td><td>${esc(f.cliente||"")}</td><td class="facturas-emitidas-nowrap facturas-emitidas-monto">S/ ${Number(f.subtotal_sin_igv||0).toFixed(2)}</td><td class="facturas-emitidas-nowrap facturas-emitidas-monto">S/ ${Number(f.igv||0).toFixed(2)}</td><td class="facturas-emitidas-nowrap facturas-emitidas-monto"><strong>S/ ${totalFactura.toFixed(2)}</strong></td><td><div class="facturacion-detraccion">${f.aplica_detraccion?"Sí – "+Number(f.porcentaje_detraccion||12).toFixed(0)+"%<br><strong class='facturas-emitidas-nowrap'>S/ "+det.toFixed(2)+"</strong>":"No aplica"}</div></td><td class="facturas-emitidas-nowrap facturas-emitidas-monto">S/ ${directo.toFixed(2)}</td><td><span class="factura-pago-estado ${clase}">${esc(estado)}</span></td><td class="facturacion-fechas-pago">${fechas}</td><td>${archivo}</td><td><div class="factura-acciones">${accion}</div></td></tr>`;
   }).join("");
   renderPaginacionFacturasEmitidas(total);
@@ -10826,7 +10833,7 @@ async function cargarDashboard(){
       const fecha = fechaLocalDashboard(r.hora_inicio_lavado || r.created_at);
       const marcaRegistro=String(r.marca||'').trim();
       const servicioRegistro=String(r.servicio||'').trim();
-      const tipoRegistro=String(r.tipo||'').trim();
+      const tipoRegistro=normalizarTipoAtencion(r.tipo||'');
       return (!desde || fecha >= desde) && (!hasta || fecha <= hasta) && (!marcas.length || marcas.includes(marcaRegistro)) && (!servicios.length || servicios.includes(servicioRegistro)) && (!tipos.length || tipos.includes(tipoRegistro));
     });
     const orden=document.getElementById("dashboardOrdenFecha")?.value || "desc";
@@ -10841,7 +10848,7 @@ async function cargarDashboard(){
 function normalizarTipoDashboard(valor){
   const t=String(valor||'').trim().toLowerCase();
   if(t==='nuevo' || t==='nuevos' || t==='new') return 'Nuevo';
-  if(t==='servicio' || t==='servicios') return 'Servicio';
+  if(t==='servicio' || t==='servicios' || t==='taller' || t==='talleres') return 'Taller';
   return 'Otro';
 }
 
@@ -10857,12 +10864,12 @@ function renderGraficasDashboard(lista){
   lista.forEach(function(r){
     const tipo=normalizarTipoDashboard(r.tipo);
     if(tipo==='Nuevo') nuevos++;
-    else if(tipo==='Servicio') servicios++;
+    else if(tipo==='Taller') servicios++;
     else otros++;
     const fecha=r.hora_inicio_lavado || r.created_at;
     const clave=fechaLocalDashboard(fecha).slice(0,7);
     if(clave){
-      if(!porMes[clave]) porMes[clave]={Nuevo:0,Servicio:0,Otro:0};
+      if(!porMes[clave]) porMes[clave]={Nuevo:0,Taller:0,Otro:0};
       porMes[clave][tipo]++;
     }
   });
@@ -10872,14 +10879,14 @@ function renderGraficasDashboard(lista){
   const g1=pctNuevo*3.6, g2=g1+pctServicio*3.6;
   const gradiente=totalTipos ? `conic-gradient(#1d4ed8 0deg ${g1}deg,#64748b ${g1}deg ${g2}deg,#e5e7eb ${g2}deg 360deg)` : 'conic-gradient(#e5e7eb 0deg 360deg)';
   const claves=Object.keys(porMes).sort();
-  const maxMes=Math.max(1,...claves.map(k=>Math.max(porMes[k].Nuevo,porMes[k].Servicio,porMes[k].Otro)));
+  const maxMes=Math.max(1,...claves.map(k=>Math.max(porMes[k].Nuevo,porMes[k].Taller,porMes[k].Otro)));
   const barrasMes=claves.map(function(k){
     const d=porMes[k];
     const hN=(d.Nuevo/maxMes*180).toFixed(1);
-    const hS=(d.Servicio/maxMes*180).toFixed(1);
+    const hS=(d.Taller/maxMes*180).toFixed(1);
     const hO=(d.Otro/maxMes*180).toFixed(1);
     const activo=dashboardMesSeleccionado===k ? ' activo' : '';
-    return `<div class="dashboard-mes-col dashboard-clickable${activo}" title="Clic para filtrar por ${esc(nombreMesDashboard(k))}" onclick="aplicarMesGraficoDashboard('${k}')"><div class="dashboard-mes-valores"><div class="dashboard-mes-bar" style="height:${hN}px"><span>${d.Nuevo}</span></div><div class="dashboard-mes-bar servicio" style="height:${hS}px"><span>${d.Servicio}</span></div>${d.Otro ? `<div class="dashboard-mes-bar" style="height:${hO}px;opacity:.45"><span>${d.Otro}</span></div>` : ''}</div><div class="dashboard-mes-total">Total: ${d.Nuevo + d.Servicio}</div><div class="dashboard-mes-label">${esc(nombreMesDashboard(k))}</div></div>`;
+    return `<div class="dashboard-mes-col dashboard-clickable${activo}" title="Clic para filtrar por ${esc(nombreMesDashboard(k))}" onclick="aplicarMesGraficoDashboard('${k}')"><div class="dashboard-mes-valores"><div class="dashboard-mes-bar" style="height:${hN}px"><span>${d.Nuevo}</span></div><div class="dashboard-mes-bar servicio" style="height:${hS}px"><span>${d.Taller}</span></div>${d.Otro ? `<div class="dashboard-mes-bar" style="height:${hO}px;opacity:.45"><span>${d.Otro}</span></div>` : ''}</div><div class="dashboard-mes-total">Total: ${d.Nuevo + d.Taller}</div><div class="dashboard-mes-label">${esc(nombreMesDashboard(k))}</div></div>`;
   }).join('');
 
   const desde=document.getElementById("dashboardDesde")?.value||"";
@@ -10912,20 +10919,20 @@ function renderGraficasDashboard(lista){
 
   return `<div class="dashboard-graficas">
     <div class="dashboard-grafica-panel">
-      <h3>📊 Nuevos vs. Servicios</h3>
+      <h3>📊 Nuevos vs. Taller</h3>
       <div class="dashboard-grafica-subtitulo">Distribución porcentual de los registros del periodo seleccionado.</div>
       <div class="dashboard-donut-wrap">
         <div class="dashboard-donut" style="background:${gradiente}"><div class="dashboard-donut-centro">${totalTipos}<small>registros</small></div></div>
         <div class="dashboard-leyenda">
           <div class="dashboard-leyenda-item dashboard-clickable${tiposSeleccionadosDashboard.indexOf('Nuevo')>=0?' activo':''}" title="Clic para filtrar por Nuevo" onclick="aplicarFiltroGraficoDashboard('tipo','Nuevo')"><span class="dashboard-leyenda-color"></span><span>Nuevos</span><strong>${nuevos} (${pctNuevo.toFixed(1)}%)</strong></div>
-          <div class="dashboard-leyenda-item dashboard-clickable${tiposSeleccionadosDashboard.indexOf('Servicio')>=0?' activo':''}" title="Clic para filtrar por Servicio" onclick="aplicarFiltroGraficoDashboard('tipo','Servicio')"><span class="dashboard-leyenda-color servicio"></span><span>Servicios</span><strong>${servicios} (${pctServicio.toFixed(1)}%)</strong></div>
+          <div class="dashboard-leyenda-item dashboard-clickable${tiposSeleccionadosDashboard.indexOf('Taller')>=0?' activo':''}" title="Clic para filtrar por Servicio" onclick="aplicarFiltroGraficoDashboard('tipo','Taller')"><span class="dashboard-leyenda-color servicio"></span><span>Taller</span><strong>${servicios} (${pctServicio.toFixed(1)}%)</strong></div>
           ${otros ? `<div class="dashboard-leyenda-item dashboard-clickable" title="Clic para filtrar por Otros" onclick="aplicarFiltroGraficoDashboard('tipo','Otro')"><span class="dashboard-leyenda-color" style="opacity:.45"></span><span>Otros</span><strong>${otros} (${(otros/totalTipos*100).toFixed(1)}%)</strong></div>` : ''}
         </div>
       </div>
     </div>
     <div class="dashboard-grafica-panel">
       <h3>📅 Comparativo mensual</h3>
-      <div class="dashboard-grafica-subtitulo">Cantidad de registros por mes, comparando Nuevos y Servicios.</div>
+      <div class="dashboard-grafica-subtitulo">Cantidad de registros por mes, comparando Nuevos y Taller.</div>
       ${claves.length ? `<div class="dashboard-meses">${barrasMes}</div><div class="dashboard-grafica-leyenda-meses"><span><i></i>Nuevos</span><span><i class="servicio"></i>Servicios</span></div>` : '<div class="dashboard-vacio">Sin datos para el comparativo mensual.</div>'}
     </div>
   </div>
@@ -11162,7 +11169,7 @@ document.addEventListener(
 "DOMContentLoaded",
 async function(){
 
-  cambiarTipo("Servicio");
+  cambiarTipo("Taller");
   configurarTodosLosRangosDeFechas();
 
   categoriaRegistroActual="lavado";
@@ -11270,7 +11277,7 @@ programarCierreAutomatico1930();
 </script>
 
 
-<div class="version-app">V5.5 Dashboard</div>
+<div class="version-app">V4.2 Dashboard</div>
 
 <style id="autocamiones-layout-final-override">
 /* =========================================================
