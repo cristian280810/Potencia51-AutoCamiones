@@ -5682,7 +5682,7 @@ function renderizarServiciosSeleccionadosRegistro(){
         '<div class="pyp-servicio-nombre">'+nombreHtml+'</div>'+ 
         '<div class="pyp-servicio-precio">'+precioHtml+'</div>'+ 
         '<input class="pyp-cantidad" type="number" min="0.5" step="0.5" inputmode="decimal" value="'+q+'" aria-label="Cantidad de servicio" onchange="cambiarCantidadServicioPyp(\''+rowId+'\',this.value)" onblur="cambiarCantidadServicioPyp(\''+rowId+'\',this.value)">'+ 
-        '<input class="pyp-descuento" type="number" min="0" step="0.01" value="'+descuento.toFixed(2)+'" aria-label="Descuento del servicio" onchange="cambiarDescuentoServicioPyp(\''+rowId+'\',this.value)" oninput="cambiarDescuentoServicioPyp(\''+rowId+'\',this.value,false)">'+ 
+        '<input class="pyp-descuento" type="number" min="0" step="0.01" inputmode="decimal" value="'+descuento.toFixed(2)+'" aria-label="Descuento del servicio" onchange="cambiarDescuentoServicioPyp(\''+rowId+'\',this.value)">'+ 
         '<div class="pyp-servicio-total">'+formatoSolesPyp(total)+'</div>'+ 
         '<button type="button" class="pyp-servicio-quitar" onclick="quitarServicioRegistro(\''+rowId+'\')" title="Quitar">×</button></div>';
     }).join('');
@@ -11102,7 +11102,7 @@ programarCierreAutomatico1930();
 </script>
 
 
-<div class="version-app">V59 Dashboard</div>
+<div class="version-app">V5.5 Dashboard</div>
 
 <style id="autocamiones-layout-final-override">
 /* =========================================================
