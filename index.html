@@ -8533,8 +8533,8 @@ function filtrarFacturacion(){
     const coincideFecha=(!desde || fecha>=desde)&&(!hasta || fecha<=hasta);
     const coincideTipo=!tipo || String(r.tipo || "").trim()===tipo;
     const coincideMarca=!marcaFiltro.length || marcaFiltro.includes(String(r.marca || "").trim());
-    const nombreServicio=String(r.servicio || "").trim();
-    const coincideServicio=!servicioFiltro.length || servicioFiltro.includes(nombreServicio);
+    const nombreServicioFiltro=etiquetaServicioFiltroFacturacion(r);
+    const coincideServicio=!servicioFiltro.length || servicioFiltro.includes(nombreServicioFiltro);
     const estaFacturado=estaFacturadoFacturacion(r);
     const coincideEstado=!estado || (estado==="facturado" ? estaFacturado : !estaFacturado);
     const texto=[r.placa,r.vin,r.marca,r.modelo].join(" ").toLowerCase();
@@ -8549,11 +8549,9 @@ function filtrarFacturacion(){
 }
 
 function servicioMostrarFacturacion(r){
-  const categoria=String(r && r.categoria_servicio || "").trim().toLowerCase();
-  // Planchado y Pintura se muestra como una sola categoría en Facturación,
-  // mientras que Lavado y servicios especiales conservan su nombre real.
-  if(categoria === "pintura" || categoria === "pyp" || categoria === "planchado y pintura") return "PYP";
-  return String(r && r.servicio || "").trim();
+  // En Facturación, todo PYP se muestra como una sola categoría.
+  // Lavado y adicionales conservan el nombre real del servicio.
+  return etiquetaServicioFiltroFacturacion(r);
 }
 
 function renderFacturacion(){
@@ -8649,16 +8647,37 @@ function actualizarTiposAtencionFacturacion(){
   select.value=actual && tipos.has(actual) ? actual : "";
 }
 
+function esRegistroPypFacturacion(r){
+  const categoria=String(r && r.categoria_servicio || "").trim().toLowerCase();
+  if(["pintura","pyp","planchado y pintura"].includes(categoria)) return true;
+
+  // Compatibilidad con registros antiguos que fueron enviados a Facturación
+  // antes de guardar categoria_servicio='pintura'. Detectamos PYP por sus
+  // nombres de servicio del catálogo o por el patrón de múltiples trabajos.
+  const texto=String(r && r.servicio || "").trim().toLowerCase();
+  if(!texto) return false;
+  const catalogo=Array.isArray(serviciosPlanchadoPintura)?serviciosPlanchadoPintura:[];
+  if(catalogo.some(function(s){
+    const nombre=String(s.nombre_servicio||"").trim().toLowerCase();
+    return nombre && texto.includes(nombre);
+  })) return true;
+  return /(pintado|planchado|reparar|reparaci[oó]n de aros|pulir faro|moldura|parachoque|escarp[ií]n|fender|chasis|retrovisor|neblinero|m[aá]scara|vaso de rueda)/i.test(texto);
+}
+
+function etiquetaServicioFiltroFacturacion(r){
+  return esRegistroPypFacturacion(r) ? "PYP" : String(r && r.servicio || "").trim();
+}
+
 function obtenerServiciosDisponiblesSegunFacturas(){
   const base=obtenerRegistrosFacturacionParaFaceta("servicio");
   const nombres=new Set();
   base.forEach(function(r){
-    const nombre=String(r.servicio||"").trim();
+    const nombre=etiquetaServicioFiltroFacturacion(r);
     if(nombre) nombres.add(nombre);
   });
 
-  // El catálogo completo solo se muestra cuando no hay ningún filtro
-  // que deba restringir el universo de servicios.
+  // El catálogo completo de Lavado y Adicionales solo se muestra cuando no hay
+  // filtros restrictivos. PYP se maneja como una única categoría.
   const hayFiltros=!!(
     document.getElementById("facturacionDesde")?.value ||
     document.getElementById("facturacionHasta")?.value ||
