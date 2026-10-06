@@ -2751,7 +2751,7 @@ onclick="limpiarFormulario()">
 <div class="table-container"><table><thead><tr>
 <th><input type="checkbox" class="facturacion-check" id="facturacionTodos" onchange="seleccionarTodosFacturacion(this)" title="Seleccionar los registros de esta página"></th>
 <th class="numero-registro">N°</th><th>Fecha</th><th>Tipo</th>
-<th>Placa</th><th>VIN</th><th>Marca</th><th>Servicio</th><th>Sin IGV</th><th>IGV</th><th>Total</th><th>Estado</th><th>Factura asociada</th><th>Fecha facturación</th>
+<th>Placa</th><th>VIN</th><th>Marca</th><th>Servicio</th><th>Sin IGV</th><th>IGV</th><th>Total</th><th>Estado</th><th>Factura asociada</th><th>Periodo facturación</th>
 </tr></thead><tbody id="tablaFacturacion"><tr><td colspan="15" class="empty">Cargando facturación...</td></tr></tbody></table></div>
 <div id="paginacionFacturacion" class="paginacion-modulo"></div>
 
@@ -6050,7 +6050,9 @@ function formatearFechaHoraRegularizacion(fecha){
 
 function formatearFechaRegularizacion(fecha){
   if(!fecha) return "";
-  const fechaObj = new Date(String(fecha).trim());
+  const texto=String(fecha).trim();
+  if(esFechaSoloSupabase(texto)) return convertirFechaSoloSupabaseAVisual(texto).replace(/\//g,"-");
+  const fechaObj = new Date(texto);
   if(isNaN(fechaObj.getTime())) return "";
   const partes = new Intl.DateTimeFormat("es-PE", {
     timeZone: "America/Lima",
@@ -7073,6 +7075,10 @@ function obtenerFechaHistorial(fecha){
   }
 
   const texto = String(fecha).trim();
+
+  // Si llega como DATE, no convertirlo con new Date().
+  if(esFechaSoloSupabase(texto)) return texto;
+
   const fechaObj = new Date(texto);
 
   if(!isNaN(fechaObj.getTime())){
@@ -7100,6 +7106,12 @@ function formatearFecha(fecha){
   }
 
   const texto = String(fecha).trim();
+
+  // Si es una fecha DATE de Supabase, mostrar exactamente el día guardado.
+  if(esFechaSoloSupabase(texto)){
+    return convertirFechaSoloSupabaseAVisual(texto) + " 00:00";
+  }
+
   const fechaObj = new Date(texto);
 
   if(!isNaN(fechaObj.getTime())){
@@ -7755,15 +7767,51 @@ async function cargarRegistrosFacturacion(){
   return await respuesta.json();
 }
 
+function esFechaSoloSupabase(valor){
+  return /^\d{4}-\d{2}-\d{2}$/.test(String(valor||"").trim());
+}
+
+function convertirFechaSoloSupabaseAVisual(valor){
+  const texto=String(valor||"").trim();
+  const m=texto.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  return m ? m[3]+"/"+m[2]+"/"+m[1] : "";
+}
+
 function fechaCortaFacturacion(valor){
   if(!valor) return "";
-  const d=new Date(valor);
-  return isNaN(d.getTime()) ? "" : d.toLocaleDateString("es-PE",{day:"2-digit",month:"2-digit",year:"numeric"});
+  const texto=String(valor).trim();
+
+  // Supabase DATE: no usar new Date("YYYY-MM-DD"), porque puede provocar
+  // un desfase de un día por conversión UTC.
+  if(esFechaSoloSupabase(texto)){
+    return convertirFechaSoloSupabaseAVisual(texto);
+  }
+
+  const d=new Date(texto);
+  if(isNaN(d.getTime())) return "";
+  return d.toLocaleDateString("es-PE",{timeZone:"America/Lima",day:"2-digit",month:"2-digit",year:"numeric"});
 }
+
+function formatearPeriodoFacturacion(valor){
+  if(!valor) return "";
+  const texto=String(valor).trim();
+  const m=texto.match(/^(\d{4})-(\d{2})/);
+  if(m) return m[2]+"/"+m[1];
+  const d=new Date(texto);
+  return isNaN(d.getTime()) ? "" : d.toLocaleDateString("es-PE",{timeZone:"America/Lima",month:"2-digit",year:"numeric"});
+}
+
 function valorFechaFacturacion(valor){
   if(!valor) return "";
-  const d=new Date(valor);
-  return isNaN(d.getTime()) ? "" : d.toISOString().slice(0,10);
+  const texto=String(valor).trim();
+
+  // Para DATE, conservar exactamente el valor YYYY-MM-DD guardado en Supabase.
+  if(esFechaSoloSupabase(texto)) return texto;
+
+  // Para TIMESTAMP, convertir a fecha local de Lima.
+  const d=new Date(texto);
+  if(isNaN(d.getTime())) return "";
+  return new Intl.DateTimeFormat("en-CA",{timeZone:"America/Lima",year:"numeric",month:"2-digit",day:"2-digit"}).format(d);
 }
 function obtenerFechaServicioFacturacion(r){return r.hora_inicio_lavado || r.created_at || "";}
 
@@ -8334,7 +8382,7 @@ function renderFacturacion(){
       <td>S/ ${x.sinIgv.toFixed(2)}</td><td>S/ ${x.igv.toFixed(2)}</td><td><strong>S/ ${x.total.toFixed(2)}</strong></td>
       <td><span class="facturacion-estado ${facturado?"facturado":"pendiente"}">${facturado?"Facturado":"Pendiente"}</span></td>
       <td>${facturado && obtenerFacturaDashboardPorVehiculo(r.id) ? `<span class="factura-asociada-badge" title="Factura asociada">🧾 ${esc(obtenerFacturaDashboardPorVehiculo(r.id).numero_factura||"")}</span>` : "—"}</td>
-      <td>${esc(fechaCortaFacturacion(r.fecha_facturacion)||"—")}</td>
+      <td>${esc(formatearPeriodoFacturacion(obtenerFacturaDashboardPorVehiculo(r.id)?.periodo_facturacion)||"—")}</td>
     </tr>`;
   });
   if(!lista.length) tbody.innerHTML='<tr><td colspan="15" class="empty">No hay servicios para los filtros seleccionados.</td></tr>';
@@ -9976,7 +10024,7 @@ function exportarFacturacionExcel(){
   if(typeof XLSX==="undefined"){mostrarAlerta("No se pudo cargar el módulo de Excel.","error");return;}
   const datos=lista.map(function(r){
     const x=calcularImportesFacturacion(r.precio_sin_igv);
-    return {"Fecha":fechaCortaFacturacion(obtenerFechaServicioFacturacion(r)),"Placa":r.placa||"","VIN":r.vin||"","Marca":r.marca||"","Modelo":r.modelo||"","Servicio":r.servicio||"","Precio sin IGV":Number(x.sinIgv.toFixed(2)),"IGV":Number(x.igv.toFixed(2)),"Total con IGV":Number(x.total.toFixed(2)),"Estado":r.facturado?"Facturado":"Pendiente","Factura asociada":(obtenerFacturaDashboardPorVehiculo(r.id)||{}).numero_factura||"","Fecha facturación":fechaCortaFacturacion(r.fecha_facturacion)||""};
+    return {"Fecha":fechaCortaFacturacion(obtenerFechaServicioFacturacion(r)),"Placa":r.placa||"","VIN":r.vin||"","Marca":r.marca||"","Modelo":r.modelo||"","Servicio":r.servicio||"","Precio sin IGV":Number(x.sinIgv.toFixed(2)),"IGV":Number(x.igv.toFixed(2)),"Total con IGV":Number(x.total.toFixed(2)),"Estado":r.facturado?"Facturado":"Pendiente","Factura asociada":(obtenerFacturaDashboardPorVehiculo(r.id)||{}).numero_factura||"","Periodo facturación":formatearPeriodoFacturacion(obtenerFacturaDashboardPorVehiculo(r.id)?.periodo_facturacion)||""};
   });
   const hoja=XLSX.utils.json_to_sheet(datos);const libro=XLSX.utils.book_new();XLSX.utils.book_append_sheet(libro,hoja,"Facturación");XLSX.writeFile(libro,"Facturacion_AutoCamiones.xlsx");
 }
@@ -10174,13 +10222,26 @@ function actualizarResumenFiltrosDashboard(){
 }
 
 function fechaLocalDashboard(d){
-  const x = new Date(d);
+  if(!d) return "";
+  const texto=String(d).trim();
+
+  // DATE de Supabase: conservar exactamente el día almacenado.
+  if(esFechaSoloSupabase(texto)) return texto;
+
+  // TIMESTAMP: sí aplicar zona horaria de Lima.
+  const x = new Date(texto);
   if(isNaN(x.getTime())) return "";
   return new Intl.DateTimeFormat("en-CA", {timeZone:"America/Lima",year:"numeric",month:"2-digit",day:"2-digit"}).format(x);
 }
 
 function formatearFechaDashboard(d){
-  const x = new Date(d);
+  if(!d) return "";
+  const texto=String(d).trim();
+
+  // DATE de Supabase: evitar cualquier conversión UTC.
+  if(esFechaSoloSupabase(texto)) return convertirFechaSoloSupabaseAVisual(texto);
+
+  const x = new Date(texto);
   if(isNaN(x.getTime())) return "";
   return new Intl.DateTimeFormat("es-PE", {timeZone:"America/Lima",day:"2-digit",month:"2-digit",year:"numeric"}).format(x);
 }
@@ -10460,7 +10521,7 @@ function renderGraficasDashboard(lista){
   </div>
   <div class="dashboard-grafica-panel" style="margin-top:20px">
     <h3>💵 Facturación total por mes</h3>
-    <div class="dashboard-grafica-subtitulo">Total facturado por fecha de emisión.</div>
+    <div class="dashboard-grafica-subtitulo">Total facturado por periodo de facturación.</div>
     ${clavesFact.length ? `<div class="dashboard-monto-mes" style="display:flex;flex-direction:row;align-items:flex-end;justify-content:center;gap:18px;min-height:250px;padding:12px 10px 4px;overflow-x:auto">${barrasFact}</div>` : '<div class="dashboard-vacio">No hay facturas emitidas en el periodo seleccionado.</div>'}
   </div>`;
 }
@@ -10761,7 +10822,7 @@ programarCierreAutomatico1930();
 </script>
 
 
-<div class="version-app">V5.5 Dashboard</div>
+<div class="version-app">V5.9 Dashboard</div>
 
 <style id="autocamiones-layout-final-override">
 /* =========================================================
