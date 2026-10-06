@@ -4808,7 +4808,7 @@ function construirPdfCotizacionPyp(cotizacion,detalle){
   doc.autoTable({
     startY:99,
     margin:{left:(pageW-250)/2,right:(pageW-250)/2},
-    tableWidth:"wrap",
+    tableWidth:250,
     head:[["Item","Tipo de Trabajo","Pieza / Paño / Servicio","Cant.","Precio Unit. (S/)","Descuento (S/)","Subtotal (S/)"]],
     body:tableRows,
     theme:"grid",
@@ -4832,7 +4832,7 @@ function construirPdfCotizacionPyp(cotizacion,detalle){
     columnStyles:{
       0:{cellWidth:10,halign:"center"},
       1:{cellWidth:48},
-      2:{cellWidth:52},
+      2:{cellWidth:84},
       3:{cellWidth:15,halign:"center"},
       4:{cellWidth:29,halign:"right"},
       5:{cellWidth:29,halign:"right"},
@@ -11277,7 +11277,7 @@ programarCierreAutomatico1930();
 </script>
 
 
-<div class="version-app">V4.2 Dashboard</div>
+<div class="version-app">V5.5 Dashboard</div>
 
 <style id="autocamiones-layout-final-override">
 /* =========================================================
