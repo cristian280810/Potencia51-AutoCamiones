@@ -1244,7 +1244,7 @@ html, body {
 }
 
 /* Cantidad, precio y total por servicio en Planchado y Pintura */
-.pyp-servicio-fila{display:grid;grid-template-columns:minmax(0,1fr) 95px 80px 95px 120px 34px;gap:8px;align-items:center;width:100%;padding:7px 0;border-bottom:1px solid #e5e7eb;}
+.pyp-servicio-fila{display:grid;grid-template-columns:minmax(0,1fr) minmax(260px,300px) 90px 78px 95px 120px 34px;gap:8px;align-items:center;width:100%;padding:7px 0;border-bottom:1px solid #e5e7eb;}
 .pyp-agregar-servicio-linea{width:100%;margin:8px 0 0;box-sizing:border-box;}
 .pyp-agregar-servicio-btn{
   width:100%;
@@ -1266,13 +1266,15 @@ html, body {
 
 .pyp-servicio-nombre{min-width:0;font-size:13px;}
 .pyp-servicio-precio{font-size:12px;color:#475569;text-align:right;white-space:nowrap;}
+.pyp-servicio-pieza{min-width:0;}
+.pyp-pieza{width:100%;box-sizing:border-box;padding:6px 7px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;}
 .pyp-cantidad,.pyp-descuento{width:100%;box-sizing:border-box;padding:6px 7px;border:1px solid #cbd5e1;border-radius:6px;text-align:center;font-size:13px;}
 .pyp-servicio-total{font-weight:700;font-size:13px;text-align:right;white-space:nowrap;}
 .pyp-servicio-quitar{border:0;background:transparent;color:#dc2626;font-size:18px;cursor:pointer;padding:0;}
 .pyp-total-general{margin-top:10px;padding:10px 12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:7px;text-align:right;font-weight:700;font-size:14px;}
 .pyp-precio-lista{margin-left:auto;color:#475569;font-size:12px;white-space:nowrap;}
 .pyp-otro-nombre,.pyp-precio-manual{width:100%;box-sizing:border-box;padding:6px 7px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;}
-@media(max-width:700px){.pyp-servicio-fila{grid-template-columns:minmax(0,1fr) 72px 68px 82px 90px 28px;gap:5px}.pyp-precio-lista{display:none;}}
+@media(max-width:700px){.pyp-servicio-fila{grid-template-columns:minmax(180px,1fr) minmax(230px,260px) 78px 68px 82px 90px 28px;gap:5px;min-width:820px}.pyp-precio-lista{display:none;}}
 
 /* En Planchado y Pintura el selector superior es redundante: se agrega cada servicio
    únicamente desde el botón punteado "＋ Agregar servicio". */
@@ -4786,6 +4788,7 @@ function construirPdfCotizacionPyp(cotizacion,detalle){
     return [
       String(i+1),
       String(d.servicio||"Otros"),
+      String(d.pieza||""),
       String(d.tipo_trabajo||d.servicio||""),
       formatoCantidadPyp(Number(d.cantidad||1)),
       formatoSolesPyp(Number(d.precio_unitario||0)),
@@ -4798,7 +4801,7 @@ function construirPdfCotizacionPyp(cotizacion,detalle){
     startY:99,
     margin:{left:9,right:9},
     tableWidth:"wrap",
-    head:[["Item","Pieza / Paño / Servicio","Tipo de Trabajo","Cant.","Precio Unit. (S/)","Descuento (S/)","Subtotal (S/)"]],
+    head:[["Item","Servicio","Pieza","Tipo de Trabajo","Cant.","Precio Unit. (S/)","Descuento (S/)","Subtotal (S/)"]],
     body:tableRows,
     theme:"grid",
     styles:{
@@ -4819,13 +4822,14 @@ function construirPdfCotizacionPyp(cotizacion,detalle){
       fontSize:7.9
     },
     columnStyles:{
-      0:{cellWidth:12,halign:"center"},
-      1:{cellWidth:67},
-      2:{cellWidth:67},
-      3:{cellWidth:18,halign:"center"},
-      4:{cellWidth:36,halign:"right"},
-      5:{cellWidth:36,halign:"right"},
-      6:{cellWidth:42,halign:"right"}
+      0:{cellWidth:10,halign:"center"},
+      1:{cellWidth:52},
+      2:{cellWidth:48},
+      3:{cellWidth:52},
+      4:{cellWidth:15,halign:"center"},
+      5:{cellWidth:29,halign:"right"},
+      6:{cellWidth:29,halign:"right"},
+      7:{cellWidth:35,halign:"right"}
     },
     alternateRowStyles:{fillColor:[248,250,252]}
   });
@@ -4894,11 +4898,12 @@ async function verCotizacionPyp(id){
       '<div><strong>Detalle de '+esc(c.correlativo||"Cotización")+'</strong><small>'+esc(c.marca||"")+" · "+esc(identificador)+"</small></div>"+
       '<button type="button" class="btn btn-secondary" style="padding:6px 10px;font-size:12px" onclick="verCotizacionPyp('+id+')">✕ Ocultar detalle</button>' +
     '</div>';
-    html+='<div style="overflow-x:auto"><table class="pyp-detalle-inline-table"><thead><tr><th>Item</th><th>Servicio</th><th>Tipo de trabajo</th><th>Cantidad</th><th>Precio unit.</th><th>Descuento</th><th>Subtotal</th></tr></thead><tbody>';
-    if(!d.length){html+='<tr><td colspan="7" style="text-align:center">No hay servicios registrados.</td></tr>';}
+    html+='<div style="overflow-x:auto"><table class="pyp-detalle-inline-table"><thead><tr><th>Item</th><th>Servicio</th><th>Pieza</th><th>Tipo de trabajo</th><th>Cantidad</th><th>Precio unit.</th><th>Descuento</th><th>Subtotal</th></tr></thead><tbody>';
+    if(!d.length){html+='<tr><td colspan="8" style="text-align:center">No hay servicios registrados.</td></tr>';}
     else d.forEach(function(x){html+='<tr>'+
       '<td>'+esc(x.item||"")+'</td>'+
       '<td><strong>'+esc(x.servicio||"")+'</strong></td>'+
+      '<td>'+esc(x.pieza||"")+'</td>'+
       '<td>'+esc(x.tipo_trabajo||"")+'</td>'+
       '<td>'+Number(x.cantidad||0).toLocaleString("es-PE",{maximumFractionDigits:2})+'</td>'+
       '<td>'+formatoSolesCotPyp(x.precio_unitario)+'</td>'+
@@ -5686,6 +5691,7 @@ function seleccionarOtroPyp(){
     id:'OTRO',
     _pypRowId:crearIdFilaPyp(),
     nombre_servicio:'',
+    pieza:'',
     precio_sin_igv:0,
     cantidad:1,
     descuento:0,
@@ -5696,6 +5702,20 @@ function seleccionarOtroPyp(){
 
   const menu=document.getElementById('dropdownServiciosPintura');
   if(menu) menu.style.display='none';
+}
+
+function cambiarPiezaServicioPyp(rowId, valor){
+  const s=buscarFilaPyp(rowId);
+  if(!s) return;
+  s.pieza=String(valor==null?'':valor);
+}
+
+function sincronizarPiezasPypDesdeDom(){
+  document.querySelectorAll('#serviciosSeleccionadosRegistro .pyp-pieza').forEach(function(input){
+    const rowId=String(input.dataset.rowId||'');
+    const s=buscarFilaPyp(rowId);
+    if(s) s.pieza=String(input.value||'');
+  });
 }
 
 function renderizarServiciosSeleccionadosRegistro(){
@@ -5724,7 +5744,7 @@ function renderizarServiciosSeleccionadosRegistro(){
   renderizarDropdownServiciosPintura();
 
   const encabezado='<div class="pyp-servicio-fila pyp-servicio-encabezado" style="border-bottom:2px solid #cbd5e1;font-weight:700;font-size:12px;color:#475569;padding-bottom:6px;">'+
-    '<div>Servicio</div><div style="text-align:right;">Precio</div><div style="text-align:center;">Cantidad</div><div style="text-align:center;">Descuento</div><div style="text-align:right;">Total</div><div></div></div>';
+    '<div>Servicio</div><div>Pieza</div><div style="text-align:right;">Precio</div><div style="text-align:center;">Cantidad</div><div style="text-align:center;">Descuento</div><div style="text-align:right;">Total</div><div></div></div>';
 
   let filas='';
   if(serviciosSeleccionadosRegistro.length){
@@ -5739,6 +5759,7 @@ function renderizarServiciosSeleccionadosRegistro(){
       const nombreHtml=esOtro
         ? '<input class="pyp-otro-nombre" type="text" value="'+esc(s.nombre_servicio||'')+'" placeholder="Escriba el servicio" oninput="cambiarNombreOtroPyp(\''+rowId+'\',this.value)">'
         : '<strong>'+esc(s.nombre_servicio)+'</strong>';
+      const piezaHtml='<input class="pyp-pieza" type="text" value="'+esc(s.pieza||'')+'" placeholder="Escriba la pieza" data-row-id="'+rowId+'" oninput="cambiarPiezaServicioPyp(\''+rowId+'\',this.value)" onblur="cambiarPiezaServicioPyp(\''+rowId+'\',this.value)">';
 
       const precioHtml=esOtro
         ? '<input class="pyp-precio-manual" type="number" min="0" step="0.01" value="'+precio.toFixed(2)+'" aria-label="Precio de Otros" onchange="cambiarPrecioOtroPyp(\''+rowId+'\',this.value)">'
@@ -5746,6 +5767,7 @@ function renderizarServiciosSeleccionadosRegistro(){
 
       return '<div class="pyp-servicio-fila">'+
         '<div class="pyp-servicio-nombre">'+nombreHtml+'</div>'+ 
+        '<div class="pyp-servicio-pieza">'+piezaHtml+'</div>'+
         '<div class="pyp-servicio-precio">'+precioHtml+'</div>'+ 
         '<input class="pyp-cantidad" type="number" min="0.5" step="0.5" inputmode="decimal" value="'+q+'" aria-label="Cantidad de servicio" onchange="cambiarCantidadServicioPyp(\''+rowId+'\',this.value)" onblur="cambiarCantidadServicioPyp(\''+rowId+'\',this.value)">'+ 
         '<input class="pyp-descuento" type="number" min="0" step="0.01" inputmode="decimal" value="'+descuento.toFixed(2)+'" aria-label="Descuento del servicio" onchange="cambiarDescuentoServicioPyp(\''+rowId+'\',this.value)">'+ 
@@ -5849,7 +5871,7 @@ function seleccionarServicioDesdeDropdown(id){
   if(!servicio) return;
 
   // Cada selección crea una nueva fila, incluso si el mismo servicio ya existe.
-  serviciosSeleccionadosRegistro.push(Object.assign({},servicio,{cantidad:1,descuento:0,_pypRowId:crearIdFilaPyp()}));
+  serviciosSeleccionadosRegistro.push(Object.assign({},servicio,{pieza:String(servicio.pieza||''),cantidad:1,descuento:0,_pypRowId:crearIdFilaPyp()}));
   renderizarServiciosSeleccionadosRegistro();
 
   const menu=document.getElementById('dropdownServiciosPintura');
@@ -5879,8 +5901,9 @@ function limpiarServiciosSeleccionadosRegistro(){
 }
 
 function obtenerServiciosSeleccionadosRegistro(){
+  sincronizarPiezasPypDesdeDom();
   return serviciosSeleccionadosRegistro.map(function(s){
-    return Object.assign({},s,{cantidad:cantidadServicioPyp(s),descuento:descuentoServicioPyp(s)});
+    return Object.assign({},s,{pieza:String(s.pieza||''),cantidad:cantidadServicioPyp(s),descuento:descuentoServicioPyp(s)});
   });
 }
 
@@ -5997,6 +6020,7 @@ async function guardarCotizacionPypEnSupabase(datos){
       cotizacion_id:row.id,
       item:i+1,
       servicio:String(s.nombre_servicio||"Otros"),
+      pieza:String(s.pieza||""),
       tipo_trabajo:String(s.nombre_servicio||"Otros"),
       cantidad:cantidadServicioPyp(s),
       precio_unitario:Number(s.precio_sin_igv||0),
@@ -6036,6 +6060,7 @@ async function generarCotizacionPyp(){
       mostrarAlerta("La cotización está disponible para Planchado y Pintura.","error");
       return;
     }
+    sincronizarPiezasPypDesdeDom();
     const items=obtenerServiciosSeleccionadosRegistro();
     if(!items.length){
       mostrarAlerta("Seleccione al menos un servicio de Planchado y Pintura antes de generar la cotización.","error");
@@ -6155,19 +6180,19 @@ async function generarCotizacionPyp(){
       const descuento=descuentoServicioPyp(s);
       const subtotal=totalItemPyp(s);
       const nombre=String(s.nombre_servicio||"Otros");
-      return [String(i+1),nombre,nombre,formatoCantidadPyp(q),formatoSolesPyp(precio),formatoSolesPyp(descuento),formatoSolesPyp(subtotal)];
+      return [String(i+1),nombre,String(s.pieza||""),nombre,formatoCantidadPyp(q),formatoSolesPyp(precio),formatoSolesPyp(descuento),formatoSolesPyp(subtotal)];
     });
 
     doc.autoTable({
       startY:99,
       margin:{left:9,right:9},
       tableWidth:"wrap",
-      head:[["Item","Pieza / Paño / Servicio","Tipo de Trabajo","Cant.","Precio Unit. (S/)","Descuento (S/)","Subtotal (S/)"]],
+      head:[["Item","Servicio","Pieza","Tipo de Trabajo","Cant.","Precio Unit. (S/)","Descuento (S/)","Subtotal (S/)"]],
       body:tableRows,
       theme:"grid",
       styles:{font:"helvetica",fontSize:8.1,cellPadding:1.5,textColor:[31,41,55],lineColor:[185,198,213],lineWidth:.25,overflow:"linebreak",valign:"middle"},
       headStyles:{fontStyle:"bold",fillColor:[31,55,85],textColor:[255,255,255],halign:"center",fontSize:7.9},
-      columnStyles:{0:{cellWidth:12,halign:"center"},1:{cellWidth:67},2:{cellWidth:67},3:{cellWidth:18,halign:"center"},4:{cellWidth:36,halign:"right"},5:{cellWidth:36,halign:"right"},6:{cellWidth:42,halign:"right"}},
+      columnStyles:{0:{cellWidth:10,halign:"center"},1:{cellWidth:52},2:{cellWidth:48},3:{cellWidth:52},4:{cellWidth:15,halign:"center"},5:{cellWidth:29,halign:"right"},6:{cellWidth:29,halign:"right"},7:{cellWidth:35,halign:"right"}},
       alternateRowStyles:{fillColor:[248,250,252]}
     });
 
