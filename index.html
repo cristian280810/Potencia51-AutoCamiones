@@ -4678,7 +4678,7 @@ function construirPdfCotizacionPyp(cotizacion,detalle){
   const pageH=doc.internal.pageSize.getHeight();
   const tipo=String(cotizacion.tipo_registro||cotizacion.tipo||"Taller");
   const identificador=tipo.toLowerCase()==="nuevo"?(cotizacion.vin||"—"):(cotizacion.placa||"—");
-  const fecha=String(cotizacion.fecha||cotizacion.created_at||"").slice(0,10)||formatoFechaCotizacionPyp();
+  const fecha=formatoFechaVisualCotizacionPyp(String(cotizacion.fecha||cotizacion.created_at||"").slice(0,10)||formatoFechaCotizacionPyp());
 
   try{
     doc.addImage(LOGO_COTIZACION_PYP_BASE64,"PNG",10,8,72,29);
@@ -4704,14 +4704,14 @@ function construirPdfCotizacionPyp(cotizacion,detalle){
   doc.text("DATOS DEL CLIENTE Y VEHÍCULO",10,56);
 
   const rows=[
-    ["Cliente:",cotizacion.cliente||"—","Placa:",identificador],
-    ["Teléfono / Email:",(cotizacion.telefono||cotizacion.email)||"—","Marca / Modelo:",cotizacion.marca||"—"],
+    ["Cliente:","Autocamiones del Centro S.A.C","Placa:",identificador],
+    ["Teléfono:","933889049","Marca / Modelo:",cotizacion.marca||"—"],
     ["Fecha:",fecha,"Año / Color:","—"]
   ];
 
   // Diseño de cabecera A4 horizontal: campos blancos y bien separados.
   // Los valores largos se ajustan dentro de su casilla para evitar cortes.
-  const xLabelL=10, boxXL=34, boxWL=78;
+  const xLabelL=10, boxXL=34, boxWL=105;
   const xLabelR=150, boxXR=195, boxWR=92;
   let y=61;
 
@@ -4726,7 +4726,7 @@ function construirPdfCotizacionPyp(cotizacion,detalle){
     doc.setDrawColor(185,198,213);
     doc.setLineWidth(.3);
     doc.setFillColor(255,255,255);
-    doc.rect(xBox,y,boxW,boxH,"FD");
+    doc.rect(xBox,y,boxW,boxH,"S");
 
     doc.setFont("helvetica","normal");
     doc.setTextColor(31,41,55);
@@ -4764,15 +4764,15 @@ function construirPdfCotizacionPyp(cotizacion,detalle){
 
   doc.autoTable({
     startY:91,
-    margin:{left:8,right:8},
-    tableWidth:"auto",
+    margin:{left:9,right:9},
+    tableWidth:"wrap",
     head:[["Item","Pieza / Paño / Servicio","Tipo de Trabajo","Cant.","Precio Unit. (S/)","Descuento (S/)","Subtotal (S/)"]],
     body:tableRows,
     theme:"grid",
     styles:{
       font:"helvetica",
-      fontSize:8.2,
-      cellPadding:1.6,
+      fontSize:8.0,
+      cellPadding:1.5,
       textColor:[31,41,55],
       lineColor:[185,198,213],
       lineWidth:.25,
@@ -4784,16 +4784,16 @@ function construirPdfCotizacionPyp(cotizacion,detalle){
       fillColor:[31,55,85],
       textColor:[255,255,255],
       halign:"center",
-      fontSize:8.1
+      fontSize:7.9
     },
     columnStyles:{
       0:{cellWidth:12,halign:"center"},
-      1:{cellWidth:64},
-      2:{cellWidth:64},
-      3:{cellWidth:19,halign:"center"},
-      4:{cellWidth:40,halign:"right"},
-      5:{cellWidth:39,halign:"right"},
-      6:{cellWidth:43,halign:"right"}
+      1:{cellWidth:67},
+      2:{cellWidth:67},
+      3:{cellWidth:18,halign:"center"},
+      4:{cellWidth:36,halign:"right"},
+      5:{cellWidth:36,halign:"right"},
+      6:{cellWidth:42,halign:"right"}
     },
     alternateRowStyles:{fillColor:[248,250,252]}
   });
@@ -5905,6 +5905,13 @@ function formatoFechaCotizacionPyp(){
   return y+"-"+m+"-"+dia;
 }
 
+function formatoFechaVisualCotizacionPyp(valor){
+  const texto=String(valor||"").trim();
+  const m=texto.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if(m) return m[3]+"/"+m[2]+"/"+m[1];
+  return texto || "—";
+}
+
 async function generarCotizacionPyp(){
   try{
     if(categoriaRegistroActual !== "pintura"){
@@ -5947,14 +5954,14 @@ async function generarCotizacionPyp(){
       tipo,placa,vin,marca,cliente,telefono,email,observaciones,items,subtotal:subtotalBruto,igv,total
     });
     const correlativo=cotizacionGuardada.correlativo;
-    const fecha=formatoFechaCotizacionPyp();
+    const fecha=formatoFechaVisualCotizacionPyp(formatoFechaCotizacionPyp());
     const doc=new jsPDFRef({orientation:"landscape",unit:"mm",format:"a4"});
     const pageW=doc.internal.pageSize.getWidth();
     const pageH=doc.internal.pageSize.getHeight();
 
     // Encabezado tipo cotización de referencia.
     try{ doc.addImage(LOGO_COTIZACION_PYP_BASE64,"PNG",10,8,72,29); }catch(e){
-      doc.setFont("helvetica","bold"); doc.setFontSize(18); doc.text("POTENCIA 51",10,20);
+      doc.setFont("helvetica","bold"); doc.setFontSize(18); doc.setTextColor(31,41,55); doc.text("POTENCIA 51",10,20);
     }
     doc.setFont("helvetica","bolditalic");
     doc.setFontSize(9);
@@ -5965,28 +5972,45 @@ async function generarCotizacionPyp(){
     doc.setFontSize(10);
     doc.text(correlativo,pageW-10,23,{align:"right"});
 
-    // Datos cliente / vehículo. Se muestran los datos disponibles en el formulario.
+    // Datos fijos de la empresa que recibe la cotización y campos del vehículo.
     doc.setFontSize(10);
     doc.setTextColor(31,41,55);
     doc.text("DATOS DEL CLIENTE Y VEHÍCULO",10,56);
-    doc.setFont("helvetica","normal");
-    doc.setFontSize(9);
-    const x1=10, x2=125;
-    const boxX1=28, boxX2=168;
-    const rows=[
-      ["Cliente:","—","Placa:",tipo==="Servicio"?identificador:"—"],
-      ["Teléfono / Email:","—","Marca / Modelo:",marca],
+    const clienteCotizacion="Autocamiones del Centro S.A.C";
+    const telefonoCotizacion="933889049";
+    const placaPdf=(tipo==="Nuevo" ? "—" : (placa||"—"));
+    const vinPdf=(tipo==="Nuevo" ? (vin||"—") : "—");
+    const filasCabecera=[
+      ["Cliente:",clienteCotizacion,"Placa:",placaPdf],
+      ["Teléfono:",telefonoCotizacion,"Marca / Modelo:",marca||"—"],
       ["Fecha:",fecha,"Año / Color:","—"]
     ];
     let y=61;
-    rows.forEach(function(r){
-      doc.setFont("helvetica","bold"); doc.text(r[0],x1,y+4);
+    const x1=10, x2=150, boxX1=34, boxX2=195, boxW1=105, boxW2=92;
+    filasCabecera.forEach(function(r){
+      doc.setFont("helvetica","bold");
+      doc.setFontSize(8.8);
+      doc.setTextColor(31,41,55);
+      doc.text(r[0],x1,y+5.1);
+      doc.text(r[2],x2,y+5.1);
+
+      // Solo borde: evita cualquier sombreado negro en las casillas.
+      doc.setDrawColor(185,198,213);
+      doc.setLineWidth(.3);
+      doc.setFillColor(255,255,255);
+      doc.rect(boxX1,y,boxW1,8,"S");
+      doc.rect(boxX2,y,boxW2,8,"S");
+
       doc.setFont("helvetica","normal");
-      doc.setDrawColor(185,198,213); doc.setFillColor(255,255,255);
-      doc.rect(boxX1,y,74,7,"FD"); doc.text(String(r[1]||"—"),boxX1+2,y+4.7);
-      doc.setFont("helvetica","bold"); doc.text(r[2],x2,y+4);
-      doc.setFont("helvetica","normal"); doc.rect(boxX2,y,38,7,"FD"); doc.text(String(r[3]||"—"),boxX2+2,y+4.7);
-      y+=8;
+      doc.setFontSize(8.3);
+      doc.setTextColor(31,41,55);
+      const valorIzq=String(r[1]||"—").replace(/\s+/g," ").trim()||"—";
+      const valorDer=String(r[3]||"—").replace(/\s+/g," ").trim()||"—";
+      const izqLineas=doc.splitTextToSize(valorIzq,boxW1-4).slice(0,2);
+      const derLineas=doc.splitTextToSize(valorDer,boxW2-4).slice(0,2);
+      doc.text(izqLineas,boxX1+2,y+5.0,{baseline:"middle"});
+      doc.text(derLineas,boxX2+2,y+5.0,{baseline:"middle"});
+      y+=9;
     });
 
     const tableRows=items.map(function(s,i){
@@ -6000,13 +6024,14 @@ async function generarCotizacionPyp(){
 
     doc.autoTable({
       startY:88,
-      margin:{left:8,right:8},
+      margin:{left:9,right:9},
+      tableWidth:"wrap",
       head:[["Item","Pieza / Paño / Servicio","Tipo de Trabajo","Cant.","Precio Unit. (S/)","Descuento (S/)","Subtotal (S/)"]],
       body:tableRows,
       theme:"grid",
-      styles:{font:"helvetica",fontSize:8.5,cellPadding:1.7,textColor:[31,41,55],lineColor:[185,198,213],lineWidth:.25,overflow:"linebreak",valign:"middle"},
-      headStyles:{fontStyle:"bold",fillColor:[31,55,85],textColor:[255,255,255],halign:"center"},
-      columnStyles:{0:{cellWidth:14,halign:"center"},1:{cellWidth:75},2:{cellWidth:75},3:{cellWidth:22,halign:"center"},4:{cellWidth:36,halign:"right"},5:{cellWidth:36,halign:"right"},6:{cellWidth:38,halign:"right"}},
+      styles:{font:"helvetica",fontSize:8.1,cellPadding:1.5,textColor:[31,41,55],lineColor:[185,198,213],lineWidth:.25,overflow:"linebreak",valign:"middle"},
+      headStyles:{fontStyle:"bold",fillColor:[31,55,85],textColor:[255,255,255],halign:"center",fontSize:7.9},
+      columnStyles:{0:{cellWidth:12,halign:"center"},1:{cellWidth:67},2:{cellWidth:67},3:{cellWidth:18,halign:"center"},4:{cellWidth:36,halign:"right"},5:{cellWidth:36,halign:"right"},6:{cellWidth:42,halign:"right"}},
       alternateRowStyles:{fillColor:[248,250,252]}
     });
 
@@ -11077,7 +11102,7 @@ programarCierreAutomatico1930();
 </script>
 
 
-<div class="version-app">V5.5 Dashboard</div>
+<div class="version-app">V59 Dashboard</div>
 
 <style id="autocamiones-layout-final-override">
 /* =========================================================
