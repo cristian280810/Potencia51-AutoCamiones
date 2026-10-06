@@ -2134,6 +2134,10 @@ html, body {
 }
 </style>
 
+<style id="pyp-factura-columna">
+.pyp-factura-badge{display:inline-block;padding:4px 8px;border-radius:7px;background:#dbeafe;border:1px solid #bfdbfe;color:#1d4ed8;font-weight:700;font-size:12px;}
+.pyp-factura-pendiente{color:#9ca3af;font-size:12px;font-style:italic;}
+</style>
 </head>
 
 <body>
@@ -2592,11 +2596,12 @@ onclick="limpiarFormulario()">
             <th class="num">IGV</th>
             <th class="num">Total</th>
             <th>Estado</th>
+            <th>Factura</th>
             <th>Acciones</th>
           </tr>
         </thead>
         <tbody id="tablaCotizacionesPyp">
-          <tr><td colspan="10" class="empty">Seleccione Cotizaciones para cargar la información.</td></tr>
+          <tr><td colspan="11" class="empty">Seleccione Cotizaciones para cargar la información.</td></tr>
         </tbody>
       </table>
     </div>
@@ -4523,6 +4528,31 @@ function servicioActualPorNombre(nombre){
    COTIZACIONES - ADMINISTRACIÓN
 ===================================================== */
 let cotizacionesPyp = [];
+let facturasRelacionadasPyp = {};
+
+async function cargarFacturasRelacionadasPyp(){
+  facturasRelacionadasPyp = {};
+  try{
+    const headers={"apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY};
+    const respuestas=await Promise.all([
+      fetch(SUPABASE_URL+"/rest/v1/facturas_autocamiones?select=id,numero_factura",{method:"GET",headers:headers,cache:"no-store"}),
+      fetch(SUPABASE_URL+"/rest/v1/factura_detalle_autocamiones?select=factura_id,vehiculo_id",{method:"GET",headers:headers,cache:"no-store"})
+    ]);
+    if(!respuestas[0].ok) throw new Error(await respuestas[0].text());
+    if(!respuestas[1].ok) throw new Error(await respuestas[1].text());
+    const facturas=await respuestas[0].json()||[];
+    const detalles=await respuestas[1].json()||[];
+    const numeroPorFactura={};
+    facturas.forEach(function(f){numeroPorFactura[String(f.id)]=f.numero_factura||"";});
+    detalles.forEach(function(d){
+      const vehiculoId=String(d.vehiculo_id||"");
+      const numero=numeroPorFactura[String(d.factura_id||"")]||"";
+      if(vehiculoId && numero) facturasRelacionadasPyp[vehiculoId]=numero;
+    });
+  }catch(error){
+    console.warn("No se pudieron cargar los números de factura relacionados con PYP.",error);
+  }
+}
 
 function formatoSolesCotPyp(valor){
   return "S/ " + Number(valor||0).toLocaleString("es-PE",{minimumFractionDigits:2,maximumFractionDigits:2});
@@ -4534,7 +4564,7 @@ function claseEstadoCotPyp(estado){
 
 async function cargarCotizacionesPyp(){
   const tbody=document.getElementById("tablaCotizacionesPyp");
-  if(tbody) tbody.innerHTML='<tr><td colspan="10" class="empty">Cargando cotizaciones...</td></tr>';
+  if(tbody) tbody.innerHTML='<tr><td colspan="11" class="empty">Cargando cotizaciones...</td></tr>';
   try{
     const estado=document.getElementById("filtroEstadoCotizacionesPyp")?.value||"";
     let url=SUPABASE_URL+"/rest/v1/cotizaciones_pyp_autocamiones?select=*&order=created_at.desc";
@@ -4542,10 +4572,11 @@ async function cargarCotizacionesPyp(){
     const respuesta=await fetch(url,{method:"GET",headers:{"apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY},cache:"no-store"});
     if(!respuesta.ok) throw new Error(await respuesta.text());
     cotizacionesPyp=await respuesta.json()||[];
+    await cargarFacturasRelacionadasPyp();
     renderizarCotizacionesPyp();
   }catch(error){
     console.error(error);
-    if(tbody) tbody.innerHTML='<tr><td colspan="10" class="empty">No se pudieron cargar las cotizaciones. Ejecute el SQL de Cotizaciones PYP en Supabase.</td></tr>';
+    if(tbody) tbody.innerHTML='<tr><td colspan="11" class="empty">No se pudieron cargar las cotizaciones. Ejecute el SQL de Cotizaciones PYP en Supabase.</td></tr>';
   }
 }
 
@@ -4556,12 +4587,14 @@ function renderizarCotizacionesPyp(){
   const lista=cotizacionesPyp.filter(function(c){
     return !q || [c.correlativo,c.placa,c.vin,c.marca,c.estado].some(function(v){return String(v||"").toLowerCase().includes(q);});
   });
-  if(!lista.length){tbody.innerHTML='<tr><td colspan="10" class="empty">No hay cotizaciones para mostrar.</td></tr>';return;}
+  if(!lista.length){tbody.innerHTML='<tr><td colspan="11" class="empty">No hay cotizaciones para mostrar.</td></tr>';return;}
   tbody.innerHTML=lista.map(function(c){
     const id=esc(String(c.id||""));
     const estado=String(c.estado||"Pendiente");
     const tipoCot=String(c.tipo_registro||c.tipo||"servicio").toLowerCase();
     const identificador=tipoCot==="nuevo"?(c.vin||"—"):(c.placa||"—");
+    const numeroFacturaPyp=facturasRelacionadasPyp[String(c.facturacion_id||"")] || "";
+    const facturaHtml=estado==="Facturada" ? (numeroFacturaPyp ? '<span class="pyp-factura-badge">'+esc(numeroFacturaPyp)+'</span>' : '<span class="pyp-factura-pendiente">Pendiente de número</span>') : '—';
     const acciones=
       '<div class="pyp-acciones-cot">'+
       '<button type="button" class="btn btn-ver-cot-pyp" style="padding:6px 9px;font-size:12px" onclick="verCotizacionPyp(\''+id+'\')">👁 Ver</button>'+
@@ -4579,9 +4612,10 @@ function renderizarCotizacionesPyp(){
       '<td class="num">'+formatoSolesCotPyp(c.igv)+'</td>'+
       '<td class="num"><strong>'+formatoSolesCotPyp(c.total)+'</strong></td>'+
       '<td><span class="estado-cot-pyp '+claseEstadoCotPyp(estado)+'">'+esc(estado)+'</span></td>'+
+      '<td style="white-space:nowrap">'+facturaHtml+'</td>'+
       '<td style="white-space:nowrap">'+acciones+'</td>'+
     '</tr>'+
-    '<tr id="detalleFilaCotPyp-'+id+'" style="display:none"><td colspan="10" style="padding:0;border-top:0"><div id="contenidoDetalleCotPyp-'+id+'" class="cotizacion-detalle-pyp-inline"></div></td></tr>';
+    '<tr id="detalleFilaCotPyp-'+id+'" style="display:none"><td colspan="11" style="padding:0;border-top:0"><div id="contenidoDetalleCotPyp-'+id+'" class="cotizacion-detalle-pyp-inline"></div></td></tr>';
   }).join("");
 }
 
