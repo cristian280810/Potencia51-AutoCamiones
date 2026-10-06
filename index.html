@@ -4749,7 +4749,7 @@ function construirPdfCotizacionPyp(cotizacion,detalle){
   // Cabecera de la cotización. El tercer campo de la derecha es Observaciones;
   // ya no se utiliza Año / Color.
   const xLabelL=10, boxXL=34, boxWL=105;
-  const xLabelR=150, boxXR=195, boxWR=92;
+  const xLabelR=150, boxXR=195, boxWR=92, boxWObs=42;
   let y=61;
 
   function dibujarCampo(label,xLabel,xBox,boxW,value,boxH){
@@ -4788,7 +4788,7 @@ function construirPdfCotizacionPyp(cotizacion,detalle){
   y+=9;
 
   dibujarCampo("Fecha:",xLabelL,boxXL,boxWL,fecha);
-  dibujarCampo("Observaciones:",xLabelR,boxXR,boxWR,cotizacion.observaciones||"—",16);
+  dibujarCampo("Observaciones:",xLabelR,boxXR,boxWObs,cotizacion.observaciones||"—",16);
   y+=18;
 
   const tableRows=detalle.map(function(d,i){
@@ -6141,7 +6141,7 @@ async function generarCotizacionPyp(){
     const telefonoCotizacion="933889049";
     const placaPdf=(tipo==="Nuevo" ? (vin||"—") : (placa||"—"));
 
-    const x1=10, x2=150, boxX1=34, boxX2=195, boxW1=105, boxW2=92;
+    const x1=10, x2=150, boxX1=34, boxX2=195, boxW1=105, boxW2=92, boxWObs=42;
     let y=61;
 
     function dibujarCampoCabecera(label,xLabel,xBox,boxW,value,boxH){
@@ -6177,7 +6177,7 @@ async function generarCotizacionPyp(){
     dibujarCampoCabecera("Marca / Modelo:",x2,boxX2,boxW2,marca||"—");
     y+=9;
     dibujarCampoCabecera("Fecha:",x1,boxX1,boxW1,fecha);
-    dibujarCampoCabecera("Observaciones:",x2,boxX2,boxW2,observaciones||"—",16);
+    dibujarCampoCabecera("Observaciones:",x2,boxX2,boxWObs,observaciones||"—",16);
     y+=18;
 
     const tableRows=items.map(function(s,i){
@@ -11277,7 +11277,7 @@ programarCierreAutomatico1930();
 </script>
 
 
-<div class="version-app">V5.5 Dashboard</div>
+<div class="version-app">V9.0 Dashboard</div>
 
 <style id="autocamiones-layout-final-override">
 /* =========================================================
