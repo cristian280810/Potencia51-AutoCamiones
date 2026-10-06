@@ -647,10 +647,7 @@ th{
 }
 
 .header-separador{
-    width:1px;
-    height:105px;
-    background:rgba(255,255,255,.75);
-    flex-shrink:0;
+    display:none !important;
 }
 
 
@@ -5613,8 +5610,22 @@ function formatoSolesPyp(n){
   return 'S/ '+Number(n||0).toFixed(2);
 }
 function totalItemPyp(s){
-  const subtotal=Number(s.precio_sin_igv||0)*cantidadServicioPyp(s);
-  return Math.max(0,subtotal-descuentoServicioPyp(s));
+  const precio=Number(s.precio_sin_igv||0);
+  const descuento=descuentoServicioPyp(s);
+  const cantidad=cantidadServicioPyp(s);
+  // El descuento es por unidad: primero se descuenta del precio unitario
+  // y recién después se multiplica por la cantidad.
+  return Math.max(0,(precio-descuento)*cantidad);
+}
+function totalBrutoPyp(){
+  return serviciosSeleccionadosRegistro.reduce(function(t,s){
+    return t + Number(s.precio_sin_igv||0)*cantidadServicioPyp(s);
+  },0);
+}
+function descuentoTotalPyp(){
+  return serviciosSeleccionadosRegistro.reduce(function(t,s){
+    return t + descuentoServicioPyp(s)*cantidadServicioPyp(s);
+  },0);
 }
 function totalPyp(){
   return serviciosSeleccionadosRegistro.reduce(function(t,s){
@@ -5651,7 +5662,7 @@ function cambiarCantidadServicioPyp(rowId, valor, volverARenderizar){
   q=Math.round(q*2)/2;
   s.cantidad=q;
 
-  const maxDescuento=Number(s.precio_sin_igv||0)*q;
+  const maxDescuento=Number(s.precio_sin_igv||0);
   if(Number(s.descuento||0)>maxDescuento){
     s.descuento=maxDescuento;
   }
@@ -5664,7 +5675,7 @@ function cambiarDescuentoServicioPyp(rowId, valor, volverARenderizar){
 
   let d=Number(valor);
   if(!Number.isFinite(d) || d<0) d=0;
-  const maxDescuento=Number(s.precio_sin_igv||0)*cantidadServicioPyp(s);
+  const maxDescuento=Number(s.precio_sin_igv||0);
   s.descuento=Math.min(d,maxDescuento);
   renderizarServiciosSeleccionadosRegistro();
 }
@@ -5939,9 +5950,12 @@ function confirmarVinVacioPyp(){
 async function guardarCotizacionPypEnSupabase(datos){
   const fallbackCorrelativo=siguienteCorrelativoCotizacionPypLocal();
   const descuentoTotal = datos.items.reduce(function(acum,s){
-    return acum + Number(descuentoServicioPyp(s) || 0);
+    return acum + Number(descuentoServicioPyp(s) || 0) * cantidadServicioPyp(s);
   },0);
-  const subtotalNeto = Number((Number(datos.subtotal || 0) - descuentoTotal).toFixed(2));
+  const subtotalBruto = datos.items.reduce(function(acum,s){
+    return acum + Number(s.precio_sin_igv||0) * cantidadServicioPyp(s);
+  },0);
+  const subtotalNeto = Number((subtotalBruto - descuentoTotal).toFixed(2));
   const payload={
     correlativo:fallbackCorrelativo,
     tipo_registro:datos.tipo === "Nuevo" ? "nuevo" : "servicio",
@@ -5951,7 +5965,7 @@ async function guardarCotizacionPypEnSupabase(datos){
     cliente:datos.cliente||null,
     telefono:datos.telefono||null,
     email:datos.email||null,
-    subtotal_bruto:Number(datos.subtotal || 0),
+    subtotal_bruto:Number(subtotalBruto.toFixed(2)),
     descuento_total:Number(descuentoTotal.toFixed(2)),
     subtotal_neto:subtotalNeto,
     igv:Number(datos.igv || 0),
@@ -6056,7 +6070,9 @@ async function generarCotizacionPyp(){
       return;
     }
 
-    const subtotalBruto=Number(totalPyp().toFixed(2));
+    const subtotalBrutoReal=Number(totalBrutoPyp().toFixed(2));
+    const descuentoTotalReal=Number(descuentoTotalPyp().toFixed(2));
+    const subtotalBruto=Number((subtotalBrutoReal-descuentoTotalReal).toFixed(2));
     const igv=Number((subtotalBruto*IGV_AUTOCAMIONES).toFixed(2));
     const total=Number((subtotalBruto+igv).toFixed(2));
     const observaciones=(document.getElementById("observaciones")?.value||"").trim();
@@ -6064,7 +6080,7 @@ async function generarCotizacionPyp(){
     const telefono=(document.getElementById("telefono")?.value||"").trim();
     const email=(document.getElementById("email")?.value||"").trim();
     const cotizacionGuardada=await guardarCotizacionPypEnSupabase({
-      tipo,placa,vin,marca,cliente,telefono,email,observaciones,items,subtotal:subtotalBruto,igv,total
+      tipo,placa,vin,marca,cliente,telefono,email,observaciones,items,subtotal:subtotalBruto,subtotal_bruto:subtotalBrutoReal,descuento_total:descuentoTotalReal,igv,total
     });
     const correlativo=cotizacionGuardada.correlativo;
     const fecha=formatoFechaVisualCotizacionPyp(formatoFechaCotizacionPyp());
@@ -11229,7 +11245,7 @@ programarCierreAutomatico1930();
 </script>
 
 
-<div class="version-app">V5.5 Dashboard</div>
+<div class="version-app">V5.9 Dashboard</div>
 
 <style id="autocamiones-layout-final-override">
 /* =========================================================
