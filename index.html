@@ -4749,7 +4749,7 @@ function construirPdfCotizacionPyp(cotizacion,detalle){
   // Cabecera de la cotización. El tercer campo de la derecha es Observaciones;
   // ya no se utiliza Año / Color.
   const xLabelL=10, boxXL=34, boxWL=105;
-  const xLabelR=150, boxXR=195, boxWR=92, boxWObs=42;
+  const xLabelR=150, boxXR=195, boxWR=92, boxWObs=92;
   let y=61;
 
   function dibujarCampo(label,xLabel,xBox,boxW,value,boxH){
@@ -4857,22 +4857,26 @@ function construirPdfCotizacionPyp(cotizacion,detalle){
   doc.text("2. Garantía de pintura: 12 meses frente a decoloración o desprendimiento.",10,sy+12);
   doc.text("3. Presupuesto no incluye daños ocultos encontrados al desarme",10,sy+18);
 
-  const rx=pageW-75;
+  // Alinear los importes con el borde derecho de la columna "Subtotal (S/)".
+  const tablaDerecha=(pageW+250)/2;
+  const anchoResumen=67;
+  const rx=tablaDerecha-anchoResumen;
+  const importeX=tablaDerecha;
   doc.setTextColor(31,41,55);
   doc.setFont("helvetica","bold");
   doc.setFontSize(9);
   doc.text("Subtotal Bruto:",rx-4,sy+2,{align:"right"});
-  doc.text(formatoSolesPyp(subtotal),pageW-10,sy+2,{align:"right"});
+  doc.text(formatoSolesPyp(subtotal),importeX,sy+2,{align:"right"});
   doc.text("IGV (18%):",rx-4,sy+9,{align:"right"});
-  doc.text(formatoSolesPyp(igv),pageW-10,sy+9,{align:"right"});
+  doc.text(formatoSolesPyp(igv),importeX,sy+9,{align:"right"});
   doc.setFillColor(230,244,252);
-  doc.rect(rx,sy+13,67,9,"F");
+  doc.rect(rx,sy+13,anchoResumen,9,"F");
   doc.setFontSize(11);
   doc.text("TOTAL (S/):",rx+30,sy+19,{align:"right"});
-  doc.text(formatoSolesPyp(total),pageW-10,sy+19,{align:"right"});
+  doc.text(formatoSolesPyp(total),importeX,sy+19,{align:"right"});
   doc.setDrawColor(31,55,85);
   doc.setLineWidth(1.2);
-  doc.line(rx+30,sy+24,pageW-10,sy+24);
+  doc.line(rx+30,sy+24,importeX,sy+24);
 
   doc.setFont("helvetica","normal");
   doc.setFontSize(7);
@@ -6141,7 +6145,7 @@ async function generarCotizacionPyp(){
     const telefonoCotizacion="933889049";
     const placaPdf=(tipo==="Nuevo" ? (vin||"—") : (placa||"—"));
 
-    const x1=10, x2=150, boxX1=34, boxX2=195, boxW1=105, boxW2=92, boxWObs=42;
+    const x1=10, x2=150, boxX1=34, boxX2=195, boxW1=105, boxW2=92, boxWObs=92;
     let y=61;
 
     function dibujarCampoCabecera(label,xLabel,xBox,boxW,value,boxH){
@@ -6212,14 +6216,18 @@ async function generarCotizacionPyp(){
     doc.text("2. Garantía de pintura: 12 meses frente a decoloración o desprendimiento.",10,sy+12);
     doc.text("3. Presupuesto no incluye daños ocultos encontrados al desarme.",10,sy+18);
 
-    const rx=pageW-75, rw=67;
+    // Alinear los importes de resumen con la columna "Subtotal (S/)" de la tabla.
+    const tablaDerecha=(pageW+250)/2;
+    const anchoResumen=67;
+    const rx=tablaDerecha-anchoResumen;
+    const importeX=tablaDerecha;
     doc.setTextColor(31,41,55);
     doc.setFont("helvetica","bold"); doc.setFontSize(9);
-    doc.text("Subtotal Bruto:",rx-4,sy+2,{align:"right"}); doc.text(formatoSolesPyp(subtotalBruto),pageW-10,sy+2,{align:"right"});
-    doc.text("IGV (18%):",rx-4,sy+9,{align:"right"}); doc.text(formatoSolesPyp(igv),pageW-10,sy+9,{align:"right"});
-    doc.setFillColor(230,244,252); doc.rect(rx,sy+13,rw,9,"F");
-    doc.setFontSize(11); doc.text("TOTAL (S/):",rx+30,sy+19,{align:"right"}); doc.text(formatoSolesPyp(total),pageW-10,sy+19,{align:"right"});
-    doc.setDrawColor(31,55,85); doc.setLineWidth(1.2); doc.line(rx+30,sy+24,pageW-10,sy+24);
+    doc.text("Subtotal Bruto:",rx-4,sy+2,{align:"right"}); doc.text(formatoSolesPyp(subtotalBruto),importeX,sy+2,{align:"right"});
+    doc.text("IGV (18%):",rx-4,sy+9,{align:"right"}); doc.text(formatoSolesPyp(igv),importeX,sy+9,{align:"right"});
+    doc.setFillColor(230,244,252); doc.rect(rx,sy+13,anchoResumen,9,"F");
+    doc.setFontSize(11); doc.text("TOTAL (S/):",rx+30,sy+19,{align:"right"}); doc.text(formatoSolesPyp(total),importeX,sy+19,{align:"right"});
+    doc.setDrawColor(31,55,85); doc.setLineWidth(1.2); doc.line(rx+30,sy+24,importeX,sy+24);
 
     doc.setFont("helvetica","normal"); doc.setFontSize(7); doc.setTextColor(120,120,120);
     doc.text("Cotización " + correlativo + " | Potencia 51 AutoCamiones",10,pageH-8);
@@ -11277,7 +11285,7 @@ programarCierreAutomatico1930();
 </script>
 
 
-<div class="version-app">V9.0 Dashboard</div>
+<div class="version-app">V5.5 Dashboard</div>
 
 <style id="autocamiones-layout-final-override">
 /* =========================================================
