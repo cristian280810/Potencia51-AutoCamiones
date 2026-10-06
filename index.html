@@ -10785,11 +10785,29 @@ function renderDashboard(lista){
 
   const porMarca = {};
   const porServicio = {};
+
+  // Cada servicio debe contarse de manera independiente.
+  // En PYP, varios trabajos pueden estar guardados dentro del mismo campo
+  // separados por "+", por ejemplo: "Pintado por paño bicapa x 1 + Reparación de aros C/U x 1.5".
+  // El Dashboard separa esos ítems para que cada servicio tenga su propia barra.
+  function serviciosIndependientesDashboard(valor){
+    const texto=String(valor||"").trim();
+    if(!texto) return ["Sin servicio"];
+    return texto
+      .split(/\s*\+\s*/)
+      .map(function(item){
+        return item.replace(/\s+x\s+[0-9]+(?:[.,][0-9]+)?\s*$/i, "").trim();
+      })
+      .filter(Boolean);
+  }
+
   lista.forEach(r=>{
     const m=String(r.marca||"Sin marca").trim()||"Sin marca";
-    const sv=String(r.servicio||"Sin servicio").trim()||"Sin servicio";
     porMarca[m]=(porMarca[m]||0)+1;
-    porServicio[sv]=(porServicio[sv]||0)+1;
+
+    serviciosIndependientesDashboard(r.servicio).forEach(function(sv){
+      porServicio[sv]=(porServicio[sv]||0)+1;
+    });
   });
   const marcasSeleccionadasDashboard=obtenerSeleccionDashboard('marca');
   const serviciosSeleccionadosDashboard=obtenerSeleccionDashboard('servicio');
