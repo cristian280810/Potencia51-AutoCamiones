@@ -5197,15 +5197,36 @@ function mostrarModuloAdministracion(nombre){
    CATEGORÍA DE REGISTRO
 ===================================================== */
 
+function sincronizarCategoriaActualDesdeUI(){
+  const categoriaPintura=document.getElementById("categoriaPintura");
+  const categoriaLavado=document.getElementById("categoriaLavado");
+
+  // La clase visual active es la fuente de verdad para la categoría elegida.
+  // Esto evita que una llamada asíncrona o un renderizado anterior deje
+  // la interfaz en PYP mientras la variable interna continúa en lavado.
+  if(categoriaPintura && categoriaPintura.classList.contains("active")){
+    categoriaRegistroActual="pintura";
+    return "pintura";
+  }
+
+  if(categoriaLavado && categoriaLavado.classList.contains("active")){
+    categoriaRegistroActual="lavado";
+    return "lavado";
+  }
+
+  return categoriaRegistroActual;
+}
+
 function seleccionarCategoriaRegistro(categoria){
+  // Sincronización inmediata: el clic en el botón cambia también el estado interno.
+  categoriaRegistroActual = categoria === "pintura" ? "pintura" : "lavado";
+
   const categoriaLavado=document.getElementById("categoriaLavado");
   const categoriaPintura=document.getElementById("categoriaPintura");
   const tiposLavado=document.getElementById("tiposLavado");
   const selectorLavado=document.getElementById("selectorServicioLavado");
   const selectorPintura=document.getElementById("selectorServiciosPintura");
   const pypServiciosPanel=document.getElementById("pypServiciosPanel");
-
-  categoriaRegistroActual = categoria === "pintura" ? "pintura" : "lavado";
 
   const gridRegistroPyp = document.getElementById("gridRegistro");
   if(gridRegistroPyp){
@@ -5912,6 +5933,7 @@ function formatoFechaVisualCotizacionPyp(valor){
 
 async function generarCotizacionPyp(){
   try{
+    sincronizarCategoriaActualDesdeUI();
     if(categoriaRegistroActual !== "pintura"){
       mostrarAlerta("La cotización está disponible para Planchado y Pintura.","error");
       return;
@@ -6082,6 +6104,7 @@ async function generarCotizacionPyp(){
 }
 
 async function registrar(){
+  sincronizarCategoriaActualDesdeUI();
   const boton=document.getElementById("btnRegistrar");
   const loading=document.getElementById("loadingRegistro");
   try{
@@ -11027,8 +11050,6 @@ async function(){
 
   try{
     await cargarServiciosPlanchadoPintura();
-    categoriaRegistroActual="lavado";
-    await cargarServiciosAutoCamiones();
   }catch(error){
     console.warn("El catálogo de Planchado y Pintura no pudo cargarse al iniciar:", error);
   }
@@ -11052,6 +11073,18 @@ async function(){
 
 }
 );
+
+// Refuerzo adicional: cada clic en los botones de categoría deja sincronizado
+// el estado interno antes de cualquier otra acción de la pantalla.
+document.addEventListener("click", function(event){
+  const botonPintura=event.target.closest ? event.target.closest("#categoriaPintura") : null;
+  const botonLavado=event.target.closest ? event.target.closest("#categoriaLavado") : null;
+  if(botonPintura){
+    categoriaRegistroActual="pintura";
+  }else if(botonLavado){
+    categoriaRegistroActual="lavado";
+  }
+});
 
 cargarFiltrosHistorialRelacionados();
 
@@ -11111,7 +11144,7 @@ programarCierreAutomatico1930();
 </script>
 
 
-<div class="version-app">V5 Dashboard</div>
+<div class="version-app">V5.5 Dashboard</div>
 
 <style id="autocamiones-layout-final-override">
 /* =========================================================
