@@ -2388,7 +2388,7 @@ value="">
 id="campoFotoIngreso"
 class="form-group campo-foto-ingreso">
 
-<label>
+<label id="labelFotoIngresoRegistro">
 Foto de ingreso *
 </label>
 
@@ -5031,6 +5031,14 @@ function seleccionarCategoriaRegistro(categoria){
   const btnRegistrar=document.getElementById("btnRegistrar");
   if(btnCotizacionPyp) btnCotizacionPyp.style.display = categoriaRegistroActual === "pintura" ? "inline-flex" : "none";
   if(btnRegistrar) btnRegistrar.style.display = categoriaRegistroActual === "pintura" ? "none" : "inline-flex";
+
+  // En Planchado y Pintura la foto de ingreso es opcional porque solo se está generando una cotización.
+  const labelFotoIngresoRegistro=document.getElementById("labelFotoIngresoRegistro");
+  if(labelFotoIngresoRegistro){
+    labelFotoIngresoRegistro.textContent = categoriaRegistroActual === "pintura"
+      ? "Foto de ingreso (opcional)"
+      : "Foto de ingreso *";
+  }
   limpiarServiciosSeleccionadosRegistro();
 
   if(categoriaRegistroActual === "pintura"){
