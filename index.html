@@ -4703,26 +4703,19 @@ function construirPdfCotizacionPyp(cotizacion,detalle){
   doc.setTextColor(31,41,55);
   doc.text("DATOS DEL CLIENTE Y VEHÍCULO",10,56);
 
-  const rows=[
-    ["Cliente:","Autocamiones del Centro S.A.C","Placa:",identificador],
-    ["Teléfono:","933889049","Marca / Modelo:",cotizacion.marca||"—"],
-    ["Fecha:",fecha,"Año / Color:","—"]
-  ];
-
-  // Diseño de cabecera A4 horizontal: campos blancos y bien separados.
-  // Los valores largos se ajustan dentro de su casilla para evitar cortes.
+  // Cabecera de la cotización. El tercer campo de la derecha es Observaciones;
+  // ya no se utiliza Año / Color.
   const xLabelL=10, boxXL=34, boxWL=105;
   const xLabelR=150, boxXR=195, boxWR=92;
   let y=61;
 
-  function dibujarCampo(label,xLabel,xBox,boxW,value){
-    const boxH=8;
+  function dibujarCampo(label,xLabel,xBox,boxW,value,boxH){
+    boxH=boxH || 8;
     doc.setFont("helvetica","bold");
     doc.setFontSize(8.8);
     doc.setTextColor(31,41,55);
     doc.text(label,xLabel,y+5.1);
 
-    // Forzar fondo blanco para evitar casillas negras/sombreadas.
     doc.setDrawColor(185,198,213);
     doc.setLineWidth(.3);
     doc.setFillColor(255,255,255);
@@ -4737,18 +4730,23 @@ function construirPdfCotizacionPyp(cotizacion,detalle){
     if(lineas.length>1){
       fs=7.2;
       doc.setFontSize(fs);
-      lineas=doc.splitTextToSize(texto,boxW-4).slice(0,2);
+      lineas=doc.splitTextToSize(texto,boxW-4).slice(0,3);
     }
     const lineH=3.4;
-    const base=y+(boxH-(lineas.length*lineH))/2+2.8;
+    const base=y+(boxH-(lineas.length*lineH))/2+3.0;
     doc.text(lineas, xBox+2, base, {baseline:"middle"});
   }
 
-  rows.forEach(function(r){
-    dibujarCampo(r[0],xLabelL,boxXL,boxWL,r[1]);
-    dibujarCampo(r[2],xLabelR,boxXR,boxWR,r[3]);
-    y+=9;
-  });
+  dibujarCampo("Cliente:",xLabelL,boxXL,boxWL,"Autocamiones del Centro S.A.C");
+  dibujarCampo("Placa:",xLabelR,boxXR,boxWR,identificador);
+  y+=9;
+  dibujarCampo("Teléfono:",xLabelL,boxXL,boxWL,"933889049");
+  dibujarCampo("Marca / Modelo:",xLabelR,boxXR,boxWR,cotizacion.marca||"—");
+  y+=9;
+
+  dibujarCampo("Fecha:",xLabelL,boxXL,boxWL,fecha);
+  dibujarCampo("Observaciones:",xLabelR,boxXR,boxWR,cotizacion.observaciones||"—",16);
+  y+=18;
 
   const tableRows=detalle.map(function(d,i){
     return [
@@ -4763,7 +4761,7 @@ function construirPdfCotizacionPyp(cotizacion,detalle){
   });
 
   doc.autoTable({
-    startY:91,
+    startY:99,
     margin:{left:9,right:9},
     tableWidth:"wrap",
     head:[["Item","Pieza / Paño / Servicio","Tipo de Trabajo","Cant.","Precio Unit. (S/)","Descuento (S/)","Subtotal (S/)"]],
@@ -5976,42 +5974,49 @@ async function generarCotizacionPyp(){
     doc.setFontSize(10);
     doc.setTextColor(31,41,55);
     doc.text("DATOS DEL CLIENTE Y VEHÍCULO",10,56);
+
     const clienteCotizacion="Autocamiones del Centro S.A.C";
     const telefonoCotizacion="933889049";
     const placaPdf=(tipo==="Nuevo" ? "—" : (placa||"—"));
-    const vinPdf=(tipo==="Nuevo" ? (vin||"—") : "—");
-    const filasCabecera=[
-      ["Cliente:",clienteCotizacion,"Placa:",placaPdf],
-      ["Teléfono:",telefonoCotizacion,"Marca / Modelo:",marca||"—"],
-      ["Fecha:",fecha,"Año / Color:","—"]
-    ];
-    let y=61;
+
     const x1=10, x2=150, boxX1=34, boxX2=195, boxW1=105, boxW2=92;
-    filasCabecera.forEach(function(r){
+    let y=61;
+
+    function dibujarCampoCabecera(label,xLabel,xBox,boxW,value,boxH){
+      boxH=boxH || 8;
       doc.setFont("helvetica","bold");
       doc.setFontSize(8.8);
       doc.setTextColor(31,41,55);
-      doc.text(r[0],x1,y+5.1);
-      doc.text(r[2],x2,y+5.1);
+      doc.text(label,xLabel,y+5.1);
 
-      // Solo borde: evita cualquier sombreado negro en las casillas.
       doc.setDrawColor(185,198,213);
       doc.setLineWidth(.3);
       doc.setFillColor(255,255,255);
-      doc.rect(boxX1,y,boxW1,8,"S");
-      doc.rect(boxX2,y,boxW2,8,"S");
+      doc.rect(xBox,y,boxW,boxH,"S");
 
       doc.setFont("helvetica","normal");
       doc.setFontSize(8.3);
       doc.setTextColor(31,41,55);
-      const valorIzq=String(r[1]||"—").replace(/\s+/g," ").trim()||"—";
-      const valorDer=String(r[3]||"—").replace(/\s+/g," ").trim()||"—";
-      const izqLineas=doc.splitTextToSize(valorIzq,boxW1-4).slice(0,2);
-      const derLineas=doc.splitTextToSize(valorDer,boxW2-4).slice(0,2);
-      doc.text(izqLineas,boxX1+2,y+5.0,{baseline:"middle"});
-      doc.text(derLineas,boxX2+2,y+5.0,{baseline:"middle"});
-      y+=9;
-    });
+      const valor=String(value||"—").replace(/\s+/g," ").trim()||"—";
+      let lineas=doc.splitTextToSize(valor,boxW-4);
+      if(lineas.length>1){
+        doc.setFontSize(7.2);
+        lineas=doc.splitTextToSize(valor,boxW-4).slice(0,3);
+      }
+      const lineH=3.4;
+      const base=y+(boxH-(lineas.length*lineH))/2+3.0;
+      doc.text(lineas,xBox+2,base,{baseline:"middle"});
+    }
+
+    dibujarCampoCabecera("Cliente:",x1,boxX1,boxW1,clienteCotizacion);
+    dibujarCampoCabecera("Placa:",x2,boxX2,boxW2,placaPdf);
+    y+=9;
+    dibujarCampoCabecera("Teléfono:",x1,boxX1,boxW1,telefonoCotizacion);
+    dibujarCampoCabecera("Marca / Modelo:",x2,boxX2,boxW2,marca||"—");
+    y+=9;
+    dibujarCampoCabecera("Fecha:",x1,boxX1,boxW1,fecha);
+    dibujarCampoCabecera("Observaciones:",x2,boxX2,boxW2,observaciones||"—",16);
+    y+=18;
 
     const tableRows=items.map(function(s,i){
       const q=cantidadServicioPyp(s);
@@ -6023,7 +6028,7 @@ async function generarCotizacionPyp(){
     });
 
     doc.autoTable({
-      startY:88,
+      startY:99,
       margin:{left:9,right:9},
       tableWidth:"wrap",
       head:[["Item","Pieza / Paño / Servicio","Tipo de Trabajo","Cant.","Precio Unit. (S/)","Descuento (S/)","Subtotal (S/)"]],
@@ -6065,7 +6070,11 @@ async function generarCotizacionPyp(){
     doc.setFont("helvetica","normal"); doc.setFontSize(7); doc.setTextColor(120,120,120);
     doc.text("Cotización " + correlativo + " | Potencia 51 AutoCamiones",10,pageH-8);
     doc.save(correlativo+".pdf");
-    mostrarAlerta("Cotización "+correlativo+" generada correctamente.","success");
+
+    // Después de generar correctamente la cotización, limpiar todos los campos
+    // para dejar el formulario listo para una nueva cotización.
+    limpiarFormulario();
+    mostrarAlerta("Cotización "+correlativo+" generada correctamente. El formulario fue limpiado.","success");
   }catch(error){
     console.error("Error al generar cotización PYP:",error);
     mostrarAlerta("No se pudo generar la cotización. Revise los datos e intente nuevamente.","error");
@@ -11102,7 +11111,7 @@ programarCierreAutomatico1930();
 </script>
 
 
-<div class="version-app">V5.5 Dashboard</div>
+<div class="version-app">V5 Dashboard</div>
 
 <style id="autocamiones-layout-final-override">
 /* =========================================================
