@@ -2329,7 +2329,7 @@ class="form-group campo-foto-vin"
 style="display:none">
 
 <label>
-Foto del VIN *
+Foto del VIN (opcional)
 </label>
 
 <input
@@ -2625,6 +2625,43 @@ onclick="limpiarFormulario()">
     <div class="modal-pyp-confirm-actions">
       <button type="button" class="btn btn-secondary" onclick="cerrarModalAprobacionPyp()">Cancelar</button>
       <button type="button" class="btn btn-primary" onclick="confirmarAprobacionPyp()">✓ Sí, aprobar</button>
+    </div>
+  </div>
+</div>
+
+<!-- =====================================================
+     MODAL VIN VACÍO - COTIZACIÓN PYP
+===================================================== -->
+<div id="modalConfirmarPlacaVaciaPyp" class="modal modal-pyp-confirm">
+  <div class="modal-content">
+    <div class="modal-pyp-confirm-head">
+      <div class="modal-pyp-confirm-icon" style="background:#fff7ed;color:#d97706;">!</div>
+      <h3>Placa no ingresada</h3>
+    </div>
+    <div class="modal-pyp-confirm-body">
+      <div>El campo <strong>Placa</strong> está vacío.</div>
+      <div style="margin-top:7px">¿Deseas generar la cotización de todas formas?</div>
+    </div>
+    <div class="modal-pyp-confirm-actions">
+      <button type="button" class="btn btn-secondary" onclick="resolverPlacaVaciaPyp(false)">Cancelar</button>
+      <button type="button" class="btn btn-primary" onclick="resolverPlacaVaciaPyp(true)">Sí, generar</button>
+    </div>
+  </div>
+</div>
+
+<div id="modalConfirmarVinVacioPyp" class="modal modal-pyp-confirm">
+  <div class="modal-content">
+    <div class="modal-pyp-confirm-head">
+      <div class="modal-pyp-confirm-icon" style="background:#fff7ed;color:#d97706;">!</div>
+      <h3>VIN no ingresado</h3>
+    </div>
+    <div class="modal-pyp-confirm-body">
+      <div>El campo <strong>VIN</strong> está vacío.</div>
+      <div style="margin-top:7px">¿Deseas generar la cotización de todas formas?</div>
+    </div>
+    <div class="modal-pyp-confirm-actions">
+      <button type="button" class="btn btn-secondary" onclick="resolverVinVacioPyp(false)">Cancelar</button>
+      <button type="button" class="btn btn-primary" onclick="resolverVinVacioPyp(true)">Sí, generar</button>
     </div>
   </div>
 </div>
@@ -4738,7 +4775,7 @@ function construirPdfCotizacionPyp(cotizacion,detalle){
   }
 
   dibujarCampo("Cliente:",xLabelL,boxXL,boxWL,"Autocamiones del Centro S.A.C");
-  dibujarCampo("Placa:",xLabelR,boxXR,boxWR,identificador);
+  dibujarCampo("Placa / VIN:",xLabelR,boxXR,boxWR,identificador);
   y+=9;
   dibujarCampo("Teléfono:",xLabelL,boxXL,boxWL,"933889049");
   dibujarCampo("Marca / Modelo:",xLabelR,boxXR,boxWR,cotizacion.marca||"—");
@@ -4828,15 +4865,6 @@ function construirPdfCotizacionPyp(cotizacion,detalle){
   doc.setDrawColor(31,55,85);
   doc.setLineWidth(1.2);
   doc.line(rx+30,sy+24,pageW-10,sy+24);
-
-  if(cotizacion.observaciones){
-    doc.setFont("helvetica","bold");
-    doc.setFontSize(8);
-    doc.setTextColor(55,65,81);
-    doc.text("Observaciones:",10,sy+31);
-    doc.setFont("helvetica","normal");
-    doc.text(doc.splitTextToSize(cotizacion.observaciones,150),10,sy+36);
-  }
 
   doc.setFont("helvetica","normal");
   doc.setFontSize(7);
@@ -5252,6 +5280,14 @@ function seleccionarCategoriaRegistro(categoria){
       ? "Foto de ingreso (opcional)"
       : "Foto de ingreso *";
   }
+
+  const labelPlacaRegistro=document.querySelector('#campoPlaca label');
+  if(labelPlacaRegistro){
+    labelPlacaRegistro.textContent = categoriaRegistroActual === "pintura"
+      ? "Placa (opcional)"
+      : "Placa *";
+  }
+
   limpiarServiciosSeleccionadosRegistro();
 
   if(categoriaRegistroActual === "pintura"){
@@ -5852,6 +5888,54 @@ function siguienteCorrelativoCotizacionPypLocal(){
   return "PTO-" + String(siguiente).padStart(5,"0") + "-PYP";
 }
 
+let resolverPlacaVaciaPypPendiente=null;
+
+function resolverPlacaVaciaPyp(continuar){
+  const modal=document.getElementById("modalConfirmarPlacaVaciaPyp");
+  if(modal) modal.classList.remove("active");
+  if(typeof resolverPlacaVaciaPypPendiente === "function"){
+    const resolver=resolverPlacaVaciaPypPendiente;
+    resolverPlacaVaciaPypPendiente=null;
+    resolver(Boolean(continuar));
+  }
+}
+
+function confirmarPlacaVaciaPyp(){
+  return new Promise(function(resolve){
+    resolverPlacaVaciaPypPendiente=resolve;
+    const modal=document.getElementById("modalConfirmarPlacaVaciaPyp");
+    if(modal) modal.classList.add("active");
+    else{
+      resolverPlacaVaciaPypPendiente=null;
+      resolve(window.confirm("El campo Placa está vacío. ¿Deseas generar la cotización de todas formas?"));
+    }
+  });
+}
+
+let resolverVinVacioPypPendiente=null;
+
+function resolverVinVacioPyp(continuar){
+  const modal=document.getElementById("modalConfirmarVinVacioPyp");
+  if(modal) modal.classList.remove("active");
+  if(typeof resolverVinVacioPypPendiente === "function"){
+    const resolver=resolverVinVacioPypPendiente;
+    resolverVinVacioPypPendiente=null;
+    resolver(Boolean(continuar));
+  }
+}
+
+function confirmarVinVacioPyp(){
+  return new Promise(function(resolve){
+    resolverVinVacioPypPendiente=resolve;
+    const modal=document.getElementById("modalConfirmarVinVacioPyp");
+    if(modal) modal.classList.add("active");
+    else{
+      resolverVinVacioPypPendiente=null;
+      resolve(window.confirm("El campo VIN está vacío. ¿Deseas generar la cotización de todas formas?"));
+    }
+  });
+}
+
 async function guardarCotizacionPypEnSupabase(datos){
   const fallbackCorrelativo=siguienteCorrelativoCotizacionPypLocal();
   const descuentoTotal = datos.items.reduce(function(acum,s){
@@ -5948,9 +6032,18 @@ async function generarCotizacionPyp(){
     const vin=(document.getElementById("vin")?.value||"").trim().toUpperCase();
     const tipo=document.querySelector('input[name="tipoLavado"]:checked')?.value||"Servicio";
     const identificador=tipo==="Nuevo" ? (vin||"—") : (placa||"—");
+    if(tipo==="Nuevo" && !vin){
+      const continuar=await confirmarVinVacioPyp();
+      if(!continuar) return;
+    }
     if(!marca){
       mostrarAlerta("Seleccione la marca antes de generar la cotización.","error");
       return;
+    }
+
+    if(tipo==="Servicio" && !placa){
+      const continuar=await confirmarPlacaVaciaPyp();
+      if(!continuar) return;
     }
 
     const jsPDFRef=window.jspdf && window.jspdf.jsPDF;
@@ -5999,7 +6092,7 @@ async function generarCotizacionPyp(){
 
     const clienteCotizacion="Autocamiones del Centro S.A.C";
     const telefonoCotizacion="933889049";
-    const placaPdf=(tipo==="Nuevo" ? "—" : (placa||"—"));
+    const placaPdf=(tipo==="Nuevo" ? (vin||"—") : (placa||"—"));
 
     const x1=10, x2=150, boxX1=34, boxX2=195, boxW1=105, boxW2=92;
     let y=61;
@@ -6031,7 +6124,7 @@ async function generarCotizacionPyp(){
     }
 
     dibujarCampoCabecera("Cliente:",x1,boxX1,boxW1,clienteCotizacion);
-    dibujarCampoCabecera("Placa:",x2,boxX2,boxW2,placaPdf);
+    dibujarCampoCabecera("Placa / VIN:",x2,boxX2,boxW2,placaPdf);
     y+=9;
     dibujarCampoCabecera("Teléfono:",x1,boxX1,boxW1,telefonoCotizacion);
     dibujarCampoCabecera("Marca / Modelo:",x2,boxX2,boxW2,marca||"—");
@@ -6080,14 +6173,6 @@ async function generarCotizacionPyp(){
     doc.setFillColor(230,244,252); doc.rect(rx,sy+13,rw,9,"F");
     doc.setFontSize(11); doc.text("TOTAL (S/):",rx+30,sy+19,{align:"right"}); doc.text(formatoSolesPyp(total),pageW-10,sy+19,{align:"right"});
     doc.setDrawColor(31,55,85); doc.setLineWidth(1.2); doc.line(rx+30,sy+24,pageW-10,sy+24);
-
-    if(observaciones){
-      doc.setFont("helvetica","bold"); doc.setFontSize(8); doc.setTextColor(55,65,81);
-      doc.text("Observaciones:",10,sy+31);
-      doc.setFont("helvetica","normal");
-      const obs=doc.splitTextToSize(observaciones,150);
-      doc.text(obs,10,sy+36);
-    }
 
     doc.setFont("helvetica","normal"); doc.setFontSize(7); doc.setTextColor(120,120,120);
     doc.text("Cotización " + correlativo + " | Potencia 51 AutoCamiones",10,pageH-8);
