@@ -2093,6 +2093,47 @@ html, body {
   opacity:.65 !important;
 }
 </style>
+
+<style>
+/* Modal elegante para pasar cotizaciones PYP a Facturación */
+.pyp-pasar-facturacion-card{
+  max-width:560px !important;
+  border-radius:18px !important;
+  overflow:hidden;
+  box-shadow:0 24px 70px rgba(15,23,42,.28);
+}
+.pyp-pasar-facturacion-cabecera{
+  display:flex;align-items:center;gap:14px;padding:20px 22px;
+  background:linear-gradient(135deg,#eff6ff,#ffffff);
+  border-bottom:1px solid #e5e7eb;
+}
+.pyp-pasar-facturacion-icono{
+  width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;
+  background:#dbeafe;color:#1d4ed8;font-size:22px;flex:0 0 auto;
+}
+.pyp-pasar-facturacion-cabecera h2{margin:0;font-size:20px;color:#111827;}
+.pyp-pasar-facturacion-cabecera p{margin:4px 0 0;color:#64748b;font-size:12px;}
+.pyp-pasar-facturacion-resumen{
+  margin:18px 20px 14px;padding:14px 16px;border:1px solid #dbeafe;border-radius:12px;
+  background:#f8fbff;display:grid;grid-template-columns:1fr 1fr;gap:12px;
+}
+.pyp-pasar-facturacion-resumen span{display:block;font-size:11px;color:#64748b;margin-bottom:3px;}
+.pyp-pasar-facturacion-resumen strong{font-size:15px;color:#111827;}
+.pyp-pasar-facturacion-form{padding:0 20px 20px;}
+.pyp-pasar-facturacion-ayuda{margin:0 0 14px;color:#475569;font-size:13px;line-height:1.45;}
+.pyp-pasar-facturacion-form .form-group{margin-bottom:14px;}
+.pyp-pasar-facturacion-form label{font-weight:700;color:#1f2937;}
+.pyp-pasar-facturacion-form input,.pyp-pasar-facturacion-form select{min-height:42px;}
+.pyp-pasar-facturacion-acciones{display:flex;justify-content:flex-end;gap:9px;margin-top:18px;}
+.btn-pyp-confirmar-facturacion{background:#2563eb !important;color:#fff !important;border-color:#2563eb !important;}
+.btn-pyp-confirmar-facturacion:hover{background:#1d4ed8 !important;border-color:#1d4ed8 !important;}
+@media(max-width:700px){
+  .pyp-pasar-facturacion-resumen{grid-template-columns:1fr;}
+  .pyp-pasar-facturacion-acciones{flex-direction:column-reverse;}
+  .pyp-pasar-facturacion-acciones .btn{width:100%;}
+}
+</style>
+
 </head>
 
 <body>
@@ -2938,6 +2979,49 @@ onclick="limpiarFormulario()">
   </div>
 </div>
 
+
+<!-- =====================================================
+     MODAL PASAR COTIZACIÓN PYP A FACTURACIÓN
+===================================================== -->
+<div id="modalPasarCotizacionFacturacion" class="modal">
+  <div class="modal-content pyp-pasar-facturacion-card">
+    <div class="pyp-pasar-facturacion-cabecera">
+      <div class="pyp-pasar-facturacion-icono">🧾</div>
+      <div style="flex:1;min-width:0;">
+        <h2>Pasar cotización a Facturación</h2>
+        <p>Completa los datos de la factura antes de enviarla al módulo.</p>
+      </div>
+      <button type="button" class="close" onclick="cerrarModalPasarCotizacionFacturacion()">&times;</button>
+    </div>
+
+    <div class="pyp-pasar-facturacion-resumen">
+      <div><span>Cotización</span><strong id="pypPasarCorrelativo">—</strong></div>
+      <div><span>Total cotizado</span><strong id="pypPasarTotal">S/ 0.00</strong></div>
+    </div>
+
+    <div class="pyp-pasar-facturacion-form">
+      <p class="pyp-pasar-facturacion-ayuda">Indica el <strong>número de factura</strong> que corresponde a esta cotización y la <strong>empresa a la que se le facturará</strong>.</p>
+      <div class="form-group">
+        <label for="pypPasarNumeroFactura">Número de factura *</label>
+        <input id="pypPasarNumeroFactura" type="text" placeholder="F001-00001258" autocomplete="off" oninput="this.value=this.value.toUpperCase()">
+      </div>
+      <div class="form-group">
+        <label for="pypPasarClienteFactura">Empresa a facturar *</label>
+        <select id="pypPasarClienteFactura">
+          <option value="">Seleccione la empresa</option>
+          <option value="Autocamiones del Centro S.A.C" data-ruc="20601471800">Autocamiones del Centro S.A.C</option>
+          <option value="Autocamiones Service S.A.C" data-ruc="20608139614">Autocamiones Service S.A.C</option>
+        </select>
+      </div>
+      <div id="pypPasarFacturacionError" style="display:none;margin-top:4px;padding:10px 12px;border-radius:9px;background:#fee2e2;color:#991b1b;font-size:13px;"></div>
+      <div class="pyp-pasar-facturacion-acciones">
+        <button type="button" class="btn btn-secondary" onclick="cerrarModalPasarCotizacionFacturacion()">Cancelar</button>
+        <button type="button" class="btn btn-pyp-confirmar-facturacion" onclick="confirmarPasarCotizacionAFacturacion()">🧾 Continuar a Facturación</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- =====================================================
      MODAL NUEVA FACTURA
 ===================================================== -->
@@ -2954,8 +3038,8 @@ onclick="limpiarFormulario()">
         <label for="nuevaFacturaCliente">Cliente *</label>
         <select id="nuevaFacturaCliente" onchange="actualizarRucClienteFactura()">
           <option value="">Seleccione un cliente</option>
-          <option value="WankaMotors S.A.C" data-ruc="20536196901">WankaMotors S.A.C</option>
-          <option value="Multimarkas S.A.C" data-ruc="20401080920">Multimarkas S.A.C</option>
+          <option value="Autocamiones del Centro S.A.C" data-ruc="20601471800">Autocamiones del Centro S.A.C</option>
+          <option value="Autocamiones Service S.A.C" data-ruc="20608139614">Autocamiones Service S.A.C</option>
         </select>
       </div>
       <div class="form-group">
@@ -3011,8 +3095,8 @@ onclick="limpiarFormulario()">
         <label for="adicionalFacturaCliente">Cliente *</label>
         <select id="adicionalFacturaCliente" onchange="actualizarRucFacturaAdicional()">
           <option value="">Seleccione un cliente</option>
-          <option value="WankaMotors S.A.C" data-ruc="20536196901">WankaMotors S.A.C</option>
-          <option value="Multimarkas S.A.C" data-ruc="20401080920">Multimarkas S.A.C</option>
+          <option value="Autocamiones del Centro S.A.C" data-ruc="20601471800">Autocamiones del Centro S.A.C</option>
+          <option value="Autocamiones Service S.A.C" data-ruc="20608139614">Autocamiones Service S.A.C</option>
         </select>
       </div>
       <div class="form-group">
@@ -4769,20 +4853,62 @@ async function descargarCotizacionPyp(id){
   try{const c=cotizacionesPyp.find(function(x){return String(x.id)===String(id);});if(!c) return;const d=await obtenerDetalleCotizacionPyp(id);const doc=construirPdfCotizacionPyp(c,d);doc.save((c.correlativo||"cotizacion-pyp")+".pdf");}catch(e){console.error(e);mostrarAlerta("No se pudo descargar la cotización.","error");}
 }
 
-async function pasarCotizacionAFacturacion(id){
-  try{
-    const cotizacion=cotizacionesPyp.find(function(c){return String(c.id)===String(id);});
-    if(!cotizacion) return;
-    if(cotizacion.estado!=="Aprobada"){
-      mostrarAlerta("Solo se pueden pasar a facturación las cotizaciones aprobadas.","error");
-      return;
-    }
-    if(cotizacion.facturacion_id){
-      mostrarModuloAdministracion("facturacion");
-      return;
-    }
-    if(!confirm("¿Pasar la cotización "+(cotizacion.correlativo||"")+" al módulo de Facturación?")) return;
+let cotizacionPypPendienteFacturacion=null;
 
+function cerrarModalPasarCotizacionFacturacion(){
+  const modal=document.getElementById("modalPasarCotizacionFacturacion");
+  if(modal) modal.classList.remove("active");
+  cotizacionPypPendienteFacturacion=null;
+  const error=document.getElementById("pypPasarFacturacionError");
+  if(error){error.style.display="none";error.textContent="";}
+}
+
+function pasarCotizacionAFacturacion(id){
+  const cotizacion=cotizacionesPyp.find(function(c){return String(c.id)===String(id);});
+  if(!cotizacion) return;
+  if(cotizacion.estado!=="Aprobada"){
+    mostrarAlerta("Solo se pueden pasar a facturación las cotizaciones aprobadas.","error");
+    return;
+  }
+  if(cotizacion.facturacion_id){
+    mostrarModuloAdministracion("facturacion");
+    return;
+  }
+
+  cotizacionPypPendienteFacturacion=cotizacion;
+  const corr=document.getElementById("pypPasarCorrelativo");
+  const total=document.getElementById("pypPasarTotal");
+  const numero=document.getElementById("pypPasarNumeroFactura");
+  const cliente=document.getElementById("pypPasarClienteFactura");
+  const error=document.getElementById("pypPasarFacturacionError");
+  if(corr) corr.textContent=cotizacion.correlativo||"—";
+  if(total) total.textContent=formatoSolesCotPyp(cotizacion.total);
+  if(numero) numero.value="";
+  if(cliente) cliente.value="";
+  if(error){error.style.display="none";error.textContent="";}
+  const modal=document.getElementById("modalPasarCotizacionFacturacion");
+  if(modal) modal.classList.add("active");
+  setTimeout(function(){if(numero) numero.focus();},100);
+}
+
+let datosFacturaPypPrecargados=null;
+
+async function confirmarPasarCotizacionAFacturacion(){
+  const cotizacion=cotizacionPypPendienteFacturacion;
+  if(!cotizacion) return;
+  const numero=document.getElementById("pypPasarNumeroFactura")?.value.trim().toUpperCase()||"";
+  const cliente=document.getElementById("pypPasarClienteFactura")?.value.trim()||"";
+  const error=document.getElementById("pypPasarFacturacionError");
+  const boton=document.querySelector('#modalPasarCotizacionFacturacion .btn-pyp-confirmar-facturacion');
+  if(!numero || !cliente){
+    if(error){error.textContent="Ingresa el número de factura y selecciona la empresa a facturar.";error.style.display="block";}
+    return;
+  }
+  if(error){error.style.display="none";error.textContent="";}
+  if(boton){boton.disabled=true;boton.textContent="⏳ Enviando...";}
+
+  try{
+    const id=cotizacion.id;
     const detalleResp=await fetch(SUPABASE_URL+"/rest/v1/cotizacion_detalle_pyp_autocamiones?select=*&cotizacion_id=eq."+encodeURIComponent(id)+"&order=item.asc",{
       method:"GET",headers:{"apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY},cache:"no-store"
     });
@@ -4798,8 +4924,6 @@ async function pasarCotizacionAFacturacion(id){
     const ahora=new Date().toISOString();
     const fila={
       id:vehiculoId,
-      // La tabla de vehículos exige que tipo no sea NULL.
-      // Las cotizaciones PYP guardan normalmente el dato en tipo_registro.
       tipo:String(cotizacion.tipo_registro || cotizacion.tipo || "Servicio").trim() || "Servicio",
       placa:cotizacion.placa||"",
       vin:cotizacion.vin||"",
@@ -4841,24 +4965,34 @@ async function pasarCotizacionAFacturacion(id){
     });
     if(!patch.ok){
       const detallePatch=await patch.text();
-      // Si el enlace falla, revertimos el registro recién creado para no dejar
-      // un vehículo PYP huérfano en el módulo de Facturación.
       try{
         await fetch(SUPABASE_URL+"/rest/v1/vehiculos_autocamiones?id=eq."+encodeURIComponent(vehiculoId),{
-          method:"DELETE",
-          headers:{"apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY}
+          method:"DELETE",headers:{"apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY}
         });
       }catch(e){}
       throw new Error("No se pudo enlazar la cotización con Facturación. Detalle de Supabase: "+(detallePatch||"sin detalle"));
     }
 
+    datosFacturaPypPrecargados={numero:numero,cliente:cliente,vehiculoId:String(vehiculoId)};
+    cerrarModalPasarCotizacionFacturacion();
     mostrarAlerta("La cotización "+(cotizacion.correlativo||"")+" fue enviada a Facturación correctamente.","success");
     await cargarCotizacionesPyp();
     mostrarModuloAdministracion("facturacion");
     await inicializarFacturacion();
+    facturacionSeleccionadosIds.clear();
+    facturacionSeleccionadosIds.add(String(vehiculoId));
+    renderFacturacion();
+    abrirModalNuevaFactura();
   }catch(error){
     console.error(error);
-    mostrarAlerta(error.message||"No se pudo pasar la cotización a Facturación.","error");
+    if(error && error.message){
+      const err=document.getElementById("pypPasarFacturacionError");
+      if(err){err.textContent=error.message;err.style.display="block";}
+    }else{
+      mostrarAlerta("No se pudo pasar la cotización a Facturación.","error");
+    }
+  }finally{
+    if(boton){boton.disabled=false;boton.textContent="🧾 Continuar a Facturación";}
   }
 }
 
@@ -8761,9 +8895,11 @@ function abrirModalNuevaFactura(){
 
   const detraccion=calcularDetraccionFactura(resumen.total);
   const fechaHoy=obtenerFechaHoyLima();
-  document.getElementById("nuevaFacturaNumero").value="";
-  document.getElementById("nuevaFacturaCliente").value="";
+  const prefactura=datosFacturaPypPrecargados;
+  document.getElementById("nuevaFacturaNumero").value=prefactura?.numero || "";
+  document.getElementById("nuevaFacturaCliente").value=prefactura?.cliente || "";
   document.getElementById("nuevaFacturaRuc").value="";
+  actualizarRucClienteFactura();
   document.getElementById("nuevaFacturaEmision").value=fechaHoy;
   document.getElementById("nuevaFacturaMesFacturacion").value=mesDesdeFechaFacturacion(fechaHoy);
   document.getElementById("nuevaFacturaVencimiento").value="";
@@ -8781,6 +8917,7 @@ function abrirModalNuevaFactura(){
     : "No se aplica detracción automática porque el total de la operación no supera S/ 700.";
   document.getElementById("nuevaFacturaMensaje").style.display="none";
   document.getElementById("modalNuevaFactura").classList.add("active");
+  datosFacturaPypPrecargados=null;
   setTimeout(function(){document.getElementById("nuevaFacturaNumero").focus();},100);
 }
 
@@ -10840,7 +10977,7 @@ programarCierreAutomatico1930();
 </script>
 
 
-<div class="version-app">V5.9 Dashboard</div>
+<div class="version-app">V5.5 Dashboard</div>
 
 <style id="autocamiones-layout-final-override">
 /* =========================================================
