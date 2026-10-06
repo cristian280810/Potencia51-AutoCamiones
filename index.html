@@ -2479,7 +2479,7 @@ capture="environment">
 
   <div id="serviciosSeleccionadosRegistro" class="servicios-seleccionados">
     <div class="pyp-servicio-fila pyp-servicio-encabezado" style="border-bottom:2px solid #cbd5e1;font-weight:700;font-size:12px;color:#475569;padding-bottom:6px;">
-      <div>Servicio</div><div style="text-align:right;">Precio</div><div style="text-align:center;">Cantidad</div><div style="text-align:center;">Descuento</div><div style="text-align:right;">Total</div><div></div>
+      <div>Servicio</div><div style="text-align:right;">Precio</div><div style="text-align:center;">Cantidad</div><div style="text-align:center;">Descuento</div><div style="text-align:right;">Total (Sin IGV)</div><div></div>
     </div>
     <div class="pyp-agregar-servicio-linea">
       <button type="button" class="pyp-agregar-servicio-btn" onclick="abrirSelectorPypAgregar(event)">＋ Agregar servicio</button>
@@ -4785,11 +4785,12 @@ function construirPdfCotizacionPyp(cotizacion,detalle){
   y+=18;
 
   const tableRows=detalle.map(function(d,i){
+    const servicio=String(d.servicio||"Otros");
+    const pieza=String(d.pieza||"").trim();
     return [
       String(i+1),
-      String(d.servicio||"Otros"),
-      String(d.pieza||""),
-      String(d.tipo_trabajo||d.servicio||""),
+      String(d.tipo_trabajo||servicio),
+      pieza || servicio,
       formatoCantidadPyp(Number(d.cantidad||1)),
       formatoSolesPyp(Number(d.precio_unitario||0)),
       formatoSolesPyp(Number(d.descuento||0)),
@@ -4801,7 +4802,7 @@ function construirPdfCotizacionPyp(cotizacion,detalle){
     startY:99,
     margin:{left:9,right:9},
     tableWidth:"wrap",
-    head:[["Item","Servicio","Pieza","Tipo de Trabajo","Cant.","Precio Unit. (S/)","Descuento (S/)","Subtotal (S/)"]],
+    head:[["Item","Tipo de Trabajo","Pieza / Paño / Servicio","Cant.","Precio Unit. (S/)","Descuento (S/)","Subtotal (S/)"]],
     body:tableRows,
     theme:"grid",
     styles:{
@@ -4823,13 +4824,12 @@ function construirPdfCotizacionPyp(cotizacion,detalle){
     },
     columnStyles:{
       0:{cellWidth:10,halign:"center"},
-      1:{cellWidth:52},
-      2:{cellWidth:48},
-      3:{cellWidth:52},
-      4:{cellWidth:15,halign:"center"},
+      1:{cellWidth:48},
+      2:{cellWidth:52},
+      3:{cellWidth:15,halign:"center"},
+      4:{cellWidth:29,halign:"right"},
       5:{cellWidth:29,halign:"right"},
-      6:{cellWidth:29,halign:"right"},
-      7:{cellWidth:35,halign:"right"}
+      6:{cellWidth:35,halign:"right"}
     },
     alternateRowStyles:{fillColor:[248,250,252]}
   });
@@ -5744,7 +5744,7 @@ function renderizarServiciosSeleccionadosRegistro(){
   renderizarDropdownServiciosPintura();
 
   const encabezado='<div class="pyp-servicio-fila pyp-servicio-encabezado" style="border-bottom:2px solid #cbd5e1;font-weight:700;font-size:12px;color:#475569;padding-bottom:6px;">'+
-    '<div>Servicio</div><div>Pieza</div><div style="text-align:right;">Precio</div><div style="text-align:center;">Cantidad</div><div style="text-align:center;">Descuento</div><div style="text-align:right;">Total</div><div></div></div>';
+    '<div>Servicio</div><div>Pieza</div><div style="text-align:right;">Precio</div><div style="text-align:center;">Cantidad</div><div style="text-align:center;">Descuento</div><div style="text-align:right;">Total (Sin IGV)</div><div></div></div>';
 
   let filas='';
   if(serviciosSeleccionadosRegistro.length){
@@ -6180,19 +6180,19 @@ async function generarCotizacionPyp(){
       const descuento=descuentoServicioPyp(s);
       const subtotal=totalItemPyp(s);
       const nombre=String(s.nombre_servicio||"Otros");
-      return [String(i+1),nombre,String(s.pieza||""),nombre,formatoCantidadPyp(q),formatoSolesPyp(precio),formatoSolesPyp(descuento),formatoSolesPyp(subtotal)];
+      return [String(i+1),nombre,String(s.pieza||""),formatoCantidadPyp(q),formatoSolesPyp(precio),formatoSolesPyp(descuento),formatoSolesPyp(subtotal)];
     });
 
     doc.autoTable({
       startY:99,
       margin:{left:9,right:9},
       tableWidth:"wrap",
-      head:[["Item","Servicio","Pieza","Tipo de Trabajo","Cant.","Precio Unit. (S/)","Descuento (S/)","Subtotal (S/)"]],
+      head:[["Item","Tipo de Trabajo","Pieza / Paño / Servicio","Cant.","Precio Unit. (S/)","Descuento (S/)","Subtotal (S/)"]],
       body:tableRows,
       theme:"grid",
       styles:{font:"helvetica",fontSize:8.1,cellPadding:1.5,textColor:[31,41,55],lineColor:[185,198,213],lineWidth:.25,overflow:"linebreak",valign:"middle"},
       headStyles:{fontStyle:"bold",fillColor:[31,55,85],textColor:[255,255,255],halign:"center",fontSize:7.9},
-      columnStyles:{0:{cellWidth:10,halign:"center"},1:{cellWidth:52},2:{cellWidth:48},3:{cellWidth:52},4:{cellWidth:15,halign:"center"},5:{cellWidth:29,halign:"right"},6:{cellWidth:29,halign:"right"},7:{cellWidth:35,halign:"right"}},
+      columnStyles:{0:{cellWidth:10,halign:"center"},1:{cellWidth:48},2:{cellWidth:84},3:{cellWidth:15,halign:"center"},4:{cellWidth:29,halign:"right"},5:{cellWidth:29,halign:"right"},6:{cellWidth:35,halign:"right"}},
       alternateRowStyles:{fillColor:[248,250,252]}
     });
 
@@ -11270,7 +11270,7 @@ programarCierreAutomatico1930();
 </script>
 
 
-<div class="version-app">V5.9 Dashboard</div>
+<div class="version-app">V5.5 Dashboard</div>
 
 <style id="autocamiones-layout-final-override">
 /* =========================================================
