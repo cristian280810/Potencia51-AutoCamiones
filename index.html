@@ -10786,17 +10786,25 @@ function renderDashboard(lista){
   const porMarca = {};
   const porServicio = {};
 
-  // Cada servicio debe contarse de manera independiente.
-  // En PYP, varios trabajos pueden estar guardados dentro del mismo campo
-  // separados por "+", por ejemplo: "Pintado por paño bicapa x 1 + Reparación de aros C/U x 1.5".
-  // El Dashboard separa esos ítems para que cada servicio tenga su propia barra.
+  // Cada servicio PYP se cuenta de manera independiente y respetando su cantidad.
+  // Ejemplo: "Pintado por paño tricapa x 3 + Reparación de aros C/U x 1.5"
+  // suma 3 al primer servicio y 1.5 al segundo.
+  // Los servicios que no tienen una cantidad explícita se consideran 1.
   function serviciosIndependientesDashboard(valor){
     const texto=String(valor||"").trim();
-    if(!texto) return ["Sin servicio"];
+    if(!texto) return [{nombre:"Sin servicio",cantidad:1}];
     return texto
       .split(/\s*\+\s*/)
       .map(function(item){
-        return item.replace(/\s+x\s+[0-9]+(?:[.,][0-9]+)?\s*$/i, "").trim();
+        const limpio=String(item||"").trim();
+        if(!limpio) return null;
+        const match=limpio.match(/\s+x\s+([0-9]+(?:[.,][0-9]+)?)\s*$/i);
+        const cantidad=match ? Number(String(match[1]).replace(',','.')) : 1;
+        const nombre=match ? limpio.slice(0,match.index).trim() : limpio;
+        return {
+          nombre:nombre || "Sin servicio",
+          cantidad:Number.isFinite(cantidad) && cantidad>0 ? cantidad : 1
+        };
       })
       .filter(Boolean);
   }
@@ -10805,8 +10813,10 @@ function renderDashboard(lista){
     const m=String(r.marca||"Sin marca").trim()||"Sin marca";
     porMarca[m]=(porMarca[m]||0)+1;
 
-    serviciosIndependientesDashboard(r.servicio).forEach(function(sv){
-      porServicio[sv]=(porServicio[sv]||0)+1;
+    serviciosIndependientesDashboard(r.servicio).forEach(function(item){
+      const sv=item.nombre;
+      const cantidad=Number(item.cantidad)||1;
+      porServicio[sv]=(porServicio[sv]||0)+cantidad;
     });
   });
   const marcasSeleccionadasDashboard=obtenerSeleccionDashboard('marca');
