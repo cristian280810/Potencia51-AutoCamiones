@@ -1866,7 +1866,7 @@ html, body {
   display:none !important;
 }
 
-/* PYP - SERVICIO: Placa | Marca / (vacío) | Foto de ingreso */
+/* PYP - SERVICIO: Placa | Marca / (vacío) | Foto de ingreso (opcional)/
 #registro #gridRegistro.modo-pyp:not(.modo-vin){
   display:grid !important;
   grid-template-columns:minmax(0,1fr) minmax(0,1fr) !important;
@@ -2304,8 +2304,8 @@ id="campoVIN"
 class="form-group campo-vehiculo-vin"
 style="display:none">
 
-<label>
-VIN
+<label id="labelVINRegistro">
+VIN (opcional)
 </label>
 
 <input
@@ -2327,7 +2327,7 @@ id="campoFotoVIN"
 class="form-group campo-foto-vin"
 style="display:none">
 
-<label>
+<label id="labelFotoVINRegistro">
 Foto del VIN (opcional)
 </label>
 
@@ -2433,7 +2433,7 @@ id="campoFotoIngreso"
 class="form-group campo-foto-ingreso">
 
 <label id="labelFotoIngresoRegistro">
-Foto de ingreso *
+Foto de ingreso (opcional)
 </label>
 
 <input
@@ -5285,12 +5285,23 @@ function seleccionarCategoriaRegistro(categoria){
   if(btnCotizacionPyp) btnCotizacionPyp.style.display = categoriaRegistroActual === "pintura" ? "inline-flex" : "none";
   if(btnRegistrar) btnRegistrar.style.display = categoriaRegistroActual === "pintura" ? "none" : "inline-flex";
 
-  // En Planchado y Pintura la foto de ingreso es opcional porque solo se está generando una cotización.
+  // La foto de ingreso es opcional en todas las modalidades.
   const labelFotoIngresoRegistro=document.getElementById("labelFotoIngresoRegistro");
   if(labelFotoIngresoRegistro){
-    labelFotoIngresoRegistro.textContent = categoriaRegistroActual === "pintura"
-      ? "Foto de ingreso (opcional)"
-      : "Foto de ingreso *";
+    labelFotoIngresoRegistro.textContent = "Foto de ingreso (opcional)";
+  }
+
+  // VIN: nunca es obligatorio como número; en Lavado/Nuevo lo que sí es obligatorio
+  // es adjuntar la foto del VIN. En PYP también permanece opcional.
+  const labelVINRegistro=document.getElementById("labelVINRegistro");
+  if(labelVINRegistro){
+    labelVINRegistro.textContent = "VIN (opcional)";
+  }
+  const labelFotoVINRegistro=document.getElementById("labelFotoVINRegistro");
+  if(labelFotoVINRegistro){
+    labelFotoVINRegistro.textContent = (categoriaRegistroActual === "lavado" && (document.querySelector('input[name="tipoLavado"]:checked')?.value || "Taller") === "Nuevo")
+      ? "Foto del VIN *"
+      : "Foto del VIN (opcional)";
   }
 
   const labelPlacaRegistro=document.querySelector('#campoPlaca label');
@@ -5405,6 +5416,19 @@ function cambiarTipo(tipo){
     if(campoVIN) campoVIN.style.display="none";
     if(campoFotoVIN) campoFotoVIN.style.display="none";
   }
+
+  const labelVINRegistro=document.getElementById("labelVINRegistro");
+  if(labelVINRegistro) labelVINRegistro.textContent="VIN (opcional)";
+
+  const labelFotoVINRegistro=document.getElementById("labelFotoVINRegistro");
+  if(labelFotoVINRegistro){
+    labelFotoVINRegistro.textContent = (categoriaRegistroActual === "lavado" && tipo === "Nuevo")
+      ? "Foto del VIN *"
+      : "Foto del VIN (opcional)";
+  }
+
+  const labelFotoIngresoRegistro=document.getElementById("labelFotoIngresoRegistro");
+  if(labelFotoIngresoRegistro) labelFotoIngresoRegistro.textContent="Foto de ingreso (opcional)";
 }
 
 function comprimirFoto(file){
@@ -6286,16 +6310,19 @@ async function registrar(){
     const archivoVIN=document.getElementById("fotoVIN").files[0];
 
     if(tipo==="Taller" && !placa){ mostrarAlerta("Debe ingresar la placa.","error"); return; }
-    if(tipo==="Nuevo" && !vin){ mostrarAlerta("Debe ingresar el VIN.","error"); return; }
+    // En Lavado/Especiales el número VIN es opcional.
+    // Para Nuevo, la foto del VIN sí es obligatoria.
     if(!marca || !serviciosSeleccionados.length){ mostrarAlerta("Seleccione al menos un servicio válido del catálogo.","error"); return; }
-    if(!archivoIngreso){ mostrarAlerta("Debe adjuntar la foto de ingreso.","error"); return; }
-    if(tipo==="Nuevo" && !archivoVIN){ mostrarAlerta("Debe adjuntar la foto del VIN para registrar un vehículo nuevo.","error"); return; }
+    if(categoriaRegistroActual === "lavado" && tipo === "Nuevo" && !archivoVIN){
+      mostrarAlerta("Debe adjuntar la foto del VIN para registrar un vehículo nuevo.","error");
+      return;
+    }
 
     if(!await verificarDuplicadosAntesDeRegistrar({tipo,placa:tipo==="Taller"?placa:"",vin:tipo==="Nuevo"?vin:""})) return;
 
     boton.disabled=true; loading.style.display="block";
     const id=(window.crypto&&crypto.randomUUID)?crypto.randomUUID():(Date.now().toString(36)+"-"+Math.random().toString(36).slice(2));
-    const fotoIngreso=await comprimirFoto(archivoIngreso);
+    const fotoIngreso=archivoIngreso?await comprimirFoto(archivoIngreso):"";
     const fotoVIN=archivoVIN?await comprimirFoto(archivoVIN):"";
     const fotos=await enviarDrive({accion:"guardarFotos",id,fotoIngreso,fotoVIN});
     if(!fotos||fotos.ok!==true) throw new Error("No se pudieron guardar las fotografías en Google Drive.");
