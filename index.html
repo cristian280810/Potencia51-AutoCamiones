@@ -4165,9 +4165,17 @@ async function cargarServiciosAutoCamiones(){
     }
     catalogoLavadoEnRespaldo = false;
 
+    // Ordenar alfabéticamente el selector de Lavado y Adicionales.
+    // Se ordena una copia para conservar intactos el catálogo y los identificadores.
+    const serviciosOrdenados = serviciosAutoCamiones.slice().sort(function(a,b){
+      return String(a.nombre_servicio || "").localeCompare(
+        String(b.nombre_servicio || ""), "es", {sensitivity:"base", numeric:true}
+      );
+    });
+
     selects.forEach(function(select){
       select.innerHTML = '<option value="">Seleccione el servicio</option>';
-      serviciosAutoCamiones.forEach(function(servicio){
+      serviciosOrdenados.forEach(function(servicio){
         const option = document.createElement("option");
         option.value = String(servicio.id);
         option.textContent = servicio.nombre_servicio;
@@ -4195,9 +4203,17 @@ async function cargarServiciosAutoCamiones(){
     serviciosAutoCamiones = SERVICIOS_AUTOCAMIONES_RESPALDO.map(function(s){return Object.assign({},s);});
     catalogoLavadoEnRespaldo = true;
 
+    // Ordenar alfabéticamente el selector de Lavado y Adicionales.
+    // Se ordena una copia para conservar intactos el catálogo y los identificadores.
+    const serviciosOrdenados = serviciosAutoCamiones.slice().sort(function(a,b){
+      return String(a.nombre_servicio || "").localeCompare(
+        String(b.nombre_servicio || ""), "es", {sensitivity:"base", numeric:true}
+      );
+    });
+
     selects.forEach(function(select){
       select.innerHTML = '<option value="">Seleccione el servicio</option>';
-      serviciosAutoCamiones.forEach(function(servicio){
+      serviciosOrdenados.forEach(function(servicio){
         const option = document.createElement("option");
         option.value = String(servicio.id);
         option.textContent = servicio.nombre_servicio;
@@ -5941,9 +5957,23 @@ function renderizarDropdownServiciosPintura(){
 
   const buscador=document.getElementById('buscadorServiciosPintura');
   const q=String(buscador ? buscador.value : '').trim().toLowerCase();
+  // Orden alfabético por nombre (español, sin distinguir mayúsculas ni tildes).
+  // Se ordena cada categoría por separado para conservar sus encabezados.
   const catalogoPyp=(Array.isArray(serviciosPlanchadoPintura)?serviciosPlanchadoPintura:[])
+    .slice()
+    .sort(function(a,b){
+      return String(a.nombre_servicio||'').localeCompare(
+        String(b.nombre_servicio||''), 'es', {sensitivity:'base', numeric:true}
+      );
+    })
     .filter(function(s){ return String(s.nombre_servicio||'').toLowerCase().includes(q); });
   const catalogoLavado=(Array.isArray(serviciosAutoCamiones)?serviciosAutoCamiones:[])
+    .slice()
+    .sort(function(a,b){
+      return String(a.nombre_servicio||'').localeCompare(
+        String(b.nombre_servicio||''), 'es', {sensitivity:'base', numeric:true}
+      );
+    })
     .filter(function(s){ return String(s.nombre_servicio||'').toLowerCase().includes(q); });
 
   function crearFilas(items, origen){
@@ -11433,7 +11463,7 @@ programarCierreAutomatico1930();
 </script>
 
 
-<div class="version-app">V5.5 Dashboard</div>
+<div class="version-app">V5.88 Dashboard</div>
 
 <style id="autocamiones-layout-final-override">
 /* =========================================================
