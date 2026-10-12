@@ -2590,6 +2590,7 @@ onclick="limpiarFormulario()">
       <table class="cotizaciones-pyp-table">
         <thead>
           <tr>
+            <th>N.º</th>
             <th>Correlativo</th>
             <th>Fecha</th>
             <th>Tipo</th>
@@ -2604,7 +2605,7 @@ onclick="limpiarFormulario()">
           </tr>
         </thead>
         <tbody id="tablaCotizacionesPyp">
-          <tr><td colspan="11" class="empty">Seleccione Cotizaciones para cargar la información.</td></tr>
+          <tr><td colspan="12" class="empty">Seleccione Cotizaciones para cargar la información.</td></tr>
         </tbody>
       </table>
     </div>
@@ -4708,7 +4709,7 @@ function formatearFechaCotizacionTabla(fecha){
 
 async function cargarCotizacionesPyp(){
   const tbody=document.getElementById("tablaCotizacionesPyp");
-  if(tbody) tbody.innerHTML='<tr><td colspan="11" class="empty">Cargando cotizaciones...</td></tr>';
+  if(tbody) tbody.innerHTML='<tr><td colspan="12" class="empty">Cargando cotizaciones...</td></tr>';
   try{
     const estado=document.getElementById("filtroEstadoCotizacionesPyp")?.value||"";
     let url=SUPABASE_URL+"/rest/v1/cotizaciones_pyp_autocamiones?select=*&order=created_at.desc";
@@ -4720,7 +4721,7 @@ async function cargarCotizacionesPyp(){
     renderizarCotizacionesPyp();
   }catch(error){
     console.error(error);
-    if(tbody) tbody.innerHTML='<tr><td colspan="11" class="empty">No se pudieron cargar las cotizaciones. Ejecute el SQL de Cotizaciones PYP en Supabase.</td></tr>';
+    if(tbody) tbody.innerHTML='<tr><td colspan="12" class="empty">No se pudieron cargar las cotizaciones. Ejecute el SQL de Cotizaciones PYP en Supabase.</td></tr>';
   }
 }
 
@@ -4738,8 +4739,8 @@ function renderizarCotizacionesPyp(){
   const lista=cotizacionesPyp.filter(function(c){
     return !q || [c.correlativo,c.placa,c.vin,c.marca,c.estado].some(function(v){return String(v||"").toLowerCase().includes(q);});
   });
-  if(!lista.length){tbody.innerHTML='<tr><td colspan="11" class="empty">No hay cotizaciones para mostrar.</td></tr>';return;}
-  tbody.innerHTML=lista.map(function(c){
+  if(!lista.length){tbody.innerHTML='<tr><td colspan="12" class="empty">No hay cotizaciones para mostrar.</td></tr>';return;}
+  tbody.innerHTML=lista.map(function(c, indice){
     const id=esc(String(c.id||""));
     const estado=String(c.estado||"Pendiente");
     const tipoCot=normalizarTipoAtencion(c.tipo_registro||c.tipo||"Taller");
@@ -4754,6 +4755,7 @@ function renderizarCotizacionesPyp(){
        estado==="Aprobada" ? (c.facturacion_id ? '<button type="button" class="btn btn-secondary" style="padding:6px 9px;font-size:12px" onclick="mostrarModuloAdministracion(\'facturacion\')">🧾 En Facturación</button>' : '<button type="button" class="btn btn-secondary" style="padding:6px 9px;font-size:12px" onclick="pasarCotizacionAFacturacion(\''+id+'\')">🧾 Pasar a facturación</button>') : '')+
       '</div>';
     return '<tr id="filaCotPyp-'+id+'">'+
+      '<td class="numero-registro" style="text-align:center;font-weight:600">'+(indice+1)+'</td>'+
       '<td><strong>'+esc(c.correlativo||"—")+'</strong></td>'+
       '<td style="white-space:nowrap">'+esc(formatearFechaCotizacionTabla(c.created_at||""))+'</td>'+
       '<td>'+esc(normalizarTipoAtencion(c.tipo_registro||c.tipo||"Taller"))+'</td>'+
@@ -4766,7 +4768,7 @@ function renderizarCotizacionesPyp(){
       '<td style="white-space:nowrap">'+facturaHtml+'</td>'+
       '<td style="white-space:nowrap">'+acciones+'</td>'+
     '</tr>'+
-    '<tr id="detalleFilaCotPyp-'+id+'" style="display:none"><td colspan="11" style="padding:0;border-top:0"><div id="contenidoDetalleCotPyp-'+id+'" class="cotizacion-detalle-pyp-inline"></div></td></tr>';
+    '<tr id="detalleFilaCotPyp-'+id+'" style="display:none"><td colspan="12" style="padding:0;border-top:0"><div id="contenidoDetalleCotPyp-'+id+'" class="cotizacion-detalle-pyp-inline"></div></td></tr>';
   }).join("");
 }
 
