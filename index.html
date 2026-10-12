@@ -1227,6 +1227,10 @@ html, body {
 .servicio-desplegable-sin-resultados{padding:12px;color:#6b7280;font-size:13px;text-align:center;}
 .servicio-desplegable-item{display:flex;align-items:center;gap:9px;padding:9px 12px;cursor:pointer;font-size:13px;line-height:1.25;}
 .servicio-desplegable-item:hover{background:#f3f4f6;}
+.pyp-dropdown-section-title{position:sticky;top:0;z-index:1;padding:9px 12px;background:#eaf1fb;color:#1e3a5f;font-weight:800;font-size:12px;letter-spacing:.35px;border-top:1px solid #cbd5e1;border-bottom:1px solid #cbd5e1;}
+.pyp-dropdown-section-title.lavado{background:#e8f7ef;color:#166534;}
+.pyp-dropdown-service-name{flex:1;min-width:0;}
+.pyp-dropdown-service-price{white-space:nowrap;font-size:12px;color:#334155;margin-left:auto;}
 .servicio-desplegable-item input{width:16px;height:16px;margin:0;accent-color:#2563eb;flex:0 0 auto;}
 .servicios-seleccionados{display:flex;flex-wrap:wrap;gap:7px;margin-top:9px;min-height:36px;align-items:center;}
 /* En Planchado y Pintura, el detalle de servicios ocupa todo el ancho del formulario. */
@@ -4023,7 +4027,35 @@ let supabaseClient = null;
    El precio almacenado en la tabla es SIN IGV.
 ===================================================== */
 
-let serviciosAutoCamiones = [];
+// Catálogo de respaldo. Se utiliza solamente si la consulta a Supabase falla,
+// para que el selector de PYP no se quede vacío. Los valores online siguen teniendo prioridad.
+const SERVICIOS_AUTOCAMIONES_RESPALDO = [
+  [1,"Lavado básico",15.00],
+  [2,"Adicional por encerado",15.00],
+  [3,"Higienización de cabina",75.00],
+  [4,"Pulido de cromos",70.00],
+  [5,"Tratamiento de pintura Premium (Auto)",195.00],
+  [6,"Tratamiento de pintura Premium (Camioneta)",220.00],
+  [7,"Tratamiento de pintura Premium (Pick up)",250.00],
+  [8,"Lavado de salón (Auto)",250.00],
+  [9,"Lavado de salón (Camioneta)",280.00],
+  [10,"Lavado de salón (Pickup o 3 filas)",300.00],
+  [11,"Sellador cerámico",40.00],
+  [12,"Tratamiento de cueros",75.00],
+  [13,"Undercoating nacional",350.00],
+  [14,"Undercoating importado",550.00],
+  [15,"Zincado de tubo de escape",180.00],
+  [16,"Zincado de tubo de escape (Pick up)",195.00],
+  [17,"Tratamiento cerámico 3 años (Auto)",950.00],
+  [18,"Tratamiento cerámico 3 años (Camioneta)",1100.00],
+  [19,"Tratamiento cerámico 1 año",700.00],
+  [20,"Pintado de calipers x4",220.00],
+  [21,"Pintado de calipers (Personalizado)",350.00]
+].map(function(x){
+  return {id:x[0], nombre_servicio:x[1], precio_sin_igv:x[2], activo:true};
+});
+let serviciosAutoCamiones = SERVICIOS_AUTOCAMIONES_RESPALDO.map(function(s){return Object.assign({},s);});
+let catalogoLavadoEnRespaldo = false;
 
 // Catálogo independiente de Planchado y Pintura.
 // Se carga directamente en memoria para que el selector nunca dependa
@@ -4088,7 +4120,7 @@ async function cargarServiciosAutoCamiones(){
   try{
     const respuesta = await fetch(
       SUPABASE_URL +
-      "/rest/v1/servicios_autocamiones?select=id,nombre_servicio,precio_sin_igv,activo&activo=eq.true&order=id.asc",
+      "/rest/v1/servicios_autocamiones?select=*&order=id.asc",
       {
         method:"GET",
         headers:{
@@ -4104,11 +4136,34 @@ async function cargarServiciosAutoCamiones(){
       throw new Error("Supabase HTTP " + respuesta.status + (texto ? ": " + texto : ""));
     }
 
-    serviciosAutoCamiones = await respuesta.json();
-
-    if(!Array.isArray(serviciosAutoCamiones) || !serviciosAutoCamiones.length){
-      throw new Error("No hay servicios activos en servicios_autocamiones.");
+    const serviciosRecibidos = await respuesta.json();
+    if(!Array.isArray(serviciosRecibidos) || !serviciosRecibidos.length){
+      throw new Error("La tabla servicios_autocamiones no devolvió registros. Verifica que existan servicios y que la política RLS permita leerlos.");
     }
+
+    // Normaliza nombres de columnas para tolerar variaciones del esquema.
+    // Se consulta select=* para evitar errores si una columna opcional cambió de nombre.
+    serviciosAutoCamiones = serviciosRecibidos
+      .filter(function(s){
+        const activo = s.activo;
+        return activo === undefined || activo === null || activo === true || activo === 1 || String(activo).toLowerCase() === "true";
+      })
+      .map(function(s){
+        const nombre = s.nombre_servicio || s.nombre || s.servicio || s.descripcion || "";
+        const precio = s.precio_sin_igv ?? s.precioSinIgv ?? s.precio_sin_igv ?? s.precio ?? s.precio_venta ?? 0;
+        return Object.assign({}, s, {
+          id: s.id,
+          nombre_servicio: String(nombre),
+          precio_sin_igv: Number(precio) || 0,
+          activo: s.activo === undefined ? true : s.activo
+        });
+      })
+      .filter(function(s){ return s.nombre_servicio.trim() !== ""; });
+
+    if(!serviciosAutoCamiones.length){
+      throw new Error("La tabla respondió, pero no se encontraron servicios activos con nombre válido. Revisa las columnas nombre_servicio/activo.");
+    }
+    catalogoLavadoEnRespaldo = false;
 
     selects.forEach(function(select){
       select.innerHTML = '<option value="">Seleccione el servicio</option>';
@@ -4130,15 +4185,38 @@ async function cargarServiciosAutoCamiones(){
     }
     seleccionarServicioPorNombre("pasadoServicio", "Lavado básico");
     if(categoriaRegistroActual === "lavado") renderizarServiciosSeleccionadosRegistro();
+    else if(categoriaRegistroActual === "pintura") renderizarDropdownServiciosPintura();
 
   }catch(error){
-    console.error("Error cargando servicios:", error);
+    // Si Supabase falla (por conexión, permisos o respuesta vacía), usar el catálogo
+    // de respaldo para que Lavado y Servicios Especiales siga disponible en el selector.
+    console.error("Error real al consultar servicios_autocamiones en Supabase:", error);
+    console.warn("Se usa el catálogo de respaldo temporalmente. Si el error es HTTP 401/403, revisa la clave/RLS; si es Failed to fetch, revisa conexión/CORS/URL.");
+    serviciosAutoCamiones = SERVICIOS_AUTOCAMIONES_RESPALDO.map(function(s){return Object.assign({},s);});
+    catalogoLavadoEnRespaldo = true;
+
     selects.forEach(function(select){
-      select.innerHTML = '<option value="">❌ No se pudieron cargar los servicios</option>';
-      select.disabled = true;
+      select.innerHTML = '<option value="">Seleccione el servicio</option>';
+      serviciosAutoCamiones.forEach(function(servicio){
+        const option = document.createElement("option");
+        option.value = String(servicio.id);
+        option.textContent = servicio.nombre_servicio;
+        option.dataset.precioSinIgv = Number(servicio.precio_sin_igv || 0).toFixed(2);
+        select.appendChild(option);
+      });
+      select.disabled = false;
     });
-    mostrarAlerta("No se pudieron cargar los servicios: " + error.message,"error");
-    throw error;
+
+    const selectLavadoDefault = document.getElementById("servicioLavado");
+    if(selectLavadoDefault){
+      seleccionarServicioPorNombre("servicioLavado", "Lavado básico");
+      seleccionarServicioLavado(selectLavadoDefault.value || "");
+    }
+    seleccionarServicioPorNombre("pasadoServicio", "Lavado básico");
+    if(categoriaRegistroActual === "lavado") renderizarServiciosSeleccionadosRegistro();
+    else if(categoriaRegistroActual === "pintura") renderizarDropdownServiciosPintura();
+
+    return serviciosAutoCamiones;
   }
 }
 
@@ -4158,14 +4236,25 @@ function catalogoRegistroActual(){
 }
 
 
-function abrirSelectorPypAgregar(event){
+async function abrirSelectorPypAgregar(event){
   if(event){ event.preventDefault(); event.stopPropagation(); }
   const menu=document.getElementById("dropdownServiciosPintura");
   const boton=event && event.currentTarget ? event.currentTarget : document.querySelector(".pyp-agregar-servicio-btn");
   if(!menu || !boton) return;
 
-  renderizarDropdownServiciosPintura();
+  // Limpiar el texto ANTES de renderizar para evitar que el filtro anterior
+  // oculte las opciones de Lavado y Servicios Especiales.
+  const buscador=document.getElementById("buscadorServiciosPintura");
+  if(buscador) buscador.value="";
 
+  // Asegurar que el catálogo de Lavado y Adicionales ya esté cargado antes
+  // de construir el selector mixto. PYP permanece disponible si la carga falla.
+  if(catalogoLavadoEnRespaldo || !Array.isArray(serviciosAutoCamiones) || serviciosAutoCamiones.length===0){
+    try { await cargarServiciosAutoCamiones(); }
+    catch(error){ console.warn("No se pudo cargar el catálogo de Lavado para el selector PYP:",error); }
+  }
+
+  renderizarDropdownServiciosPintura();
   const rect=boton.getBoundingClientRect();
   menu.style.position="fixed";
   menu.style.left=Math.max(8, rect.left)+"px";
@@ -4174,12 +4263,7 @@ function abrirSelectorPypAgregar(event){
   menu.style.maxWidth="calc(100vw - 16px)";
   menu.style.display="block";
   menu.style.zIndex="99999";
-
-  const buscador=document.getElementById("buscadorServiciosPintura");
-  if(buscador){
-    buscador.value="";
-    setTimeout(function(){ buscador.focus(); },0);
-  }
+  if(buscador) setTimeout(function(){ buscador.focus(); },0);
 }
 
 function renderizarServiciosSeleccionadosRegistro(){
@@ -5857,27 +5941,48 @@ function renderizarDropdownServiciosPintura(){
 
   const buscador=document.getElementById('buscadorServiciosPintura');
   const q=String(buscador ? buscador.value : '').trim().toLowerCase();
-  const serviciosFiltrados=(Array.isArray(serviciosPlanchadoPintura)?serviciosPlanchadoPintura:[]).filter(function(s){
-    return String(s.nombre_servicio||'').toLowerCase().includes(q);
-  });
+  const catalogoPyp=(Array.isArray(serviciosPlanchadoPintura)?serviciosPlanchadoPintura:[])
+    .filter(function(s){ return String(s.nombre_servicio||'').toLowerCase().includes(q); });
+  const catalogoLavado=(Array.isArray(serviciosAutoCamiones)?serviciosAutoCamiones:[])
+    .filter(function(s){ return String(s.nombre_servicio||'').toLowerCase().includes(q); });
 
-  let html='';
-  if(serviciosFiltrados.length){
-    html=serviciosFiltrados.map(function(s){
+  function crearFilas(items, origen){
+    return items.map(function(s){
       const id=String(s.id);
-      return '<button type="button" class="servicio-desplegable-item pyp-opcion-independiente" onclick="seleccionarServicioDesdeDropdown(\''+id.replace(/'/g,"\\'")+'\')">'+
-        '<span>'+esc(s.nombre_servicio)+'</span>'+
-        '<span class="pyp-precio-lista">S/ '+Number(s.precio_sin_igv||0).toFixed(2)+'</span>'+ 
+      const idSeguro=id.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+      return '<button type="button" class="servicio-desplegable-item pyp-opcion-independiente" onclick="seleccionarServicioDesdeDropdown(\''+origen+'\',\''+idSeguro+'\')">'+
+        '<span class="pyp-dropdown-service-name">'+esc(s.nombre_servicio)+'</span>'+ 
+        '<span class="pyp-dropdown-service-price">S/ '+Number(s.precio_sin_igv||0).toFixed(2)+'</span>'+ 
       '</button>';
     }).join('');
-  } else {
-    html='<div class="servicio-desplegable-sin-resultados">No se encontraron servicios.</div>';
   }
 
-  // "Otros" se puede agregar repetidamente: cada clic crea una nueva fila independiente.
-  html += '<button type="button" class="servicio-desplegable-item pyp-opcion-independiente" onclick="seleccionarOtroPyp()" style="border-top:1px solid #e5e7eb;margin-top:4px;padding-top:10px;">'+
-    '<span><strong>Otros</strong></span><span class="pyp-precio-lista">Manual</span></button>';
+  let html='';
+  if(catalogoPyp.length){
+    html += '<div class="pyp-dropdown-section-title">🔧 PLANCHADO Y PINTURA</div>';
+    html += crearFilas(catalogoPyp,'pyp');
+  }
+  // El encabezado de Lavado se muestra siempre: si faltara la respuesta de Supabase,
+  // queda claro que la categoría existe y que el catálogo no terminó de cargarse.
+  html += '<div class="pyp-dropdown-section-title lavado">💧 LAVADO Y SERVICIOS ESPECIALES</div>';
+  if(catalogoLavado.length){
+    html += crearFilas(catalogoLavado,'lavado');
+    if(catalogoLavadoEnRespaldo){
+      html += '<div class="servicio-desplegable-sin-resultados" style="background:#fff7ed;color:#9a3412;border-top:1px solid #fed7aa;">Aviso: no se pudo consultar el catálogo actualizado de Supabase. Se muestran precios de respaldo; valida los precios si fueron modificados recientemente.</div>';
+    }
+  } else {
+    html += '<div class="servicio-desplegable-sin-resultados">No hay servicios disponibles en Lavado y Servicios Especiales.</div>';
+  }
+  if(!catalogoPyp.length && !catalogoLavado.length){
+    html='<div class="servicio-desplegable-sin-resultados">No se encontraron servicios disponibles.</div>';
+  }
 
+  // "Otros" manual continúa disponible y se puede agregar varias veces.
+  if(!q || 'otros'.includes(q)){
+    html += '<div class="pyp-dropdown-section-title">🔧 PLANCHADO Y PINTURA</div>'+
+      '<button type="button" class="servicio-desplegable-item pyp-opcion-independiente" onclick="seleccionarOtroPyp()">'+
+      '<span class="pyp-dropdown-service-name"><strong>Otros (manual)</strong></span><span class="pyp-dropdown-service-price">Ingresar precio</span></button>';
+  }
   lista.innerHTML=html;
 }
 
@@ -5887,25 +5992,41 @@ function filtrarServiciosPintura(texto){
   renderizarDropdownServiciosPintura();
 }
 
-function toggleServiciosPinturaDropdown(event){
-  if(event) event.stopPropagation();
+async function toggleServiciosPinturaDropdown(event){
+  if(event){ event.preventDefault(); event.stopPropagation(); }
   const menu=document.getElementById('dropdownServiciosPintura');
   if(!menu) return;
   const abrir=menu.style.display !== 'block';
-  menu.style.display=abrir?'block':'none';
-  renderizarDropdownServiciosPintura();
-  if(abrir){
-    const buscador=document.getElementById('buscadorServiciosPintura');
-    if(buscador){ setTimeout(function(){ buscador.focus(); buscador.select(); },0); }
+  if(!abrir){ menu.style.display='none'; return; }
+  const buscador=document.getElementById('buscadorServiciosPintura');
+  if(buscador) buscador.value='';
+  if(catalogoLavadoEnRespaldo || !Array.isArray(serviciosAutoCamiones) || serviciosAutoCamiones.length===0){
+    try { await cargarServiciosAutoCamiones(); }
+    catch(error){ console.warn("No se pudo cargar Lavado y Servicios Especiales:",error); }
   }
+  renderizarDropdownServiciosPintura();
+  menu.style.display='block';
+  if(buscador){ setTimeout(function(){ buscador.focus(); buscador.select(); },0); }
 }
 
-function seleccionarServicioDesdeDropdown(id){
-  const servicio=serviciosPlanchadoPintura.find(function(s){return String(s.id)===String(id);});
+function seleccionarServicioDesdeDropdown(origen, id){
+  // Compatibilidad con invocaciones antiguas de una sola variable: se interpretan como PYP.
+  if(id===undefined){ id=origen; origen='pyp'; }
+  origen=String(origen||'pyp').toLowerCase();
+  const catalogo = origen==='lavado' ? serviciosAutoCamiones : serviciosPlanchadoPintura;
+  const servicio=catalogo.find(function(s){return String(s.id)===String(id);});
   if(!servicio) return;
 
-  // Cada selección crea una nueva fila, incluso si el mismo servicio ya existe.
-  serviciosSeleccionadosRegistro.push(Object.assign({},servicio,{pieza:String(servicio.pieza||''),cantidad:1,descuento:0,_pypRowId:crearIdFilaPyp()}));
+  // Los servicios de ambos catálogos se añaden como filas independientes,
+  // incluso al repetir el mismo servicio. El origen queda identificado en la fila.
+  serviciosSeleccionadosRegistro.push(Object.assign({},servicio,{
+    pieza:String(servicio.pieza||''),
+    cantidad:1,
+    descuento:0,
+    _pypRowId:crearIdFilaPyp(),
+    _catalogoOrigen:origen,
+    _categoriaItem:origen==='lavado' ? 'Lavado y servicios especiales' : 'Planchado y Pintura'
+  }));
   renderizarServiciosSeleccionadosRegistro();
 
   const menu=document.getElementById('dropdownServiciosPintura');
@@ -11312,7 +11433,7 @@ programarCierreAutomatico1930();
 </script>
 
 
-<div class="version-app">V5.5 Dashboard</div>
+<div class="version-app">V5.9 Dashboard</div>
 
 <style id="autocamiones-layout-final-override">
 /* =========================================================
