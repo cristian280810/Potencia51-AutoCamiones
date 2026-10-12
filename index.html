@@ -5896,7 +5896,7 @@ function renderizarServiciosSeleccionadosRegistro(){
 
   const boton='<div class="pyp-agregar-servicio-linea"><button type="button" class="pyp-agregar-servicio-btn" onclick="abrirSelectorPypAgregar(event)">＋ Agregar servicio</button></div>';
   const total=serviciosSeleccionadosRegistro.length
-    ? '<div class="pyp-total-general">Total servicios: '+formatoSolesPyp(totalPyp())+'</div>'
+    ? '<div class="pyp-total-general">Total servicios (sin IGV): '+formatoSolesPyp(totalPyp())+'</div>'
     : '';
   cont.innerHTML=encabezado+filas+boton+total;
 }
@@ -11433,7 +11433,7 @@ programarCierreAutomatico1930();
 </script>
 
 
-<div class="version-app">V5.9 Dashboard</div>
+<div class="version-app">V5.5 Dashboard</div>
 
 <style id="autocamiones-layout-final-override">
 /* =========================================================
