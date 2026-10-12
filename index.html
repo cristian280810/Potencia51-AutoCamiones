@@ -856,6 +856,9 @@ th{
 .cotizaciones-pyp-table{width:100%;border-collapse:collapse;font-size:13px;}
 .cotizaciones-pyp-table th,.cotizaciones-pyp-table td{border:1px solid #dbe2ea;padding:8px 9px;text-align:left;vertical-align:middle;}
 .cotizaciones-pyp-table th{background:#1f3755;color:#fff;}
+.check-cotizacion-pyp,#seleccionarTodasCotizacionesPyp{width:16px;height:16px;cursor:pointer;accent-color:#1d4ed8;}
+#contadorSeleccionadasPyp{white-space:nowrap;}
+#btnAprobarSeleccionadasPyp:disabled{opacity:.55;cursor:not-allowed;}
 .cotizaciones-pyp-table td.num{text-align:right;white-space:nowrap;}
 .estado-cot-pyp{display:inline-flex;padding:4px 9px;border-radius:999px;font-weight:700;font-size:11px;}
 .estado-cot-pyp.pendiente{background:#fff7ed;color:#9a3412;}
@@ -2584,12 +2587,15 @@ onclick="limpiarFormulario()">
         <input id="buscarCotizacionesPyp" placeholder="Correlativo, placa, VIN o marca" oninput="renderizarCotizacionesPyp()">
       </div>
       <button type="button" class="btn btn-secondary" onclick="cargarCotizacionesPyp()">🔄 Actualizar</button>
+      <button type="button" id="btnAprobarSeleccionadasPyp" class="btn btn-primary" onclick="prepararAprobacionMultiplePyp()" disabled>✓ Aprobar seleccionadas</button>
+      <span id="contadorSeleccionadasPyp" style="font-size:12px;color:#64748b" aria-live="polite">0 seleccionadas</span>
     </div>
 
     <div class="table-container">
       <table class="cotizaciones-pyp-table">
         <thead>
           <tr>
+            <th style="width:34px;text-align:center"><input type="checkbox" id="seleccionarTodasCotizacionesPyp" onchange="seleccionarCotizacionesVisiblesPyp(this.checked)" aria-label="Seleccionar todas las cotizaciones pendientes visibles" title="Seleccionar pendientes visibles"></th>
             <th>N.º</th>
             <th>Correlativo</th>
             <th>Fecha</th>
@@ -2605,7 +2611,7 @@ onclick="limpiarFormulario()">
           </tr>
         </thead>
         <tbody id="tablaCotizacionesPyp">
-          <tr><td colspan="12" class="empty">Seleccione Cotizaciones para cargar la información.</td></tr>
+          <tr><td colspan="13" class="empty">Seleccione Cotizaciones para cargar la información.</td></tr>
         </tbody>
       </table>
     </div>
@@ -2620,11 +2626,11 @@ onclick="limpiarFormulario()">
   <div class="modal-content">
     <div class="modal-pyp-confirm-head">
       <div class="modal-pyp-confirm-icon">✓</div>
-      <h3>¿Aprobar cotización?</h3>
+      <h3 id="tituloConfirmarAprobacionPyp">¿Aprobar cotización?</h3>
     </div>
     <div class="modal-pyp-confirm-body">
-      <div>Estás a punto de aprobar la cotización <strong id="confirmarAprobacionCorrelativo">—</strong>.</div>
-      <div style="margin-top:7px">Una vez aprobada, podrás enviarla al proceso de facturación.</div>
+      <div id="confirmarAprobacionMensaje">Estás a punto de aprobar la cotización seleccionada.</div>
+      <div id="confirmarAprobacionAyuda" style="margin-top:7px">Una vez aprobada, podrás enviarla al proceso de facturación.</div>
     </div>
     <div class="modal-pyp-confirm-actions">
       <button type="button" class="btn btn-secondary" onclick="cerrarModalAprobacionPyp()">Cancelar</button>
@@ -4665,6 +4671,7 @@ function servicioActualPorNombre(nombre){
    COTIZACIONES - ADMINISTRACIÓN
 ===================================================== */
 let cotizacionesPyp = [];
+let cotizacionesPypSeleccionadas = new Set();
 let facturasRelacionadasPyp = {};
 
 async function cargarFacturasRelacionadasPyp(){
@@ -4709,7 +4716,7 @@ function formatearFechaCotizacionTabla(fecha){
 
 async function cargarCotizacionesPyp(){
   const tbody=document.getElementById("tablaCotizacionesPyp");
-  if(tbody) tbody.innerHTML='<tr><td colspan="12" class="empty">Cargando cotizaciones...</td></tr>';
+  if(tbody) tbody.innerHTML='<tr><td colspan="13" class="empty">Cargando cotizaciones...</td></tr>';
   try{
     const estado=document.getElementById("filtroEstadoCotizacionesPyp")?.value||"";
     let url=SUPABASE_URL+"/rest/v1/cotizaciones_pyp_autocamiones?select=*&order=created_at.desc";
@@ -4717,11 +4724,13 @@ async function cargarCotizacionesPyp(){
     const respuesta=await fetch(url,{method:"GET",headers:{"apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY},cache:"no-store"});
     if(!respuesta.ok) throw new Error(await respuesta.text());
     cotizacionesPyp=await respuesta.json()||[];
+    const idsPendientesCargados=new Set(cotizacionesPyp.filter(function(c){return String(c.estado||"Pendiente")==="Pendiente";}).map(function(c){return String(c.id);}));
+    cotizacionesPypSeleccionadas.forEach(function(id){if(!idsPendientesCargados.has(String(id))) cotizacionesPypSeleccionadas.delete(String(id));});
     await cargarFacturasRelacionadasPyp();
     renderizarCotizacionesPyp();
   }catch(error){
     console.error(error);
-    if(tbody) tbody.innerHTML='<tr><td colspan="12" class="empty">No se pudieron cargar las cotizaciones. Ejecute el SQL de Cotizaciones PYP en Supabase.</td></tr>';
+    if(tbody) tbody.innerHTML='<tr><td colspan="13" class="empty">No se pudieron cargar las cotizaciones. Ejecute el SQL de Cotizaciones PYP en Supabase.</td></tr>';
   }
 }
 
@@ -4732,17 +4741,63 @@ function normalizarTipoAtencion(valor){
   return String(valor||"").trim();
 }
 
+function cotizacionesVisiblesPyp(){
+  const q=String(document.getElementById("buscarCotizacionesPyp")?.value||"").trim().toLowerCase();
+  return cotizacionesPyp.filter(function(c){
+    return !q || [c.correlativo,c.placa,c.vin,c.marca,c.estado].some(function(v){return String(v||"").toLowerCase().includes(q);});
+  });
+}
+
+function actualizarControlesSeleccionPyp(){
+  const boton=document.getElementById("btnAprobarSeleccionadasPyp");
+  const contador=document.getElementById("contadorSeleccionadasPyp");
+  const pendientesSeleccionadas=cotizacionesPyp.filter(function(c){return String(c.estado||"Pendiente")==="Pendiente" && cotizacionesPypSeleccionadas.has(String(c.id));});
+  if(boton) boton.disabled=pendientesSeleccionadas.length===0;
+  if(contador) contador.textContent=pendientesSeleccionadas.length+ (pendientesSeleccionadas.length===1 ? " seleccionada" : " seleccionadas");
+
+  const checkTodas=document.getElementById("seleccionarTodasCotizacionesPyp");
+  if(checkTodas){
+    const visiblesPendientes=cotizacionesVisiblesPyp().filter(function(c){return String(c.estado||"Pendiente")==="Pendiente";});
+    const marcadas=visiblesPendientes.filter(function(c){return cotizacionesPypSeleccionadas.has(String(c.id));}).length;
+    checkTodas.checked=visiblesPendientes.length>0 && marcadas===visiblesPendientes.length;
+    checkTodas.indeterminate=marcadas>0 && marcadas<visiblesPendientes.length;
+    checkTodas.disabled=visiblesPendientes.length===0;
+  }
+}
+
+function cambiarSeleccionCotizacionPyp(id,seleccionada){
+  const cotizacion=cotizacionesPyp.find(function(c){return String(c.id)===String(id);});
+  if(!cotizacion || String(cotizacion.estado||"Pendiente")!=="Pendiente") return;
+  if(seleccionada) cotizacionesPypSeleccionadas.add(String(id));
+  else cotizacionesPypSeleccionadas.delete(String(id));
+  actualizarControlesSeleccionPyp();
+}
+
+function seleccionarCotizacionesVisiblesPyp(seleccionar){
+  cotizacionesVisiblesPyp().forEach(function(c){
+    if(String(c.estado||"Pendiente")!=="Pendiente") return;
+    const id=String(c.id);
+    if(seleccionar) cotizacionesPypSeleccionadas.add(id);
+    else cotizacionesPypSeleccionadas.delete(id);
+  });
+  renderizarCotizacionesPyp();
+}
+
 function renderizarCotizacionesPyp(){
   const tbody=document.getElementById("tablaCotizacionesPyp");
   if(!tbody) return;
-  const q=String(document.getElementById("buscarCotizacionesPyp")?.value||"").trim().toLowerCase();
-  const lista=cotizacionesPyp.filter(function(c){
-    return !q || [c.correlativo,c.placa,c.vin,c.marca,c.estado].some(function(v){return String(v||"").toLowerCase().includes(q);});
-  });
-  if(!lista.length){tbody.innerHTML='<tr><td colspan="12" class="empty">No hay cotizaciones para mostrar.</td></tr>';return;}
+  const lista=cotizacionesVisiblesPyp();
+  if(!lista.length){
+    tbody.innerHTML='<tr><td colspan="13" class="empty">No hay cotizaciones para mostrar.</td></tr>';
+    actualizarControlesSeleccionPyp();
+    return;
+  }
   tbody.innerHTML=lista.map(function(c, indice){
     const id=esc(String(c.id||""));
     const estado=String(c.estado||"Pendiente");
+    const esPendiente=estado==="Pendiente";
+    const seleccionado=cotizacionesPypSeleccionadas.has(String(c.id));
+    const casilla=esPendiente ? '<input type="checkbox" class="check-cotizacion-pyp" aria-label="Seleccionar '+esc(c.correlativo||"cotización")+'" '+(seleccionado?'checked ':'')+'onchange="cambiarSeleccionCotizacionPyp(\''+id+'\',this.checked)">' : '';
     const tipoCot=normalizarTipoAtencion(c.tipo_registro||c.tipo||"Taller");
     const identificador=tipoCot==="Nuevo"?(c.vin||"—"):(c.placa||"—");
     const numeroFacturaPyp=facturasRelacionadasPyp[String(c.facturacion_id||"")] || "";
@@ -4755,6 +4810,7 @@ function renderizarCotizacionesPyp(){
        estado==="Aprobada" ? (c.facturacion_id ? '<button type="button" class="btn btn-secondary" style="padding:6px 9px;font-size:12px" onclick="mostrarModuloAdministracion(\'facturacion\')">🧾 En Facturación</button>' : '<button type="button" class="btn btn-secondary" style="padding:6px 9px;font-size:12px" onclick="pasarCotizacionAFacturacion(\''+id+'\')">🧾 Pasar a facturación</button>') : '')+
       '</div>';
     return '<tr id="filaCotPyp-'+id+'">'+
+      '<td style="text-align:center">'+casilla+'</td>'+
       '<td class="numero-registro" style="text-align:center;font-weight:600">'+(indice+1)+'</td>'+
       '<td><strong>'+esc(c.correlativo||"—")+'</strong></td>'+
       '<td style="white-space:nowrap">'+esc(formatearFechaCotizacionTabla(c.created_at||""))+'</td>'+
@@ -4768,43 +4824,104 @@ function renderizarCotizacionesPyp(){
       '<td style="white-space:nowrap">'+facturaHtml+'</td>'+
       '<td style="white-space:nowrap">'+acciones+'</td>'+
     '</tr>'+
-    '<tr id="detalleFilaCotPyp-'+id+'" style="display:none"><td colspan="12" style="padding:0;border-top:0"><div id="contenidoDetalleCotPyp-'+id+'" class="cotizacion-detalle-pyp-inline"></div></td></tr>';
+    '<tr id="detalleFilaCotPyp-'+id+'" style="display:none"><td colspan="13" style="padding:0;border-top:0"><div id="contenidoDetalleCotPyp-'+id+'" class="cotizacion-detalle-pyp-inline"></div></td></tr>';
   }).join("");
+  actualizarControlesSeleccionPyp();
 }
 
-let cotizacionPypPendienteAprobacion=null;
+let cotizacionesPypPendientesAprobacion=[];
+
+function restablecerBotonAprobacionPyp(){
+  const boton=document.querySelector('#modalConfirmarAprobacionPyp .btn-primary');
+  if(boton){
+    boton.disabled=false;
+    boton.textContent=cotizacionesPypPendientesAprobacion.length>1 ? "✓ Aprobar "+cotizacionesPypPendientesAprobacion.length+" cotizaciones" : "✓ Sí, aprobar";
+  }
+}
 
 function cerrarModalAprobacionPyp(){
   const modal=document.getElementById("modalConfirmarAprobacionPyp");
   if(modal) modal.classList.remove("active");
-  cotizacionPypPendienteAprobacion=null;
+  cotizacionesPypPendientesAprobacion=[];
+  restablecerBotonAprobacionPyp();
 }
 
-async function aprobarCotizacionPyp(id){
-  const cotizacion=cotizacionesPyp.find(function(c){return String(c.id)===String(id);});
-  if(!cotizacion) return;
-  cotizacionPypPendienteAprobacion=cotizacion;
-  const label=document.getElementById("confirmarAprobacionCorrelativo");
-  if(label) label.textContent=cotizacion.correlativo||"—";
+function abrirModalAprobacionPyp(cotizaciones){
+  const pendientes=(cotizaciones||[]).filter(function(c){return c && String(c.estado||"Pendiente")==="Pendiente";});
+  if(!pendientes.length){
+    mostrarAlerta("Selecciona al menos una cotización pendiente de aprobación.","error");
+    return;
+  }
+  cotizacionesPypPendientesAprobacion=pendientes;
+  const multiple=pendientes.length>1;
+  const titulo=document.getElementById("tituloConfirmarAprobacionPyp");
+  const mensaje=document.getElementById("confirmarAprobacionMensaje");
+  const ayuda=document.getElementById("confirmarAprobacionAyuda");
+  if(titulo) titulo.textContent=multiple ? "¿Aprobar cotizaciones seleccionadas?" : "¿Aprobar cotización?";
+  if(mensaje) mensaje.textContent=multiple ? "Estás a punto de aprobar "+pendientes.length+" cotizaciones seleccionadas." : "Estás a punto de aprobar la cotización "+(pendientes[0].correlativo||"—")+".";
+  if(ayuda) ayuda.textContent=multiple ? "Las cotizaciones aprobadas podrán pasar al proceso de facturación." : "Una vez aprobada, podrás enviarla al proceso de facturación.";
+  restablecerBotonAprobacionPyp();
   const modal=document.getElementById("modalConfirmarAprobacionPyp");
   if(modal) modal.classList.add("active");
 }
 
-async function confirmarAprobacionPyp(){
-  const cotizacion=cotizacionPypPendienteAprobacion;
+function aprobarCotizacionPyp(id){
+  const cotizacion=cotizacionesPyp.find(function(c){return String(c.id)===String(id);});
   if(!cotizacion) return;
+  abrirModalAprobacionPyp([cotizacion]);
+}
+
+function prepararAprobacionMultiplePyp(){
+  const seleccionadas=cotizacionesPyp.filter(function(c){return String(c.estado||"Pendiente")==="Pendiente" && cotizacionesPypSeleccionadas.has(String(c.id));});
+  if(!seleccionadas.length){
+    mostrarAlerta("Selecciona las cotizaciones pendientes que deseas aprobar.","error");
+    return;
+  }
+  abrirModalAprobacionPyp(seleccionadas);
+}
+
+async function confirmarAprobacionPyp(){
+  const cotizaciones=[...cotizacionesPypPendientesAprobacion];
+  if(!cotizaciones.length) return;
   const boton=document.querySelector('#modalConfirmarAprobacionPyp .btn-primary');
   if(boton){boton.disabled=true;boton.textContent="Aprobando...";}
-  try{
-    const respuesta=await fetch(SUPABASE_URL+"/rest/v1/cotizaciones_pyp_autocamiones?id=eq."+encodeURIComponent(cotizacion.id),{method:"PATCH",headers:{"apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY,"Content-Type":"application/json","Prefer":"return=minimal"},body:JSON.stringify({estado:"Aprobada",fecha_aprobacion:new Date().toISOString()})});
-    if(!respuesta.ok) throw new Error(await respuesta.text());
-    cerrarModalAprobacionPyp();
-    mostrarAlerta("La cotización "+(cotizacion.correlativo||"")+" fue aprobada correctamente. Ya puede pasar a facturación.","success");
-    await cargarCotizacionesPyp();
-  }catch(error){
-    if(boton){boton.disabled=false;boton.textContent="✓ Sí, aprobar";}
-    mostrarAlerta("No se pudo aprobar la cotización.","error");
-    console.error(error);
+  const fechaAprobacion=new Date().toISOString();
+  const resultados=await Promise.allSettled(cotizaciones.map(async function(cotizacion){
+    const respuesta=await fetch(SUPABASE_URL+"/rest/v1/cotizaciones_pyp_autocamiones?id=eq."+encodeURIComponent(cotizacion.id),{
+      method:"PATCH",
+      headers:{"apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY,"Content-Type":"application/json","Prefer":"return=minimal"},
+      body:JSON.stringify({estado:"Aprobada",fecha_aprobacion:fechaAprobacion})
+    });
+    if(!respuesta.ok) throw new Error((cotizacion.correlativo||cotizacion.id)+": "+await respuesta.text());
+    return cotizacion;
+  }));
+  const aprobadas=[];
+  const fallidas=[];
+  resultados.forEach(function(resultado,indice){
+    if(resultado.status==="fulfilled") aprobadas.push(cotizaciones[indice]);
+    else fallidas.push(cotizaciones[indice]);
+  });
+
+  if(aprobadas.length===0){
+    if(boton){boton.disabled=false;boton.textContent=cotizaciones.length>1 ? "✓ Aprobar "+cotizaciones.length+" cotizaciones" : "✓ Sí, aprobar";}
+    console.error("No se pudieron aprobar cotizaciones PYP:",resultados.filter(function(r){return r.status==="rejected";}).map(function(r){return r.reason;}));
+    mostrarAlerta("No se pudo aprobar la cotización. Verifica los permisos y la conexión con Supabase.","error");
+    return;
+  }
+
+  aprobadas.forEach(function(c){cotizacionesPypSeleccionadas.delete(String(c.id));});
+  cerrarModalAprobacionPyp();
+  await cargarCotizacionesPyp();
+
+  if(fallidas.length===0){
+    const mensaje=aprobadas.length===1
+      ? "La cotización "+(aprobadas[0].correlativo||"")+" fue aprobada correctamente. Ya puede pasar a facturación."
+      : "Se aprobaron correctamente "+aprobadas.length+" cotizaciones. Ya pueden pasar a facturación.";
+    mostrarAlerta(mensaje,"success");
+  }else{
+    const nombresFallidos=fallidas.map(function(c){return c.correlativo||String(c.id);}).join(", ");
+    mostrarAlerta("Se aprobaron "+aprobadas.length+" de "+cotizaciones.length+" cotizaciones. No se pudieron aprobar: "+nombresFallidos+".","error");
+    console.error("Fallaron aprobaciones de cotizaciones PYP:",resultados.filter(function(r){return r.status==="rejected";}).map(function(r){return r.reason;}));
   }
 }
 
