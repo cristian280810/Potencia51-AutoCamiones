@@ -4909,7 +4909,7 @@ function construirPdfCotizacionPyp(cotizacion,detalle){
     startY:99,
     margin:{left:(pageW-250)/2,right:(pageW-250)/2},
     tableWidth:250,
-    head:[["Item","Tipo de Trabajo","Pieza / Paño / Servicio","Cant.","Precio Unit. (S/)","Descuento (S/)","Subtotal (S/)"]],
+    head:[["Item","Tipo de Trabajo","Pieza / Paño / Servicio","Cant.","Precio Unit. (S/)","Descuento total (S/)","Subtotal (S/)"]],
     body:tableRows,
     theme:"grid",
     styles:{
@@ -5750,11 +5750,10 @@ function formatoSolesPyp(n){
 }
 function totalItemPyp(s){
   const precio=Number(s.precio_sin_igv||0);
-  const descuento=descuentoServicioPyp(s);
   const cantidad=cantidadServicioPyp(s);
-  // El descuento es por unidad: primero se descuenta del precio unitario
-  // y recién después se multiplica por la cantidad.
-  return Math.max(0,(precio-descuento)*cantidad);
+  const descuento=descuentoServicioPyp(s); // descuento único para toda la línea
+  // Lógica: primero precio unitario × cantidad; después se resta el descuento total.
+  return Math.max(0,(precio*cantidad)-descuento);
 }
 function totalBrutoPyp(){
   return serviciosSeleccionadosRegistro.reduce(function(t,s){
@@ -5762,8 +5761,9 @@ function totalBrutoPyp(){
   },0);
 }
 function descuentoTotalPyp(){
+  // El descuento introducido ya corresponde al total de cada línea, no a cada unidad.
   return serviciosSeleccionadosRegistro.reduce(function(t,s){
-    return t + descuentoServicioPyp(s)*cantidadServicioPyp(s);
+    return t + descuentoServicioPyp(s);
   },0);
 }
 function totalPyp(){
@@ -5801,7 +5801,7 @@ function cambiarCantidadServicioPyp(rowId, valor, volverARenderizar){
   q=Math.round(q*2)/2;
   s.cantidad=q;
 
-  const maxDescuento=Number(s.precio_sin_igv||0);
+  const maxDescuento=Number(s.precio_sin_igv||0)*cantidadServicioPyp(s);
   if(Number(s.descuento||0)>maxDescuento){
     s.descuento=maxDescuento;
   }
@@ -5814,7 +5814,7 @@ function cambiarDescuentoServicioPyp(rowId, valor, volverARenderizar){
 
   let d=Number(valor);
   if(!Number.isFinite(d) || d<0) d=0;
-  const maxDescuento=Number(s.precio_sin_igv||0);
+  const maxDescuento=Number(s.precio_sin_igv||0)*cantidadServicioPyp(s);
   s.descuento=Math.min(d,maxDescuento);
   renderizarServiciosSeleccionadosRegistro();
 }
@@ -5904,7 +5904,7 @@ function renderizarServiciosSeleccionadosRegistro(){
         '<div class="pyp-servicio-pieza">'+piezaHtml+'</div>'+
         '<div class="pyp-servicio-precio">'+precioHtml+'</div>'+ 
         '<input class="pyp-cantidad" type="number" min="0.5" step="0.5" inputmode="decimal" value="'+q+'" aria-label="Cantidad de servicio" onchange="cambiarCantidadServicioPyp(\''+rowId+'\',this.value)" onblur="cambiarCantidadServicioPyp(\''+rowId+'\',this.value)">'+ 
-        '<input class="pyp-descuento" type="number" min="0" step="0.01" inputmode="decimal" value="'+descuento.toFixed(2)+'" aria-label="Descuento del servicio" onchange="cambiarDescuentoServicioPyp(\''+rowId+'\',this.value)">'+ 
+        '<input class="pyp-descuento" type="number" min="0" step="0.01" inputmode="decimal" value="'+descuento.toFixed(2)+'" aria-label="Descuento total de la línea" onchange="cambiarDescuentoServicioPyp(\''+rowId+'\',this.value)">'+ 
         '<div class="pyp-servicio-total">'+formatoSolesPyp(total)+'</div>'+ 
         '<button type="button" class="pyp-servicio-quitar" onclick="quitarServicioRegistro(\''+rowId+'\')" title="Quitar">×</button></div>';
     }).join('');
@@ -6158,7 +6158,8 @@ function confirmarVinVacioPyp(){
 async function guardarCotizacionPypEnSupabase(datos){
   const fallbackCorrelativo=siguienteCorrelativoCotizacionPypLocal();
   const descuentoTotal = datos.items.reduce(function(acum,s){
-    return acum + Number(descuentoServicioPyp(s) || 0) * cantidadServicioPyp(s);
+    // El descuento se captura por línea y se resta después de multiplicar precio × cantidad.
+    return acum + Number(descuentoServicioPyp(s) || 0);
   },0);
   const subtotalBruto = datos.items.reduce(function(acum,s){
     return acum + Number(s.precio_sin_igv||0) * cantidadServicioPyp(s);
@@ -6372,7 +6373,7 @@ async function generarCotizacionPyp(){
       startY:99,
       margin:{left:(pageW-250)/2,right:(pageW-250)/2},
       tableWidth:"wrap",
-      head:[["Item","Tipo de Trabajo","Pieza / Paño / Servicio","Cant.","Precio Unit. (S/)","Descuento (S/)","Subtotal (S/)"]],
+      head:[["Item","Tipo de Trabajo","Pieza / Paño / Servicio","Cant.","Precio Unit. (S/)","Descuento total (S/)","Subtotal (S/)"]],
       body:tableRows,
       theme:"grid",
       styles:{font:"helvetica",fontSize:8.1,cellPadding:1.5,textColor:[31,41,55],lineColor:[185,198,213],lineWidth:.25,overflow:"linebreak",valign:"middle"},
@@ -11463,7 +11464,7 @@ programarCierreAutomatico1930();
 </script>
 
 
-<div class="version-app">V5.88 Dashboard</div>
+<div class="version-app">V5.5 Dashboard</div>
 
 <style id="autocamiones-layout-final-override">
 /* =========================================================
