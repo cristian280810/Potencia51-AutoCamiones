@@ -2429,6 +2429,8 @@ value="">
     <select id="servicioLavado" onchange="seleccionarServicioLavado(this.value)">
       <option value="">⏳ Cargando servicios...</option>
     </select>
+    <div id="serviciosLavadoAdicionales" class="servicios-lavado-adicionales" aria-live="polite"></div>
+    <button type="button" id="btnAgregarServicioLavado" class="lavado-agregar-servicio-btn" onclick="agregarServicioLavadoAdicional()">＋ Agregar servicio</button>
   </div>
 
   <select id="servicio" style="display:none" aria-hidden="true">
@@ -2790,7 +2792,7 @@ onclick="limpiarFormulario()">
 <button type="button" class="servicios-multiselect-btn" onclick="toggleFiltroServiciosFacturacion(event)"><span id="facturacionServicioTexto">Todos los servicios</span><span>▾</span></button>
 <div id="facturacionServicioMenu" class="servicios-multiselect-menu"></div>
 </div></div>
-<div class="form-group"><label>Estado</label><select id="facturacionEstado" onchange="actualizarEstadoFiltroFacturacion(); cargarServiciosFiltroFacturacionSegunFactura(); actualizarFacturacionAutomaticamente();"><option value="">Todos</option><option value="pendiente">Pendiente</option><option value="facturado">Facturado</option></select></div>
+<div class="form-group"><label>Estado</label><select id="facturacionEstado" onchange="actualizarEstadoFiltroFacturacion(); cargarServiciosFiltroFacturacionSegunFactura(); actualizarFacturacionAutomaticamente();"><option value="">Pendientes por facturar</option><option value="facturado">Facturado (historial)</option></select></div>
 <div class="form-group">
   <label>Buscar</label>
   <input id="facturacionBuscar" type="text" placeholder="Placa, VIN, marca o modelo" oninput="actualizarFacturacionAutomaticamente()">
@@ -5572,6 +5574,7 @@ function seleccionarCategoriaRegistro(categoria){
   }
 
   limpiarServiciosSeleccionadosRegistro();
+  limpiarServiciosLavadoAdicionales();
 
   if(categoriaRegistroActual === "pintura"){
     categoriaLavado.classList.remove("active");
@@ -5644,6 +5647,65 @@ function seleccionarServicioLavado(id){
       hidden.value=select.value;
     }
   }
+}
+
+
+// Lavado y Servicios Especiales: permite añadir más de un servicio
+// al mismo vehículo mediante selectores adicionales.
+let contadorServicioLavadoAdicional = 0;
+
+function agregarServicioLavadoAdicional(){
+  const contenedor=document.getElementById("serviciosLavadoAdicionales");
+  if(!contenedor) return;
+  if(!Array.isArray(serviciosAutoCamiones) || serviciosAutoCamiones.length===0){
+    cargarServiciosAutoCamiones().then(agregarServicioLavadoAdicional).catch(function(error){
+      console.error("No se pudo cargar el catálogo de servicios:", error);
+      mostrarAlerta("No se pudo cargar el catálogo de servicios. Intenta nuevamente.", "error");
+    });
+    return;
+  }
+
+  const indice=++contadorServicioLavadoAdicional;
+  const fila=document.createElement("div");
+  fila.className="servicio-lavado-adicional-row";
+  fila.dataset.rowId=String(indice);
+
+  const select=document.createElement("select");
+  select.className="servicio-lavado-adicional-select";
+  select.setAttribute("aria-label", "Servicio adicional " + indice);
+  const inicial=document.createElement("option");
+  inicial.value="";
+  inicial.textContent="Seleccione el servicio";
+  select.appendChild(inicial);
+
+  const ordenados=serviciosAutoCamiones.slice().sort(function(a,b){
+    return String(a.nombre_servicio||"").localeCompare(String(b.nombre_servicio||""), "es", {sensitivity:"base",numeric:true});
+  });
+  ordenados.forEach(function(servicio){
+    const opcion=document.createElement("option");
+    opcion.value=String(servicio.id);
+    opcion.textContent=servicio.nombre_servicio;
+    opcion.dataset.precioSinIgv=Number(servicio.precio_sin_igv||0).toFixed(2);
+    select.appendChild(opcion);
+  });
+
+  const quitar=document.createElement("button");
+  quitar.type="button";
+  quitar.className="servicio-lavado-adicional-quitar";
+  quitar.title="Quitar este servicio";
+  quitar.setAttribute("aria-label", "Quitar servicio adicional " + indice);
+  quitar.textContent="×";
+  quitar.addEventListener("click", function(){ fila.remove(); });
+
+  fila.appendChild(select);
+  fila.appendChild(quitar);
+  contenedor.appendChild(fila);
+  select.focus();
+}
+
+function limpiarServiciosLavadoAdicionales(){
+  const contenedor=document.getElementById("serviciosLavadoAdicionales");
+  if(contenedor) contenedor.innerHTML="";
 }
 
 /* =====================================================
@@ -6600,10 +6662,16 @@ async function registrar(){
     if(categoriaRegistroActual === "pintura"){
       serviciosSeleccionados=obtenerServiciosSeleccionadosRegistro();
     }else{
-      const selectLavado=document.getElementById("servicioLavado");
-      const idServicio=selectLavado ? String(selectLavado.value || "") : "";
-      const servicioLavado=serviciosAutoCamiones.find(function(s){return String(s.id)===idServicio;});
-      if(servicioLavado) serviciosSeleccionados=[servicioLavado];
+      // El servicio principal y cada selector añadido representan una línea
+      // independiente, pero el vehículo se registra una sola vez.
+      const selectoresLavado=[
+        document.getElementById("servicioLavado"),
+        ...Array.from(document.querySelectorAll("#serviciosLavadoAdicionales .servicio-lavado-adicional-select"))
+      ].filter(Boolean);
+      serviciosSeleccionados=selectoresLavado.map(function(select){
+        const idServicio=String(select.value||"");
+        return serviciosAutoCamiones.find(function(servicio){return String(servicio.id)===idServicio;}) || null;
+      }).filter(Boolean);
     }
     const servicioSeleccionado=serviciosSeleccionados[0] || null;
     const servicio=serviciosSeleccionados.map(function(s){
@@ -8237,6 +8305,7 @@ function limpiarFormulario(){
   document.getElementById("fotoIngreso").value="";
   document.getElementById("fotoVIN").value="";
   limpiarServiciosSeleccionadosRegistro();
+  limpiarServiciosLavadoAdicionales();
   const selectLavadoReset=document.getElementById("servicioLavado");
   if(selectLavadoReset){
     seleccionarServicioPorNombre("servicioLavado", "Lavado básico");
@@ -8877,7 +8946,7 @@ function obtenerRegistrosFacturacionParaFaceta(excluir){
   if(excluir!=="servicio" && servicios.length){
     base=base.filter(function(r){return servicios.includes(String(r.servicio||"").trim());});
   }
-  if(excluir!=="estado" && estado){
+  if(excluir!=="estado"){
     base=base.filter(function(r){
       const f=estaFacturadoFacturacion(r);
       return estado==="facturado" ? f : !f;
@@ -8995,11 +9064,10 @@ function actualizarOpcionesEstadoFacturacion(){
   const hayPendiente=base.some(function(r){return !estaFacturadoFacturacion(r);});
   const hayFacturado=base.some(function(r){return estaFacturadoFacturacion(r);});
 
-  let html='<option value="">Todos</option>';
-  if(hayPendiente) html+='<option value="pendiente">Pendiente</option>';
-  if(hayFacturado) html+='<option value="facturado">Facturado</option>';
+  let html='<option value="">Pendientes por facturar</option>';
+  if(hayFacturado) html+='<option value="facturado">Facturado (historial)</option>';
   select.innerHTML=html;
-  select.value=(valorActual==="pendiente" && hayPendiente) || (valorActual==="facturado" && hayFacturado) ? valorActual : "";
+  select.value=(valorActual==="facturado" && hayFacturado) ? valorActual : "";
 }
 
 function actualizarEstadoFiltroFacturacion(){
@@ -9073,7 +9141,7 @@ function filtrarFacturacion(){
     const nombreServicioFiltro=etiquetaServicioFiltroFacturacion(r);
     const coincideServicio=!servicioFiltro.length || servicioFiltro.includes(nombreServicioFiltro);
     const estaFacturado=estaFacturadoFacturacion(r);
-    const coincideEstado=!estado || (estado==="facturado" ? estaFacturado : !estaFacturado);
+    const coincideEstado=estado==="facturado" ? estaFacturado : !estaFacturado;
     const texto=[r.placa,r.vin,r.marca,r.modelo].join(" ").toLowerCase();
 
     const idsVehiculosFactura=obtenerIdsVehiculosDeFacturasSeleccionadas();
@@ -11670,7 +11738,7 @@ programarCierreAutomatico1930();
 </script>
 
 
-<div class="version-app">V5.58 Dashboard</div>
+<div class="version-app">V5.9 Dashboard</div>
 
 <style id="autocamiones-layout-final-override">
 /* =========================================================
@@ -12332,6 +12400,22 @@ programarCierreAutomatico1930();
 #registrar #gridRegistro.modo-pyp ~ #pypServiciosPanel{
   display:block !important;
 }
+</style>
+
+<style id="lavado-multiples-servicios-ui">
+#registrar #selectorServicioLavado .lavado-agregar-servicio-btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  margin-top:8px;padding:8px 12px;min-height:34px;
+  border:1px solid #2563eb;border-radius:7px;background:#eff6ff;color:#1d4ed8;
+  font-size:13px;font-weight:600;cursor:pointer;box-sizing:border-box;
+}
+#registrar #selectorServicioLavado .lavado-agregar-servicio-btn:hover{background:#dbeafe;}
+#registrar #serviciosLavadoAdicionales{display:flex;flex-direction:column;gap:7px;margin-top:7px;}
+#registrar #serviciosLavadoAdicionales:empty{display:none;}
+#registrar .servicio-lavado-adicional-row{display:flex;align-items:center;gap:7px;width:100%;min-width:0;}
+#registrar .servicio-lavado-adicional-row select{flex:1;min-width:0;width:100%;}
+#registrar .servicio-lavado-adicional-quitar{flex:0 0 32px;height:34px;border:1px solid #fecaca;border-radius:7px;background:#fff1f2;color:#b91c1c;font-size:21px;line-height:1;cursor:pointer;}
+#registrar .servicio-lavado-adicional-quitar:hover{background:#ffe4e6;}
 </style>
 </body>
 </html>
