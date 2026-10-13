@@ -3941,7 +3941,7 @@ id="idFinalizar">
 <div class="form-group">
 
 <label>
-Foto final *
+Foto final (opcional)
 </label>
 
 <input
@@ -7480,32 +7480,31 @@ if(!id){
   throw new Error("No se encontró el vehículo.");
 }
 
-if(!archivo){
-  mostrarAlerta("Debe adjuntar la foto final.","error");
-  return;
-}
-
 boton.disabled = true;
 loading.style.display = "block";
 
-const foto = await comprimirFoto(archivo);
+// La foto final es opcional. Si se adjunta, se guarda en Drive;
+// si no se adjunta, se finaliza el lavado sin foto.
+let urlFotoFinal = null;
+if(archivo){
+  const foto = await comprimirFoto(archivo);
+  const respuestaDrive = await enviarDrive({
+    accion:"guardarFotoFinal",
+    id:id,
+    fotoFinal:foto
+  });
 
-/* 1. Guardar la foto final exclusivamente en Drive. */
-const respuestaDrive = await enviarDrive({
-  accion:"guardarFotoFinal",
-  id:id,
-  fotoFinal:foto
-});
-
-if(!respuestaDrive || respuestaDrive.ok !== true || !respuestaDrive.fotoFinal){
-  throw new Error(
-    respuestaDrive && respuestaDrive.mensaje
-      ? respuestaDrive.mensaje
-      : "No se pudo guardar la foto final en Drive."
-  );
+  if(!respuestaDrive || respuestaDrive.ok !== true || !respuestaDrive.fotoFinal){
+    throw new Error(
+      respuestaDrive && respuestaDrive.mensaje
+        ? respuestaDrive.mensaje
+        : "No se pudo guardar la foto final en Drive."
+    );
+  }
+  urlFotoFinal = respuestaDrive.fotoFinal;
 }
 
-/* 2. Supabase es la única base de datos. */
+/* Supabase registra el cierre del lavado, con foto o sin ella. */
 const respuestaSupabase = await fetch(
   SUPABASE_URL + "/rest/v1/vehiculos_autocamiones?id=eq." + encodeURIComponent(id),
   {
@@ -7520,7 +7519,7 @@ const respuestaSupabase = await fetch(
       estado:"Finalizado",
       hora_salida:new Date().toISOString(),
       observaciones_finales:observaciones,
-      foto_final:respuestaDrive.fotoFinal
+      foto_final:urlFotoFinal
     })
   }
 );
@@ -7528,7 +7527,7 @@ const respuestaSupabase = await fetch(
 if(!respuestaSupabase.ok){
   const textoError = await respuestaSupabase.text();
   throw new Error(
-    "La foto se guardó en Drive, pero Supabase no pudo actualizar el vehículo. Supabase HTTP " +
+    "Supabase no pudo actualizar el vehículo. HTTP " +
     respuestaSupabase.status + (textoError ? ": " + textoError : "")
   );
 }
@@ -11738,7 +11737,7 @@ programarCierreAutomatico1930();
 </script>
 
 
-<div class="version-app">V5.9 Dashboard</div>
+<div class="version-app">V5.5 Dashboard</div>
 
 <style id="autocamiones-layout-final-override">
 /* =========================================================
