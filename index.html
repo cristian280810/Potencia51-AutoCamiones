@@ -2364,7 +2364,7 @@ class="form-group">
 Marca *
 </label>
 
-<select id="marca">
+<select id="marca" onchange="actualizarServicioPredeterminadoPorMarca(true)">
 
 <option value="">
 Seleccione la marca
@@ -4073,7 +4073,8 @@ const SERVICIOS_AUTOCAMIONES_RESPALDO = [
   [18,"Tratamiento cerámico 3 años (Camioneta)",1100.00],
   [19,"Tratamiento cerámico 1 año",700.00],
   [20,"Pintado de calipers x4",220.00],
-  [21,"Pintado de calipers (Personalizado)",350.00]
+  [21,"Pintado de calipers (Personalizado)",350.00],
+  [22,"Lavado básico Camiones",45.00]
 ].map(function(x){
   return {id:x[0], nombre_servicio:x[1], precio_sin_igv:x[2], activo:true};
 });
@@ -4208,12 +4209,8 @@ async function cargarServiciosAutoCamiones(){
       select.disabled = false;
     });
 
-    // En Lavado y Adicionales, "Lavado básico" queda seleccionado por defecto.
-    const selectLavadoDefault = document.getElementById("servicioLavado");
-    if(selectLavadoDefault){
-      seleccionarServicioPorNombre("servicioLavado", "Lavado básico");
-      seleccionarServicioLavado(selectLavadoDefault.value || "");
-    }
+    // Selección inicial según la marca: camiones UD Trucks/Dongfeng usan S/ 45.00.
+    actualizarServicioPredeterminadoPorMarca(false);
     seleccionarServicioPorNombre("pasadoServicio", "Lavado básico");
     if(categoriaRegistroActual === "lavado") renderizarServiciosSeleccionadosRegistro();
     else if(categoriaRegistroActual === "pintura") renderizarDropdownServiciosPintura();
@@ -4246,11 +4243,8 @@ async function cargarServiciosAutoCamiones(){
       select.disabled = false;
     });
 
-    const selectLavadoDefault = document.getElementById("servicioLavado");
-    if(selectLavadoDefault){
-      seleccionarServicioPorNombre("servicioLavado", "Lavado básico");
-      seleccionarServicioLavado(selectLavadoDefault.value || "");
-    }
+    // El catálogo de respaldo también incluye Lavado básico Camiones a S/ 45.00.
+    actualizarServicioPredeterminadoPorMarca(false);
     seleccionarServicioPorNombre("pasadoServicio", "Lavado básico");
     if(categoriaRegistroActual === "lavado") renderizarServiciosSeleccionadosRegistro();
     else if(categoriaRegistroActual === "pintura") renderizarDropdownServiciosPintura();
@@ -5613,11 +5607,7 @@ function seleccionarCategoriaRegistro(categoria){
     const tipoActual = document.querySelector('input[name="tipoLavado"]:checked')?.value || "Taller";
     cambiarTipo(tipoActual);
     cargarServiciosAutoCamiones().then(function(){
-      const selectLavado = document.getElementById("servicioLavado");
-      if(selectLavado){
-        seleccionarServicioPorNombre("servicioLavado", "Lavado básico");
-        seleccionarServicioLavado(selectLavado.value || "");
-      }
+      actualizarServicioPredeterminadoPorMarca(false);
     }).catch(function(error){
       console.warn("No se pudo cargar el catálogo de Lavado y Adicionales:", error);
     });
@@ -5656,6 +5646,38 @@ function seleccionarServicioLavado(id){
       hidden.value=select.value;
     }
   }
+}
+
+// UD Trucks y Dongfeng usan el servicio especial "Lavado básico Camiones" (S/ 45 sin IGV).
+// Las demás marcas mantienen "Lavado básico". La selección se hace por nombre exacto
+// para evitar que el servicio de camiones termine seleccionado como el básico normal.
+function actualizarServicioPredeterminadoPorMarca(notificarSiFalta){
+  const marcaSelect=document.getElementById("marca");
+  const servicioSelect=document.getElementById("servicioLavado");
+  if(!marcaSelect || !servicioSelect) return false;
+
+  const marca=String(marcaSelect.value||"").trim().toLowerCase();
+  const esCamion=marca === "ud trucks" || marca === "dongfeng";
+  const nombreObjetivo=esCamion ? "Lavado básico Camiones" : "Lavado básico";
+  const servicio=serviciosAutoCamiones.find(function(s){
+    return String(s.nombre_servicio||"").trim().toLowerCase() === nombreObjetivo.toLowerCase();
+  });
+
+  if(!servicio){
+    // No permitir que un camión quede accidentalmente con el precio de S/ 15.00.
+    if(esCamion){
+      servicioSelect.value="";
+      seleccionarServicioLavado("");
+      if(notificarSiFalta){
+        mostrarAlerta('No se encontró "Lavado básico Camiones" en el catálogo. Verifica que exista activo en Supabase con precio S/ 45.00 sin IGV.',"error");
+      }
+    }
+    return false;
+  }
+
+  servicioSelect.value=String(servicio.id);
+  seleccionarServicioLavado(servicioSelect.value);
+  return true;
 }
 
 
@@ -11746,7 +11768,7 @@ programarCierreAutomatico1930();
 </script>
 
 
-<div class="version-app">V5.5 Dashboard</div>
+<div class="version-app">V6.5 Dashboard</div>
 
 <style id="autocamiones-layout-final-override">
 /* =========================================================
