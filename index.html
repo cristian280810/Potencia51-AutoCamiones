@@ -2195,6 +2195,27 @@ html, body {
 }
 </style>
 
+
+<style id="placeholder-vin-regularizacion-minusculas">
+/* Mantener el placeholder de VIN con su capitalización original,
+   aunque el texto escrito se transforme automáticamente a mayúsculas. */
+#pasadoVIN::placeholder {
+  text-transform: none !important;
+  opacity: 1;
+}
+</style>
+
+
+<style id="placeholders-placa-vin-copy-correcta">
+#placa::placeholder,
+#vin::placeholder,
+#pasadoPlaca::placeholder,
+#pasadoVIN::placeholder {
+  text-transform: none !important;
+  opacity: 1;
+}
+</style>
+
 </head>
 
 <body>
@@ -2347,7 +2368,7 @@ Placa *
 
 <input
 id="placa"
-type="text" placeholder="Ingrese Nro. de placa"
+type="text" placeholder="Ingrese Nro. de Placa"
 autocomplete="off" oninput="this.value=this.value.toUpperCase()">
 
 </div>
@@ -3483,12 +3504,12 @@ onclick="buscarRegistroPasado()">
 
 <div id="pasadoCampoPlaca" class="form-group">
 <label>Placa *</label>
-<input id="pasadoPlaca" type="text" placeholder="Ingrese placa" autocomplete="off" style="text-transform:uppercase" oninput="const inicio=this.selectionStart; const fin=this.selectionEnd; this.value=this.value.toUpperCase(); try{this.setSelectionRange(inicio,fin);}catch(e){}">
+<input id="pasadoPlaca" type="text" placeholder="Ingrese Nro. de Placa" autocomplete="off" style="text-transform:uppercase" oninput="const inicio=this.selectionStart; const fin=this.selectionEnd; this.value=this.value.toUpperCase(); try{this.setSelectionRange(inicio,fin);}catch(e){}">
 </div>
 
 <div id="pasadoCampoVIN" class="form-group" style="display:none">
 <label>VIN *</label>
-<input id="pasadoVIN" type="text" placeholder="Ingrese VIN" autocomplete="off" style="text-transform:uppercase" oninput="const inicio=this.selectionStart; const fin=this.selectionEnd; this.value=this.value.toUpperCase(); try{this.setSelectionRange(inicio,fin);}catch(e){}">
+<input id="pasadoVIN" type="text" placeholder="Ingrese Nro. de VIN" autocomplete="off" style="text-transform:uppercase" oninput="const inicio=this.selectionStart; const fin=this.selectionEnd; this.value=this.value.toUpperCase(); try{this.setSelectionRange(inicio,fin);}catch(e){}">
 </div>
 
 <div class="form-group">
@@ -11969,7 +11990,7 @@ programarCierreAutomatico1930();
 </script>
 
 
-<div class="version-app">V5.53223 Dashboard</div>
+<div class="version-app">V5.533 Dashboard</div>
 
 <style id="autocamiones-layout-final-override">
 /* =========================================================
