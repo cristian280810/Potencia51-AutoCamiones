@@ -11768,7 +11768,7 @@ programarCierreAutomatico1930();
 </script>
 
 
-<div class="version-app">V5.5 Dashboard</div>
+<div class="version-app">V5.9 Dashboard</div>
 
 <style id="autocamiones-layout-final-override">
 /* =========================================================
@@ -12617,5 +12617,58 @@ programarCierreAutomatico1930();
  #registrar .pyp-servicio-fila input,
  #registrar .pyp-servicio-fila select{max-width:100%!important;min-width:0!important}
  #registrar .pyp-agregar-servicio-btn{width:100%!important;max-width:100%!important}
+}
+</style>
+
+
+<style id="autocamiones-mobile-column-labels">
+@media(max-width:700px){
+  #serviciosSeleccionadosRegistro .pyp-servicio-encabezado{display:none!important}
+  #serviciosSeleccionadosRegistro .pyp-servicio-fila:not(.pyp-servicio-encabezado){
+    grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;
+    gap:7px 10px!important;
+  }
+  #serviciosSeleccionadosRegistro .pyp-servicio-fila:not(.pyp-servicio-encabezado) .pyp-servicio-nombre,
+  #serviciosSeleccionadosRegistro .pyp-servicio-fila:not(.pyp-servicio-encabezado) .pyp-servicio-pieza{
+    grid-column:1/-1!important;
+  }
+  #serviciosSeleccionadosRegistro .pyp-servicio-fila:not(.pyp-servicio-encabezado) .pyp-servicio-pieza::before{
+    content:"Pieza / paño";display:block;font-size:11px;font-weight:700;color:#475569;margin-bottom:4px;
+  }
+  #serviciosSeleccionadosRegistro .pyp-servicio-fila:not(.pyp-servicio-encabezado) .pyp-servicio-precio::before{
+    content:"Precio unitario";display:block;font-size:11px;font-weight:700;color:#475569;margin-bottom:4px;text-align:left;
+  }
+  #serviciosSeleccionadosRegistro .pyp-servicio-fila:not(.pyp-servicio-encabezado) .pyp-cantidad::before{content:""}
+  #serviciosSeleccionadosRegistro .pyp-servicio-fila:not(.pyp-servicio-encabezado) .pyp-cantidad{
+    margin-top:17px;min-width:0;width:100%;
+  }
+  #serviciosSeleccionadosRegistro .pyp-servicio-fila:not(.pyp-servicio-encabezado) .pyp-descuento{
+    margin-top:17px;min-width:0;width:100%;
+  }
+  #serviciosSeleccionadosRegistro .pyp-servicio-fila:not(.pyp-servicio-encabezado) .pyp-servicio-total{
+    grid-column:1/-1!important;text-align:right!important;font-weight:700;
+  }
+  #serviciosSeleccionadosRegistro .pyp-servicio-fila:not(.pyp-servicio-encabezado) .pyp-cantidad,
+  #serviciosSeleccionadosRegistro .pyp-servicio-fila:not(.pyp-servicio-encabezado) .pyp-descuento{
+    position:relative;
+  }
+  #serviciosSeleccionadosRegistro .pyp-servicio-fila:not(.pyp-servicio-encabezado) .pyp-cantidad::placeholder,
+  #serviciosSeleccionadosRegistro .pyp-servicio-fila:not(.pyp-servicio-encabezado) .pyp-descuento::placeholder{color:#64748b}
+  #serviciosSeleccionadosRegistro .pyp-servicio-fila:not(.pyp-servicio-encabezado) .pyp-servicio-total::before{
+    content:"Total (sin IGV): ";font-size:12px;color:#475569;font-weight:600;
+  }
+  #serviciosSeleccionadosRegistro .pyp-servicio-fila:not(.pyp-servicio-encabezado) .pyp-servicio-quitar{
+    grid-column:1/-1!important;justify-self:end!important;
+  }
+  #serviciosSeleccionadosRegistro .pyp-servicio-fila:not(.pyp-servicio-encabezado) .pyp-cantidad,
+  #serviciosSeleccionadosRegistro .pyp-servicio-fila:not(.pyp-servicio-encabezado) .pyp-descuento{margin-top:0}
+  #serviciosSeleccionadosRegistro .pyp-servicio-fila:not(.pyp-servicio-encabezado) .pyp-cantidad{padding-top:22px}
+  #serviciosSeleccionadosRegistro .pyp-servicio-fila:not(.pyp-servicio-encabezado) .pyp-descuento{padding-top:22px}
+  #serviciosSeleccionadosRegistro .pyp-servicio-fila:not(.pyp-servicio-encabezado) .pyp-cantidad:after{
+    content:"Cantidad";position:absolute;top:2px;left:0;font-size:11px;font-weight:700;color:#475569;
+  }
+  #serviciosSeleccionadosRegistro .pyp-servicio-fila:not(.pyp-servicio-encabezado) .pyp-descuento:after{
+    content:"Descuento";position:absolute;top:2px;left:0;font-size:11px;font-weight:700;color:#475569;
+  }
 }
 </style>
