@@ -2180,6 +2180,21 @@ html, body {
 }
 </style>
 
+
+<style id="toggle-filtros-regularizacion">
+.filtros-pasados-toggle{
+  display:flex;
+  justify-content:flex-end;
+  margin:10px 0 8px;
+}
+.filtros-pasados-toggle .btn{min-width:140px;}
+#panelFiltrosPasados[hidden]{display:none!important;}
+@media(max-width:700px){
+  .filtros-pasados-toggle{justify-content:stretch;}
+  .filtros-pasados-toggle .btn{width:100%;}
+}
+</style>
+
 </head>
 
 <body>
@@ -3348,7 +3363,19 @@ onclick="buscarRegistroPasado()">
 
 </div>
 
-<div class="filtros-pasados">
+<div class="filtros-pasados-toggle">
+  <button
+    type="button"
+    id="btnToggleFiltrosPasados"
+    class="btn btn-secondary"
+    aria-controls="panelFiltrosPasados"
+    aria-expanded="true"
+    onclick="alternarFiltrosPasados()">
+    ⬆️ Ocultar filtros
+  </button>
+</div>
+
+<div class="filtros-pasados" id="panelFiltrosPasados">
 
   <div class="filtros-pasados-titulo">
     🔎 Buscar registros que no tengan:
@@ -6965,6 +6992,17 @@ const REGISTROS_PASADOS_POR_PAGINA = 10;
 let registrosPasadosEncontrados = [];
 let paginaRegistrosPasados = 1;
 let registroPasadoSeleccionadoId = null;
+
+function alternarFiltrosPasados(){
+  const panel=document.getElementById("panelFiltrosPasados");
+  const boton=document.getElementById("btnToggleFiltrosPasados");
+  if(!panel || !boton) return;
+
+  const ocultar=!panel.hidden;
+  panel.hidden=ocultar;
+  boton.setAttribute("aria-expanded", ocultar ? "false" : "true");
+  boton.innerHTML=ocultar ? "⬇️ Mostrar filtros" : "⬆️ Ocultar filtros";
+}
 
 function renderizarRegistrosPasadosPaginados(){
   const lista=document.getElementById("listaRegistrosPasados"), paginacion=document.getElementById("paginacionRegistrosPasados");
@@ -11931,7 +11969,7 @@ programarCierreAutomatico1930();
 </script>
 
 
-<div class="version-app">V5.53 Dashboard</div>
+<div class="version-app">V5.53223 Dashboard</div>
 
 <style id="autocamiones-layout-final-override">
 /* =========================================================
