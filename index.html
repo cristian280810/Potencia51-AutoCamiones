@@ -6959,6 +6959,13 @@ function formatearFechaRegularizacion(fecha){
   return valores.day + "-" + valores.month + "-" + valores.year;
 }
 
+/* Estado y paginación de Regularizar registros.
+   Estas variables deben declararse antes de renderizar resultados. */
+const REGISTROS_PASADOS_POR_PAGINA = 10;
+let registrosPasadosEncontrados = [];
+let paginaRegistrosPasados = 1;
+let registroPasadoSeleccionadoId = null;
+
 function renderizarRegistrosPasadosPaginados(){
   const lista=document.getElementById("listaRegistrosPasados"), paginacion=document.getElementById("paginacionRegistrosPasados");
   if(!lista||!paginacion)return;
@@ -11924,7 +11931,7 @@ programarCierreAutomatico1930();
 </script>
 
 
-<div class="version-app">V5.533 Dashboard</div>
+<div class="version-app">V5.53 Dashboard</div>
 
 <style id="autocamiones-layout-final-override">
 /* =========================================================
