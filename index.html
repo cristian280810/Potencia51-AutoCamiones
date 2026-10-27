@@ -11768,7 +11768,7 @@ programarCierreAutomatico1930();
 </script>
 
 
-<div class="version-app">V6.5 Dashboard</div>
+<div class="version-app">V5.5 Dashboard</div>
 
 <style id="autocamiones-layout-final-override">
 /* =========================================================
@@ -12782,6 +12782,85 @@ programarCierreAutomatico1930();
   }
   #serviciosSeleccionadosRegistro .pyp-servicio-fila .pyp-servicio-quitar{
     justify-self:center!important;
+  }
+  #serviciosSeleccionadosRegistro .pyp-servicio-fila input,
+  #serviciosSeleccionadosRegistro .pyp-servicio-fila select{
+    width:100%!important;
+    min-width:0!important;
+  }
+}
+</style>
+
+
+<style id="autocamiones-horizontal-row-alignment-fix">
+@media(max-width:700px){
+  /* Fuerza una tabla horizontal real: cada campo de la fila queda bajo su encabezado. */
+  #serviciosSeleccionadosRegistro{
+    overflow-x:auto!important;
+    overflow-y:visible!important;
+    -webkit-overflow-scrolling:touch!important;
+    width:100%!important;
+    max-width:100%!important;
+  }
+  #serviciosSeleccionadosRegistro .pyp-servicio-fila{
+    display:grid!important;
+    grid-template-columns:170px 180px 100px 100px 110px 120px 36px!important;
+    column-gap:8px!important;
+    align-items:center!important;
+    min-width:870px!important;
+    width:870px!important;
+    max-width:none!important;
+    box-sizing:border-box!important;
+  }
+  #serviciosSeleccionadosRegistro .pyp-servicio-encabezado{
+    display:grid!important;
+    grid-template-columns:170px 180px 100px 100px 110px 120px 36px!important;
+    min-width:870px!important;
+    width:870px!important;
+    position:sticky!important;
+    left:0!important;
+    z-index:3!important;
+    background:#eaf0f8!important;
+  }
+  #serviciosSeleccionadosRegistro .pyp-servicio-fila:not(.pyp-servicio-encabezado){
+    display:grid!important;
+    grid-template-columns:170px 180px 100px 100px 110px 120px 36px!important;
+    min-width:870px!important;
+    width:870px!important;
+    padding:8px!important;
+    margin:0!important;
+    border:0!important;
+    border-bottom:1px solid #d5dde7!important;
+    border-radius:0!important;
+    background:#fff!important;
+  }
+  #serviciosSeleccionadosRegistro .pyp-servicio-fila>*{
+    grid-column:auto!important;
+    width:100%!important;
+    min-width:0!important;
+    max-width:none!important;
+    margin:0!important;
+    padding:6px!important;
+    box-sizing:border-box!important;
+    align-self:center!important;
+  }
+  #serviciosSeleccionadosRegistro .pyp-servicio-fila .pyp-servicio-nombre,
+  #serviciosSeleccionadosRegistro .pyp-servicio-fila .pyp-servicio-pieza,
+  #serviciosSeleccionadosRegistro .pyp-servicio-fila .pyp-servicio-precio,
+  #serviciosSeleccionadosRegistro .pyp-servicio-fila .pyp-cantidad,
+  #serviciosSeleccionadosRegistro .pyp-servicio-fila .pyp-descuento,
+  #serviciosSeleccionadosRegistro .pyp-servicio-fila .pyp-servicio-total,
+  #serviciosSeleccionadosRegistro .pyp-servicio-fila .pyp-servicio-quitar{
+    grid-column:auto!important;
+    text-align:left!important;
+  }
+  #serviciosSeleccionadosRegistro .pyp-servicio-fila .pyp-servicio-precio::before,
+  #serviciosSeleccionadosRegistro .pyp-servicio-fila .pyp-cantidad::after,
+  #serviciosSeleccionadosRegistro .pyp-servicio-fila .pyp-descuento::after,
+  #serviciosSeleccionadosRegistro .pyp-servicio-fila .pyp-servicio-total::before,
+  #serviciosSeleccionadosRegistro .pyp-servicio-fila .pyp-servicio-pieza::before{
+    content:none!important;
+    display:none!important;
   }
   #serviciosSeleccionadosRegistro .pyp-servicio-fila input,
   #serviciosSeleccionadosRegistro .pyp-servicio-fila select{
