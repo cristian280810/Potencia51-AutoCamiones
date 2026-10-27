@@ -2170,6 +2170,16 @@ html, body {
 }
 </style>
 
+
+<style id="placeholder-placa-regularizacion-minusculas">
+/* El texto de ayuda queda en minúsculas; lo escrito por el usuario
+   se sigue convirtiendo a mayúsculas mediante el oninput existente. */
+#pasadoPlaca::placeholder {
+  text-transform: none !important;
+  opacity: 1;
+}
+</style>
+
 </head>
 
 <body>
@@ -7157,7 +7167,41 @@ async function guardarRegistroPasado(){
     const fotos={fotoIngreso:actual.foto_ingreso||"",fotoVIN:actual.foto_vin||""};
     if(archivoIngreso)fotos.fotoIngreso=await enviarDrive({accion:"guardarFotos",id,fotoIngreso:await comprimirFoto(archivoIngreso)}).then(r=>r.fotoIngreso||fotos.fotoIngreso);
     if(archivoVIN)fotos.fotoVIN=await enviarDrive({accion:"guardarFotos",id,fotoVIN:await comprimirFoto(archivoVIN)}).then(r=>r.fotoVIN||fotos.fotoVIN);
-    const body={tipo,placa:tipo==="Taller"?placa:"",vin:tipo==="Nuevo"?vin:"",marca,modelo:"",servicio:servicioSeleccionado.nombre,servicio_id:servicioSeleccionado.id,precio_sin_igv:servicioSeleccionado.precioSinIgv,igv:servicioSeleccionado.igv,precio_con_igv:servicioSeleccionado.precioConIgv,estado:actual.estado||"Finalizado",hora_inicio_lavado:convertirFechaLimaAISO(fecha),observaciones,observaciones_finales:actual.observaciones_finales||"",foto_ingreso:fotos.fotoIngreso,foto_final:actual.foto_final||"",foto_vin:fotos.fotoVIN,facturado:actual.facturado||false,fecha_facturacion:actual.fecha_facturacion||null};
+    const esActualizacion = Boolean(registroPasadoSeleccionadoId);
+
+    // Para un registro nuevo regularizado manualmente, fijar la hora de ingreso
+    // a las 11:00 a. m. y la salida a la 1:00 p. m. del mismo día (hora de Lima).
+    // Si se está editando un registro previo, conservar su hora de ingreso y salida.
+    const horaInicioISO = combinarFechaLimaConHoraExistente(
+      fecha,
+      esActualizacion ? (actual.hora_inicio_lavado || actual.created_at || null) : null
+    );
+    const horaSalidaISO = esActualizacion
+      ? (actual.hora_salida || null)
+      : new Date(fecha + "T13:00:00-05:00").toISOString();
+
+    // Proteger las observaciones previas: si el registro ya tenía texto,
+    // conservarlo exactamente como está y no actualizar ese campo.
+    // Si estaba vacío, conservar lo que escriba el usuario y añadir la nota de sistema.
+    const observacionesPrevias = actual.observaciones == null ? "" : String(actual.observaciones);
+    let observacionesFinalesRegistro = observacionesPrevias;
+
+    if(!esActualizacion || !observacionesPrevias.trim()){
+      const notaSistema = esActualizacion ? "Registro actualizado" : "Registro regularizado";
+      const lineasObservaciones = String(observaciones || "")
+        .split(/\r?\n/)
+        .map(function(linea){ return linea.trim(); })
+        .filter(Boolean);
+
+      if(!lineasObservaciones.some(function(linea){
+        return linea.toLocaleLowerCase("es") === notaSistema.toLocaleLowerCase("es");
+      })){
+        lineasObservaciones.push(notaSistema);
+      }
+      observacionesFinalesRegistro = lineasObservaciones.join("\n");
+    }
+
+    const body={tipo,placa:tipo==="Taller"?placa:"",vin:tipo==="Nuevo"?vin:"",marca,modelo:"",servicio:servicioSeleccionado.nombre,servicio_id:servicioSeleccionado.id,precio_sin_igv:servicioSeleccionado.precioSinIgv,igv:servicioSeleccionado.igv,precio_con_igv:servicioSeleccionado.precioConIgv,estado:actual.estado||"Finalizado",hora_inicio_lavado:horaInicioISO,hora_salida:horaSalidaISO,observaciones:observacionesFinalesRegistro,observaciones_finales:actual.observaciones_finales||"",foto_ingreso:fotos.fotoIngreso,foto_final:actual.foto_final||"",foto_vin:fotos.fotoVIN,facturado:actual.facturado||false,fecha_facturacion:actual.fecha_facturacion||null};
     let respuesta;
     if(registroPasadoSeleccionadoId){
       respuesta=await fetch(SUPABASE_URL+"/rest/v1/vehiculos_autocamiones?id=eq."+encodeURIComponent(id),{method:"PATCH",headers:{"apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY,"Content-Type":"application/json","Prefer":"return=minimal"},body:JSON.stringify(body)});
