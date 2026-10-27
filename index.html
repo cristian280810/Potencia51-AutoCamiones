@@ -11768,7 +11768,7 @@ programarCierreAutomatico1930();
 </script>
 
 
-<div class="version-app">V6.5 Dashboard</div>
+<div class="version-app">V5.5 Dashboard</div>
 
 <style id="autocamiones-layout-final-override">
 /* =========================================================
@@ -12577,4 +12577,45 @@ programarCierreAutomatico1930();
   font-family:inherit;
 }
 .pyp-opcion-independiente:hover{background:#f3f4f6;}
+</style>
+
+
+<style id="autocamiones-mobile-responsive-fix-2026">
+@media (max-width:700px){
+ html,body{max-width:100%;overflow-x:hidden!important}
+ *,*::before,*::after{box-sizing:border-box}
+ #registrar,#registrar .card,#registrar .form-grid,#registrar #gridRegistro,
+ #registrar #pypServiciosPanel,#registrar #serviciosSeleccionadosRegistro{
+   max-width:100%!important;min-width:0!important
+ }
+ #registrar #gridRegistro.modo-pyp,
+ #registrar #gridRegistro.modo-pyp.modo-vin{
+   display:grid!important;grid-template-columns:minmax(0,1fr)!important;
+ }
+ #registrar #gridRegistro>*{min-width:0!important;max-width:100%!important}
+ #registrar #pypServiciosPanel{width:100%!important;overflow:visible!important}
+ #registrar .pyp-servicio-encabezado{display:none!important}
+ #registrar .pyp-servicio-fila:not(.pyp-servicio-encabezado){
+   display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;
+   min-width:0!important;width:100%!important;gap:8px!important;
+   padding:12px!important;margin:8px 0!important;border:1px solid #dbe2ea!important;
+   border-radius:9px!important;background:#fff!important;
+ }
+ #registrar .pyp-servicio-fila:not(.pyp-servicio-encabezado)>*{
+   min-width:0!important;max-width:100%!important;width:100%!important;
+   overflow-wrap:anywhere;
+ }
+ #registrar .pyp-servicio-fila:not(.pyp-servicio-encabezado)>:first-child{
+   grid-column:1/-1!important;font-weight:700
+ }
+ #registrar .pyp-servicio-fila:not(.pyp-servicio-encabezado)>:nth-child(2){
+   grid-column:1/-1!important
+ }
+ #registrar .pyp-servicio-fila:not(.pyp-servicio-encabezado)>:last-child{
+   width:auto!important;justify-self:end!important
+ }
+ #registrar .pyp-servicio-fila input,
+ #registrar .pyp-servicio-fila select{max-width:100%!important;min-width:0!important}
+ #registrar .pyp-agregar-servicio-btn{width:100%!important;max-width:100%!important}
+}
 </style>
