@@ -2149,6 +2149,27 @@ html, body {
 .pyp-factura-badge{display:inline-block;padding:4px 8px;border-radius:7px;background:#dbeafe;border:1px solid #bfdbfe;color:#1d4ed8;font-weight:700;font-size:12px;}
 .pyp-factura-pendiente{color:#9ca3af;font-size:12px;font-style:italic;}
 </style>
+
+<style id="resumen-servicios-sunat-autocamiones">
+.factura-items-sunat{
+  margin-top:16px;border:1px solid #dbe3ee;border-radius:10px;background:#fff;overflow:hidden;
+}
+.factura-items-sunat-heading{padding:12px 14px;background:#f8fafc;border-bottom:1px solid #e2e8f0;}
+.factura-items-sunat-heading strong{display:block;color:#172033;font-size:14px;}
+.factura-items-sunat-heading p{margin:4px 0 0;color:#64748b;font-size:12px;line-height:1.45;}
+.factura-items-sunat-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+.factura-items-sunat table{width:100%;min-width:650px;border-collapse:collapse;font-size:13px;}
+.factura-items-sunat th,.factura-items-sunat td{padding:9px 11px;border-bottom:1px solid #e5e7eb;}
+.factura-items-sunat thead th{background:#f1f5f9;color:#334155;font-weight:700;text-align:left;white-space:nowrap;}
+.factura-items-sunat .sunat-number{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;}
+.factura-items-sunat tfoot th{background:#f8fafc;color:#111827;font-weight:700;border-bottom:0;}
+.factura-items-sunat-empty{padding:14px;color:#64748b;text-align:center;}
+@media(max-width:700px){
+  .factura-items-sunat table{min-width:650px;}
+  .factura-items-sunat-heading{padding:10px;}
+}
+</style>
+
 </head>
 
 <body>
@@ -3120,6 +3141,39 @@ onclick="limpiarFormulario()">
       <div class="facturacion-card">IGV<strong id="nuevaFacturaIgv">S/ 0.00</strong></div>
       <div class="facturacion-card">Total<strong id="nuevaFacturaTotal">S/ 0.00</strong></div>
     </div>
+    <section class="factura-items-sunat" aria-label="Resumen de ítems para SUNAT">
+      <div class="factura-items-sunat-heading">
+        <strong>🧾 Resumen de servicios para SUNAT</strong>
+        <p>Los servicios se agrupan por descripción y precio unitario. Usa la cantidad, el precio unitario sin IGV y los importes para registrar cada ítem en SUNAT.</p>
+      </div>
+      <div class="factura-items-sunat-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Descripción del servicio</th>
+              <th class="sunat-number">Cantidad</th>
+              <th class="sunat-number">Precio unitario sin IGV</th>
+              <th class="sunat-number">Importe sin IGV</th>
+              <th class="sunat-number">Importe total con IGV</th>
+            </tr>
+          </thead>
+          <tbody id="nuevaFacturaResumenServiciosBody">
+            <tr><td colspan="5" class="factura-items-sunat-empty">Selecciona los servicios que deseas facturar.</td></tr>
+          </tbody>
+          <tfoot>
+            <tr>
+              <th colspan="3">Total sin IGV</th>
+              <th id="nuevaFacturaResumenServiciosTotal" class="sunat-number">S/ 0.00</th>
+              <th></th>
+            </tr>
+            <tr>
+              <th colspan="4">Total con IGV</th>
+              <th id="nuevaFacturaResumenServiciosTotalConIgv" class="sunat-number">S/ 0.00</th>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </section>
     <div id="nuevaFacturaDetraccionBox" class="facturacion-pagos-box">
       <h3>💰 Detracción y forma de pago</h3>
       <p id="nuevaFacturaDetraccionTexto" class="facturacion-ayuda">El sistema evaluará automáticamente la detracción sobre el total de la factura.</p>
@@ -9585,6 +9639,63 @@ function normalizarMesFacturacion(valor){
   return /^\d{4}-\d{2}$/.test(v) ? v+"-01" : "";
 }
 
+
+function renderizarResumenServiciosParaSunat(seleccionados){
+  const cuerpo=document.getElementById("nuevaFacturaResumenServiciosBody");
+  const totalElemento=document.getElementById("nuevaFacturaResumenServiciosTotal");
+  const totalConIgvElemento=document.getElementById("nuevaFacturaResumenServiciosTotalConIgv");
+  if(!cuerpo || !totalElemento || !totalConIgvElemento) return;
+
+  const grupos=new Map();
+  (seleccionados || []).forEach(function(registro){
+    const nombre=String(
+      typeof servicioMostrarFacturacion==="function"
+        ? servicioMostrarFacturacion(registro)
+        : (registro.servicio || "Servicio sin nombre")
+    ).trim() || "Servicio sin nombre";
+    const precio=Number(Number(registro.precio_sin_igv || 0).toFixed(2));
+    const clave=nombre.toLocaleLowerCase("es") + "|" + precio.toFixed(2);
+
+    if(!grupos.has(clave)){
+      grupos.set(clave,{nombre:nombre,precio:precio,cantidad:0});
+    }
+    grupos.get(clave).cantidad += 1;
+  });
+
+  const items=Array.from(grupos.values()).sort(function(a,b){
+    const comparacion=a.nombre.localeCompare(b.nombre,"es",{sensitivity:"base"});
+    return comparacion || a.precio-b.precio;
+  });
+
+  if(!items.length){
+    cuerpo.innerHTML='<tr><td colspan="5" class="factura-items-sunat-empty">No hay servicios seleccionados.</td></tr>';
+    totalElemento.textContent="S/ 0.00";
+    totalConIgvElemento.textContent="S/ 0.00";
+    return;
+  }
+
+  let subtotalSinIgv=0;
+  let subtotalConIgv=0;
+  cuerpo.innerHTML=items.map(function(item){
+    const importeSinIgv=Number((item.cantidad*item.precio).toFixed(2));
+    const importes=calcularImportesFacturacion(importeSinIgv);
+    const importeConIgv=Number(importes.total.toFixed(2));
+    subtotalSinIgv+=importeSinIgv;
+    subtotalConIgv+=importeConIgv;
+
+    return '<tr>' +
+      '<td>'+esc(item.nombre)+'</td>' +
+      '<td class="sunat-number">'+item.cantidad+'</td>' +
+      '<td class="sunat-number">S/ '+item.precio.toFixed(2)+'</td>' +
+      '<td class="sunat-number">S/ '+importeSinIgv.toFixed(2)+'</td>' +
+      '<td class="sunat-number">S/ '+importeConIgv.toFixed(2)+'</td>' +
+      '</tr>';
+  }).join("");
+
+  totalElemento.textContent="S/ "+subtotalSinIgv.toFixed(2);
+  totalConIgvElemento.textContent="S/ "+subtotalConIgv.toFixed(2);
+}
+
 function abrirModalNuevaFactura(){
   const seleccionados=obtenerSeleccionadosFacturacion();
   if(!seleccionados.length){
@@ -9614,6 +9725,7 @@ function abrirModalNuevaFactura(){
   document.getElementById("nuevaFacturaObservaciones").value="";
   document.getElementById("nuevaFacturaArchivo").value="";
   document.getElementById("nuevaFacturaCantidad").textContent=seleccionados.length;
+  renderizarResumenServiciosParaSunat(seleccionados);
   document.getElementById("nuevaFacturaSinIgv").textContent="S/ "+resumen.sinIgv.toFixed(2);
   document.getElementById("nuevaFacturaIgv").textContent="S/ "+resumen.igv.toFixed(2);
   document.getElementById("nuevaFacturaTotal").textContent="S/ "+resumen.total.toFixed(2);
