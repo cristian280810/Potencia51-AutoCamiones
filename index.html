@@ -2216,6 +2216,46 @@ html, body {
 }
 </style>
 
+
+<style id="modal-emision-factura-mas-ancho-autocamiones">
+/* Más espacio horizontal para revisar los datos y el resumen de SUNAT. */
+#modalNuevaFactura{
+  padding:12px !important;
+}
+#modalNuevaFactura .modal-content{
+  width:min(96vw,1100px) !important;
+  max-width:1100px !important;
+  max-height:94vh !important;
+  overflow-x:hidden !important;
+}
+#modalNuevaFactura .factura-items-sunat{
+  width:100%;
+}
+#modalNuevaFactura .factura-items-sunat-scroll{
+  width:100%;
+  overflow-x:auto;
+  -webkit-overflow-scrolling:touch;
+}
+#modalNuevaFactura .factura-items-sunat table{
+  min-width:760px;
+}
+@media(max-width:700px){
+  #modalNuevaFactura{
+    padding:8px !important;
+    align-items:center;
+  }
+  #modalNuevaFactura .modal-content{
+    width:96vw !important;
+    max-width:96vw !important;
+    max-height:94vh !important;
+    padding:16px !important;
+  }
+  #modalNuevaFactura .factura-items-sunat-scroll{
+    overflow-x:auto !important;
+  }
+}
+</style>
+
 </head>
 
 <body>
@@ -2841,7 +2881,7 @@ onclick="limpiarFormulario()">
 <button type="button" class="servicios-multiselect-btn" onclick="toggleFiltroServiciosFacturacion(event)"><span id="facturacionServicioTexto">Todos los servicios</span><span>▾</span></button>
 <div id="facturacionServicioMenu" class="servicios-multiselect-menu"></div>
 </div></div>
-<div class="form-group"><label>Estado</label><select id="facturacionEstado" onchange="actualizarEstadoFiltroFacturacion(); cargarServiciosFiltroFacturacionSegunFactura(); actualizarFacturacionAutomaticamente();"><option value="">Pendientes por facturar</option><option value="facturado">Facturado (historial)</option></select></div>
+<div class="form-group"><label>Estado</label><select id="facturacionEstado" onchange="actualizarEstadoFiltroFacturacion(); actualizarFacturacionAutomaticamente();"><option value="pendiente">Pendientes por facturar</option><option value="facturado">Facturado (historial)</option><option value="todos">Todos los estados</option></select></div>
 <div class="form-group">
   <label>Buscar</label>
   <input id="facturacionBuscar" type="text" placeholder="Placa, VIN, marca o modelo" oninput="actualizarFacturacionAutomaticamente()">
@@ -3134,7 +3174,7 @@ onclick="limpiarFormulario()">
      MODAL NUEVA FACTURA
 ===================================================== -->
 <div id="modalNuevaFactura" class="modal">
-  <div class="modal-content" style="max-width:700px;">
+  <div class="modal-content" style="max-width:1100px;width:96vw;">
     <div class="modal-header">
       <h2>🧾 Emitir factura</h2>
       <button type="button" class="close" onclick="cerrarModalNuevaFactura()">&times;</button>
@@ -8899,15 +8939,11 @@ function actualizarTextoMarcaFacturacion(){
 }
 
 function toggleMenuFacturasFacturacion(event){
-  const estado=document.getElementById("facturacionEstado");
-  if(estado && String(estado.value||"").trim()!==""){
-    if(event) event.preventDefault();
-    return;
-  }
   if(event) event.stopPropagation();
   const menu=document.getElementById("facturacionFacturaDropdown");
   if(menu) menu.classList.toggle("show");
 }
+
 
 function cerrarMenuFacturasFacturacion(){
   const menu=document.getElementById("facturacionFacturaDropdown");
@@ -8923,9 +8959,6 @@ function cargarOpcionesFiltroFacturaFacturacion(){
 function filtrarOpcionesFacturaFacturacion(){
   const cont=document.getElementById("facturacionFacturaOpciones");
   if(!cont) return;
-
-  const estado=document.getElementById("facturacionEstado");
-  if(estado && String(estado.value||"").trim()!=="") return;
 
   const input=document.getElementById("buscarFacturaFacturacion");
   const busqueda=String(input?.value||"").trim().toLowerCase();
@@ -8952,6 +8985,13 @@ function filtrarOpcionesFacturaFacturacion(){
       );
     });
 
+  const disponibles=new Set(facturas.map(function(f){return String(f.id);}));
+  // Quitar facturas que ya no corresponden con las fechas, estado,
+  // marca, tipo, servicio o búsqueda elegidos.
+  facturasFiltroFacturacionSeleccionadas=new Set(
+    Array.from(facturasFiltroFacturacionSeleccionadas).filter(function(id){return disponibles.has(String(id));})
+  );
+
   cont.innerHTML=facturas.map(function(f){
     const id=String(f.id);
     const numero=String(f.numero_factura||"").trim();
@@ -8966,43 +9006,37 @@ function filtrarOpcionesFacturaFacturacion(){
   }).join("");
 
   if(!facturas.length){
-    cont.innerHTML='<div class="facturacion-filtro-factura-sin-resultados">No se encontró la factura.</div>';
+    cont.innerHTML='<div class="facturacion-filtro-factura-sin-resultados">No hay facturas disponibles para los filtros seleccionados.</div>';
   }
+  actualizarTextoFiltroFacturasFacturacion();
 }
+
 
 function aplicarBusquedaFacturaFacturacion(event){
   if(event) event.preventDefault();
-
-  const estado=document.getElementById("facturacionEstado");
-  if(estado && String(estado.value||"").trim()!=="") return;
 
   const input=document.getElementById("buscarFacturaFacturacion");
   const termino=String(input?.value||"").trim().toLowerCase();
   if(!termino) return;
 
-  const coincidencias=(facturasDashboard||[]).filter(function(f){
-    return String(f.numero_factura||"").trim().toLowerCase()===termino;
+  // La búsqueda solo puede seleccionar una factura que figure entre las
+  // opciones compatibles con los demás filtros activos.
+  const disponibles=Array.from(document.querySelectorAll("#facturacionFacturaOpciones input[type='checkbox']"));
+  const coincidencias=disponibles.filter(function(el){
+    const f=(facturasDashboard||[]).find(function(x){return String(x.id)===String(el.value);});
+    return f && String(f.numero_factura||"").trim().toLowerCase()===termino;
   });
 
   if(coincidencias.length===1){
     facturasFiltroFacturacionSeleccionadas.clear();
-    facturasFiltroFacturacionSeleccionadas.add(String(coincidencias[0].id));
-
-    document.querySelectorAll("#facturacionFacturaOpciones input[type='checkbox']").forEach(function(el){
-      el.checked=String(el.value)===String(coincidencias[0].id);
-    });
-
-    const todas=document.getElementById("facturacionFacturasTodas");
-    if(todas) todas.checked=false;
-
+    facturasFiltroFacturacionSeleccionadas.add(String(coincidencias[0].value));
     actualizarTextoFiltroFacturasFacturacion();
-    actualizarEstadoFiltroFacturacion();
-    cargarServiciosFiltroFacturacionSegunFactura();
     facturacionPaginaActual=1;
     actualizarFacturacionAutomaticamente();
     cerrarMenuFacturasFacturacion();
   }
 }
+
 
 function cambiarFacturaFiltroFacturacion(id, marcada){
   id=String(id);
@@ -9113,18 +9147,24 @@ function obtenerRegistrosFacturacionParaFaceta(excluir){
     });
   }
   if(excluir!=="tipo" && tipo){
-    base=base.filter(function(r){return normalizarTipoAtencion(r.tipo||"")===normalizarTipoAtencion(tipo);});
+    base=base.filter(function(r){
+      return normalizarTipoAtencion(r.tipo||"")===normalizarTipoAtencion(tipo);
+    });
   }
   if(excluir!=="marca" && marcas.length){
     base=base.filter(function(r){return marcas.includes(String(r.marca||"").trim());});
   }
   if(excluir!=="servicio" && servicios.length){
-    base=base.filter(function(r){return servicios.includes(String(r.servicio||"").trim());});
-  }
-  if(excluir!=="estado"){
     base=base.filter(function(r){
-      const f=estaFacturadoFacturacion(r);
-      return estado==="facturado" ? f : !f;
+      return servicios.includes(etiquetaServicioFiltroFacturacion(r));
+    });
+  }
+  if(excluir!=="estado" && estado){
+    base=base.filter(function(r){
+      const facturado=estaFacturadoFacturacion(r);
+      if(estado==="facturado") return facturado;
+      if(estado==="pendiente") return !facturado;
+      return true; // "todos"
     });
   }
   if(excluir!=="buscar" && buscar){
@@ -9140,91 +9180,35 @@ function obtenerRegistrosFacturacionParaFaceta(excluir){
   return base;
 }
 
-function actualizarBloqueoFacetasSinResultadosFacturacion(){
-  const lista=filtrarFacturacion();
-  const sinResultados=lista.length===0;
 
+function actualizarBloqueoFacetasSinResultadosFacturacion(){
   const tipo=document.getElementById("facturacionTipo");
   const estado=document.getElementById("facturacionEstado");
   const servicioBtn=document.querySelector("#facturacionServicio .servicios-multiselect-btn");
   const marcaBtn=document.querySelector("#facturacionMarca .servicios-multiselect-btn");
   const facturaBtn=document.querySelector("#facturacionFacturaMenu .servicios-multiselect-btn");
 
-  // Primero restauramos el estado base de los controles.
-  // Esto evita que un filtro que dejó 0 resultados quede bloqueado
-  // permanentemente después de pulsar "Limpiar filtros".
-  if(tipo) tipo.disabled=false;
-  if(estado) estado.disabled=false;
-  if(servicioBtn) {
-    servicioBtn.disabled=false;
-    servicioBtn.style.opacity="1";
-    servicioBtn.style.cursor="pointer";
-  }
-  if(marcaBtn) {
-    marcaBtn.disabled=false;
-    marcaBtn.style.opacity="1";
-    marcaBtn.style.cursor="pointer";
-  }
-  if(facturaBtn) {
-    facturaBtn.disabled=false;
-    facturaBtn.style.opacity="1";
-    facturaBtn.style.cursor="pointer";
-  }
-
-  const marcaChecks=document.querySelectorAll("#facturacionMarcaMenu input[type=checkbox]");
-  marcaChecks.forEach(function(el){el.disabled=false;});
-  const facturaChecks=document.querySelectorAll("#facturacionFacturaOpciones input[type=checkbox]");
-  facturaChecks.forEach(function(el){el.disabled=false;});
-
-  // Si no existen registros para la combinación actual, se bloquean
-  // las demás facetas para no ofrecer opciones que no tienen resultados.
-  // El filtro que puede quedar seleccionado sigue disponible para poder
-  // quitarlo y recuperar el listado.
-  if(sinResultados){
-    if(tipo) tipo.disabled=true;
-    if(estado) estado.disabled=true;
-    if(marcaBtn) {
-      marcaBtn.disabled=true;
-      marcaBtn.style.opacity="0.55";
-      marcaBtn.style.cursor="not-allowed";
-    }
-    marcaChecks.forEach(function(el){el.disabled=true;});
-
-    const hayEstado=String(estado?.value||"").trim()!=="";
-    if(facturaBtn && !hayEstado){
-      facturaBtn.disabled=true;
-      facturaBtn.style.opacity="0.55";
-      facturaBtn.style.cursor="not-allowed";
-    }
-    facturaChecks.forEach(function(el){el.disabled=true;});
-  }
-
-  // Factura y Estado son filtros mutuamente excluyentes.
-  const hayEstado=String(estado?.value||"").trim()!=="";
-  if(facturaBtn && hayEstado){
-    facturaBtn.disabled=true;
-    facturaBtn.style.opacity="0.55";
-    facturaBtn.style.cursor="not-allowed";
-  }
-  if(facturaChecks.length && hayEstado){
-    facturaChecks.forEach(function(el){el.disabled=true;});
-  }
-
-  // Aunque no haya resultados, el menú de Servicio debe poder abrirse
-  // para quitar la selección que provocó el vacío.
-  if(servicioBtn){
-    servicioBtn.disabled=false;
-    servicioBtn.style.opacity="1";
-    servicioBtn.style.cursor="pointer";
-  }
+  [tipo,estado,servicioBtn,marcaBtn,facturaBtn].forEach(function(el){
+    if(!el) return;
+    el.disabled=false;
+    el.style.opacity="1";
+    el.style.cursor="pointer";
+  });
+  document.querySelectorAll("#facturacionMarcaMenu input[type=checkbox],#facturacionFacturaOpciones input[type=checkbox]")
+    .forEach(function(el){el.disabled=false;});
 }
 
+
 function actualizarFiltrosFacturacionRelacionados(){
-  actualizarTiposAtencionFacturacion();
-  cargarServiciosFiltroFacturacionSegunFactura();
-  actualizarOpcionesEstadoFacturacion();
-  cargarOpcionesFiltroMarcaFacturacion();
-  filtrarOpcionesFacturaFacturacion();
+  // Dos pasadas permiten que la eliminación automática de una selección
+  // que ya no tiene registros compatibles se refleje en todas las facetas.
+  for(let pasada=0;pasada<2;pasada++){
+    actualizarTiposAtencionFacturacion();
+    actualizarOpcionesEstadoFacturacion();
+    cargarOpcionesFiltroMarcaFacturacion();
+    cargarServiciosFiltroFacturacionSegunFactura();
+    filtrarOpcionesFacturaFacturacion();
+  }
   actualizarEstadoFiltroFacturacion();
   actualizarBloqueoFacetasSinResultadosFacturacion();
 }
@@ -9239,11 +9223,19 @@ function actualizarOpcionesEstadoFacturacion(){
   const hayPendiente=base.some(function(r){return !estaFacturadoFacturacion(r);});
   const hayFacturado=base.some(function(r){return estaFacturadoFacturacion(r);});
 
-  let html='<option value="">Pendientes por facturar</option>';
+  let html='<option value="todos">Todos los estados</option>';
+  if(hayPendiente) html+='<option value="pendiente">Pendientes por facturar</option>';
   if(hayFacturado) html+='<option value="facturado">Facturado (historial)</option>';
+
   select.innerHTML=html;
-  select.value=(valorActual==="facturado" && hayFacturado) ? valorActual : "";
+  const opcionesDisponibles=Array.from(select.options).map(function(o){return o.value;});
+  if(opcionesDisponibles.includes(valorActual)){
+    select.value=valorActual;
+  }else{
+    select.value=hayPendiente ? "pendiente" : "todos";
+  }
 }
+
 
 function actualizarEstadoFiltroFacturacion(){
   const estado=document.getElementById("facturacionEstado");
@@ -9251,32 +9243,24 @@ function actualizarEstadoFiltroFacturacion(){
   const facturaSearch=document.getElementById("buscarFacturaFacturacion");
   const facturaTodas=document.getElementById("facturacionFacturasTodas");
   const facturaOpciones=document.querySelectorAll("#facturacionFacturaOpciones input[type='checkbox']");
-  if(!estado) return;
 
-  const hayFactura=facturasFiltroFacturacionSeleccionadas.size>0;
-  const hayEstado=String(estado.value||"").trim()!=="";
-
-  if(hayFactura){
-    estado.disabled=true;
-    estado.value="";
-  }else{
-    estado.disabled=false;
-  }
-
-  const bloquearFactura=hayEstado;
+  // Estado y Factura son facetas compatibles: se pueden combinar.
+  if(estado) estado.disabled=false;
   if(facturaBtn){
-    facturaBtn.disabled=bloquearFactura;
-    facturaBtn.style.opacity=bloquearFactura ? "0.55" : "1";
-    facturaBtn.style.cursor=bloquearFactura ? "not-allowed" : "pointer";
+    facturaBtn.disabled=false;
+    facturaBtn.style.opacity="1";
+    facturaBtn.style.cursor="pointer";
   }
   if(facturaSearch){
-    facturaSearch.disabled=bloquearFactura;
-    facturaSearch.style.background=bloquearFactura ? "#f1f5f9" : "#fff";
-    facturaSearch.style.cursor=bloquearFactura ? "not-allowed" : "text";
+    facturaSearch.disabled=false;
+    facturaSearch.style.background="#fff";
+    facturaSearch.style.cursor="text";
   }
-  if(facturaTodas) facturaTodas.disabled=bloquearFactura;
-  facturaOpciones.forEach(function(el){el.disabled=bloquearFactura;});
+  if(facturaTodas) facturaTodas.disabled=false;
+  facturaOpciones.forEach(function(el){el.disabled=false;});
 }
+
+
 function estaFacturadoFacturacion(r){
   if(!r) return false;
 
@@ -9301,25 +9285,24 @@ function estaFacturadoFacturacion(r){
 }
 
 function filtrarFacturacion(){
-  const desde=document.getElementById("facturacionDesde").value;
-  const hasta=document.getElementById("facturacionHasta").value;
+  const desde=document.getElementById("facturacionDesde")?.value || "";
+  const hasta=document.getElementById("facturacionHasta")?.value || "";
   const tipo=document.getElementById("facturacionTipo")?.value || "";
   const marcaFiltro=obtenerMarcasFacturacionSeleccionadas();
   const servicioFiltro=obtenerServiciosFacturacionSeleccionados();
-  const estado=document.getElementById("facturacionEstado").value;
-  const buscar=document.getElementById("facturacionBuscar").value.toLowerCase().trim();
+  const estado=document.getElementById("facturacionEstado")?.value || "pendiente";
+  const buscar=String(document.getElementById("facturacionBuscar")?.value || "").toLowerCase().trim();
+  const idsVehiculosFactura=obtenerIdsVehiculosDeFacturasSeleccionadas();
+
   const lista=registrosFacturacion.filter(function(r){
     const fecha=valorFechaFacturacion(obtenerFechaServicioFacturacion(r));
     const coincideFecha=(!desde || fecha>=desde)&&(!hasta || fecha<=hasta);
-    const coincideTipo=!tipo || String(r.tipo || "").trim()===tipo;
-    const coincideMarca=!marcaFiltro.length || marcaFiltro.includes(String(r.marca || "").trim());
-    const nombreServicioFiltro=etiquetaServicioFiltroFacturacion(r);
-    const coincideServicio=!servicioFiltro.length || servicioFiltro.includes(nombreServicioFiltro);
-    const estaFacturado=estaFacturadoFacturacion(r);
-    const coincideEstado=estado==="facturado" ? estaFacturado : !estaFacturado;
+    const coincideTipo=!tipo || normalizarTipoAtencion(r.tipo||"")===normalizarTipoAtencion(tipo);
+    const coincideMarca=!marcaFiltro.length || marcaFiltro.includes(String(r.marca||"").trim());
+    const coincideServicio=!servicioFiltro.length || servicioFiltro.includes(etiquetaServicioFiltroFacturacion(r));
+    const facturado=estaFacturadoFacturacion(r);
+    const coincideEstado=estado==="todos" ? true : (estado==="facturado" ? facturado : !facturado);
     const texto=[r.placa,r.vin,r.marca,r.modelo].join(" ").toLowerCase();
-
-    const idsVehiculosFactura=obtenerIdsVehiculosDeFacturasSeleccionadas();
     const coincideFactura=!idsVehiculosFactura || idsVehiculosFactura.has(String(r.id));
 
     return coincideFecha&&coincideTipo&&coincideMarca&&coincideServicio&&coincideEstado&&coincideFactura&&(!buscar||texto.includes(buscar));
@@ -9327,6 +9310,7 @@ function filtrarFacturacion(){
   const orden=document.getElementById("facturacionOrdenFecha")?.value || "desc";
   return ordenarPorFechaModulo(lista,orden,obtenerFechaServicioFacturacion);
 }
+
 
 function servicioMostrarFacturacion(r){
   // En Facturación, todo PYP se muestra como una sola categoría.
@@ -9455,46 +9439,40 @@ function obtenerServiciosDisponiblesSegunFacturas(){
     const nombre=etiquetaServicioFiltroFacturacion(r);
     if(nombre) nombres.add(nombre);
   });
-
-  // El catálogo completo de Lavado y Adicionales solo se muestra cuando no hay
-  // filtros restrictivos. PYP se maneja como una única categoría.
-  const hayFiltros=!!(
-    document.getElementById("facturacionDesde")?.value ||
-    document.getElementById("facturacionHasta")?.value ||
-    document.getElementById("facturacionTipo")?.value ||
-    document.getElementById("facturacionEstado")?.value ||
-    document.getElementById("facturacionBuscar")?.value ||
-    obtenerMarcasFacturacionSeleccionadas().length ||
-    facturasFiltroFacturacionSeleccionadas.size
-  );
-  if(!hayFiltros){
-    (serviciosAutoCamiones||[]).forEach(function(s){
-      const nombre=String(s.nombre_servicio||"").trim();
-      if(nombre) nombres.add(nombre);
-    });
-  }
-  return Array.from(nombres);
+  return Array.from(nombres).sort(function(a,b){return a.localeCompare(b,"es",{sensitivity:"base"});});
 }
+
 
 function cargarServiciosFiltroFacturacionSegunFactura(){
   const menu=document.getElementById("facturacionServicioMenu");
   if(!menu) return;
+
   const seleccionAnterior=new Set(obtenerServiciosFacturacionSeleccionados());
-  const nombresBase=obtenerServiciosDisponiblesSegunFacturas().filter(Boolean);
-  // Si el servicio seleccionado no tiene registros compatibles, lo conservamos
-  // visible y marcado para que el usuario pueda quitarlo y recuperar resultados.
-  seleccionAnterior.forEach(function(n){ if(!nombresBase.includes(n)) nombresBase.push(n); });
-  const nombres=Array.from(new Set(nombresBase)).sort(function(a,b){return a.localeCompare(b,"es");});
+  const nombres=obtenerServiciosDisponiblesSegunFacturas().filter(Boolean);
+
+  // Las opciones que dejan de tener registros compatibles se retiran
+  // también de la selección para evitar mantener filtros "fantasma".
+  const seleccionVigente=new Set(Array.from(seleccionAnterior).filter(function(n){
+    return nombres.includes(n);
+  }));
 
   menu.innerHTML="";
   const todos=document.createElement("label");
   todos.className="servicio-check-opcion servicios-multiselect-todos";
-  todos.innerHTML='<input type="checkbox" id="facturacionServiciosTodos"> <span>Todos los servicios</span>';
+  todos.innerHTML='<input type="checkbox" id="facturacionServiciosTodos"> <span>Todos los servicios disponibles</span>';
   menu.appendChild(todos);
+
+  if(!nombres.length){
+    const vacio=document.createElement("div");
+    vacio.className="facturacion-filtro-factura-sin-resultados";
+    vacio.textContent="No hay servicios disponibles para los filtros seleccionados.";
+    menu.appendChild(vacio);
+  }
+
   nombres.forEach(function(nombre){
     const label=document.createElement("label");
     label.className="servicio-check-opcion";
-    label.innerHTML='<input type="checkbox" name="facturacionServicioCheck" value="'+esc(nombre)+'" '+(seleccionAnterior.has(nombre)?"checked":"")+'> <span>'+esc(nombre)+'</span>';
+    label.innerHTML='<input type="checkbox" name="facturacionServicioCheck" value="'+esc(nombre)+'" '+(seleccionVigente.has(nombre)?"checked":"")+'> <span>'+esc(nombre)+'</span>';
     menu.appendChild(label);
   });
 
@@ -9518,8 +9496,11 @@ function cargarServiciosFiltroFacturacionSegunFactura(){
       actualizarFacturacionAutomaticamente();
     });
   });
+
   actualizarTextoServiciosFacturacion();
 }
+
+
 function obtenerServiciosFacturacionSeleccionados(){
   return Array.from(document.querySelectorAll('#facturacionServicioMenu input[name="facturacionServicioCheck"]:checked')).map(function(el){
     return String(el.value || "").trim();
