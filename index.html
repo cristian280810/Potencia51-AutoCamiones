@@ -2256,6 +2256,17 @@ html, body {
 }
 </style>
 
+
+<style id="ocultar-etiquetas-repetidas-cotizacion-escritorio">
+/* En escritorio, los encabezados de la tabla ya identifican Cantidad y Descuento.
+   Las etiquetas dentro de cada fila se reservan para la vista móvil. */
+@media (min-width:701px) {
+  #serviciosSeleccionadosRegistro .pyp-campo-movil > label {
+    display:none !important;
+  }
+}
+</style>
+
 </head>
 
 <body>
