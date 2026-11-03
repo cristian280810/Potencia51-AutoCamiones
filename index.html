@@ -8471,12 +8471,17 @@ function exportarExcel(){
   }
 
   const datos = registros.map(function(r, indice){
-    const fotos = [
-      r.fotoIngreso ? "Ingreso" : "",
-
-      r.fotoVIN ? "VIN" : "",
-      r.fotoFinal ? "Final" : ""
-    ].filter(Boolean).join(" | ");
+    // Usar los importes guardados en el registro. Para registros antiguos
+    // sin IGV/total almacenados, calcularlos desde el subtotal persistido.
+    const sinIgv = Number(r.precio_sin_igv ?? r.precioSinIgv ?? 0) || 0;
+    const igvGuardado = r.igv ?? r.igv_total ?? r.monto_igv;
+    const igv = igvGuardado !== undefined && igvGuardado !== null && igvGuardado !== ""
+      ? Number(igvGuardado) || 0
+      : Number((sinIgv * IGV_AUTOCAMIONES).toFixed(2));
+    const totalGuardado = r.precio_con_igv ?? r.total_con_igv ?? r.precioConIgv;
+    const totalConIgv = totalGuardado !== undefined && totalGuardado !== null && totalGuardado !== ""
+      ? Number(totalGuardado) || 0
+      : Number((sinIgv + igv).toFixed(2));
 
     return {
       "N°": indice + 1,
@@ -8485,10 +8490,11 @@ function exportarExcel(){
       "Placa": r.placa || "",
       "VIN": r.vin || "",
       "Marca": r.marca || "",
-      "Modelo": r.modelo || "",
       "Servicio": r.servicio || "",
       "Salida": formatearFecha(r.horaSalida) || "",
-      "Fotos": fotos,
+      "Precio sin IGV": Number(sinIgv.toFixed(2)),
+      "IGV": Number(igv.toFixed(2)),
+      "Total con IGV": Number(totalConIgv.toFixed(2)),
       "Obs. Inicial": r.observaciones || "",
       "Obs. Final": r.observacionesFinales || ""
     };
@@ -8497,19 +8503,19 @@ function exportarExcel(){
   const hoja = XLSX.utils.json_to_sheet(datos);
 
   hoja["!cols"] = [
-    {wch:6},
-    {wch:20},
-    {wch:12},
-    {wch:18},
-    {wch:14},
-    {wch:22},
-    {wch:15},
-    {wch:15},
-    {wch:34},
-    {wch:20},
-    {wch:24},
-    {wch:35},
-    {wch:35}
+    {wch:6},   // N°
+    {wch:20},  // Fecha lavado
+    {wch:12},  // Tipo
+    {wch:18},  // Placa
+    {wch:21},  // VIN
+    {wch:18},  // Marca
+    {wch:34},  // Servicio
+    {wch:20},  // Salida
+    {wch:18},  // Precio sin IGV
+    {wch:15},  // IGV
+    {wch:20},  // Total con IGV
+    {wch:35},  // Obs. Inicial
+    {wch:35}   // Obs. Final
   ];
 
   const libro = XLSX.utils.book_new();
