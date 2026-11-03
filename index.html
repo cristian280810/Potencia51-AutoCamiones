@@ -8026,10 +8026,10 @@ const filtrados = (filas || []).map(function(r){
     marca:r.marca || "",
     modelo:r.modelo || "",
     servicio:r.servicio || "",
-    // Conservar los importes guardados en Supabase para la exportación Excel.
     precio_sin_igv:r.precio_sin_igv ?? null,
     igv:r.igv ?? null,
     precio_con_igv:r.precio_con_igv ?? null,
+    facturado:r.facturado === true || String(r.facturado).toLowerCase() === "true",
     estado:r.estado || "",
     horaInicio:r.hora_inicio_lavado || r.created_at || "",
     horaSalida:r.hora_salida || "",
@@ -8461,7 +8461,7 @@ function exportarContextoPDF(contexto){
    EXPORTAR EXCEL
 ===================================================== */
 
-function exportarExcel(){
+async function exportarExcel(){
   const registros = historialRegistrosActuales || [];
 
   if(!registros.length){
@@ -8474,18 +8474,26 @@ function exportarExcel(){
     return;
   }
 
+  // Cargar la relación entre cada vehículo del Historial y su factura emitida.
+  // Si la consulta falla, el campo facturado guardado en el registro seguirá
+  // permitiendo indicar Sí/No, aunque el número de factura podría quedar vacío.
+  await cargarFacturasRelacionadasPyp();
+
   const datos = registros.map(function(r, indice){
-    // Usar los importes guardados en el registro. Para registros antiguos
-    // sin IGV/total almacenados, calcularlos desde el subtotal persistido.
     const sinIgv = Number(r.precio_sin_igv ?? r.precioSinIgv ?? 0) || 0;
+
     const igvGuardado = r.igv ?? r.igv_total ?? r.monto_igv;
     const igv = igvGuardado !== undefined && igvGuardado !== null && igvGuardado !== ""
       ? Number(igvGuardado) || 0
       : Number((sinIgv * IGV_AUTOCAMIONES).toFixed(2));
+
     const totalGuardado = r.precio_con_igv ?? r.total_con_igv ?? r.precioConIgv;
     const totalConIgv = totalGuardado !== undefined && totalGuardado !== null && totalGuardado !== ""
       ? Number(totalGuardado) || 0
       : Number((sinIgv + igv).toFixed(2));
+
+    const numeroFactura = String(facturasRelacionadasPyp[String(r.id)] || "").trim();
+    const estaFacturado = Boolean(numeroFactura) || r.facturado === true;
 
     return {
       "N°": indice + 1,
@@ -8499,6 +8507,8 @@ function exportarExcel(){
       "Precio sin IGV": Number(sinIgv.toFixed(2)),
       "IGV": Number(igv.toFixed(2)),
       "Total con IGV": Number(totalConIgv.toFixed(2)),
+      "Facturado": estaFacturado ? "Sí" : "No",
+      "N° de factura": numeroFactura || (estaFacturado ? "Facturado - sin número asociado" : "—"),
       "Obs. Inicial": r.observaciones || "",
       "Obs. Final": r.observacionesFinales || ""
     };
@@ -8518,6 +8528,8 @@ function exportarExcel(){
     {wch:18},  // Precio sin IGV
     {wch:15},  // IGV
     {wch:20},  // Total con IGV
+    {wch:14},  // Facturado
+    {wch:24},  // N° de factura
     {wch:35},  // Obs. Inicial
     {wch:35}   // Obs. Final
   ];
