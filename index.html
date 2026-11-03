@@ -8026,6 +8026,10 @@ const filtrados = (filas || []).map(function(r){
     marca:r.marca || "",
     modelo:r.modelo || "",
     servicio:r.servicio || "",
+    // Conservar los importes guardados en Supabase para la exportación Excel.
+    precio_sin_igv:r.precio_sin_igv ?? null,
+    igv:r.igv ?? null,
+    precio_con_igv:r.precio_con_igv ?? null,
     estado:r.estado || "",
     horaInicio:r.hora_inicio_lavado || r.created_at || "",
     horaSalida:r.hora_salida || "",
