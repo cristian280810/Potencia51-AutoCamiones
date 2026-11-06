@@ -2276,6 +2276,15 @@ html, body {
 }
 </style>
 
+
+<style id="estado-cotizacion-pyp-pagado">
+.estado-cot-pyp.pagado{
+  background:#dcfce7;
+  color:#166534;
+  border:1px solid #bbf7d0;
+}
+</style>
+
 </head>
 
 <body>
@@ -4844,24 +4853,37 @@ async function cargarFacturasRelacionadasPyp(){
   try{
     const headers={"apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY};
     const respuestas=await Promise.all([
-      fetch(SUPABASE_URL+"/rest/v1/facturas_autocamiones?select=id,numero_factura",{method:"GET",headers:headers,cache:"no-store"}),
+      fetch(SUPABASE_URL+"/rest/v1/facturas_autocamiones?select=*",{method:"GET",headers:headers,cache:"no-store"}),
       fetch(SUPABASE_URL+"/rest/v1/factura_detalle_autocamiones?select=factura_id,vehiculo_id",{method:"GET",headers:headers,cache:"no-store"})
     ]);
     if(!respuestas[0].ok) throw new Error(await respuestas[0].text());
     if(!respuestas[1].ok) throw new Error(await respuestas[1].text());
     const facturas=await respuestas[0].json()||[];
     const detalles=await respuestas[1].json()||[];
-    const numeroPorFactura={};
-    facturas.forEach(function(f){numeroPorFactura[String(f.id)]=f.numero_factura||"";});
+    const facturaPorId={};
+    facturas.forEach(function(f){facturaPorId[String(f.id)]=f;});
     detalles.forEach(function(d){
       const vehiculoId=String(d.vehiculo_id||"");
-      const numero=numeroPorFactura[String(d.factura_id||"")]||"";
-      if(vehiculoId && numero) facturasRelacionadasPyp[vehiculoId]=numero;
+      const factura=facturaPorId[String(d.factura_id||"")];
+      if(!vehiculoId || !factura) return;
+
+      const anterior=facturasRelacionadasPyp[vehiculoId];
+      const nuevoEstado=typeof obtenerEstadoPagoFactura==="function"
+        ? obtenerEstadoPagoFactura(factura)
+        : "Pendiente";
+      const estadoAnterior=anterior && typeof obtenerEstadoPagoFactura==="function"
+        ? obtenerEstadoPagoFactura(anterior)
+        : "";
+
+      // Preferir una factura pagada si el registro tuviera más de una relación.
+      if(!anterior || nuevoEstado==="Pagada" || (estadoAnterior==="Anulada" && nuevoEstado!=="Anulada")){
+        facturasRelacionadasPyp[vehiculoId]=factura;
+      }
     });
     facturasRelacionadasPypCargaOk = true;
     return true;
   }catch(error){
-    console.warn("No se pudieron cargar los números de factura relacionados con PYP.",error);
+    console.warn("No se pudieron cargar las facturas relacionadas con PYP.",error);
     return false;
   }
 }
@@ -5041,10 +5063,16 @@ function renderizarCotizacionesPyp(){
     const seleccionado=cotizacionesPypSeleccionadas.has(String(c.id));
     const tipoCot=normalizarTipoAtencion(c.tipo_registro||c.tipo||"Taller");
     const identificador=tipoCot==="Nuevo"?(c.vin||"—"):(c.placa||"—");
-    const numeroFacturaPyp=facturasRelacionadasPyp[String(c.facturacion_id||"")] || "";
-    const enProcesoFacturacion=Boolean(c.facturacion_id) && !numeroFacturaPyp &&
+    const facturaRelacionadaPyp=facturasRelacionadasPyp[String(c.facturacion_id||"")] || null;
+    const numeroFacturaPyp=facturaRelacionadaPyp ? String(facturaRelacionadaPyp.numero_factura||"").trim() : "";
+    const estadoPagoPyp=facturaRelacionadaPyp && typeof obtenerEstadoPagoFactura==="function"
+      ? obtenerEstadoPagoFactura(facturaRelacionadaPyp)
+      : "";
+    const estadoFacturaCotizacion=estadoPagoPyp==="Pagada" ? "Pagado"
+      : (estadoPagoPyp==="Anulada" ? "Anulada" : (facturaRelacionadaPyp ? "Facturada" : ""));
+    const enProcesoFacturacion=Boolean(c.facturacion_id) && !facturaRelacionadaPyp &&
       (estadoGuardado==="Aprobada" || c._pendiente_emision===true);
-    const estado=numeroFacturaPyp ? "Facturada" : (enProcesoFacturacion ? "En Facturación" : estadoGuardado);
+    const estado=estadoFacturaCotizacion || (enProcesoFacturacion ? "En Facturación" : estadoGuardado);
     const esPendiente=estadoGuardado==="Pendiente";
     const casilla=esPendiente ? '<input type="checkbox" class="check-cotizacion-pyp" aria-label="Seleccionar '+esc(c.correlativo||"cotización")+'" '+(seleccionado?'checked ':'')+'onchange="cambiarSeleccionCotizacionPyp(\''+id+'\',this.checked)">' : '';
     const facturaHtml=numeroFacturaPyp
@@ -8638,8 +8666,9 @@ async function exportarExcel(){
       ? Number(totalGuardado) || 0
       : Number((sinIgv + igv).toFixed(2));
 
-    const numeroFactura = String(facturasRelacionadasPyp[String(r.id)] || "").trim();
-    const estaFacturado = Boolean(numeroFactura) || r.facturado === true;
+    const facturaRelacionada = facturasRelacionadasPyp[String(r.id)] || null;
+    const numeroFactura = String(facturaRelacionada?.numero_factura || "").trim();
+    const estaFacturado = Boolean(facturaRelacionada) || r.facturado === true;
 
     return {
       "N°": indice + 1,
