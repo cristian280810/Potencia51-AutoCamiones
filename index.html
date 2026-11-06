@@ -5057,7 +5057,7 @@ function renderizarCotizacionesPyp(){
       '<button type="button" class="btn btn-ver-cot-pyp" style="padding:6px 9px;font-size:12px" onclick="verCotizacionPyp(\''+id+'\')">👁 Ver</button>'+
       '<button type="button" class="btn btn-desc-cot-pyp" style="padding:6px 9px;font-size:12px" onclick="descargarCotizacionPyp(\''+id+'\')">⬇ Descargar</button>'+
       (estadoGuardado==="Pendiente" ? '<button type="button" class="btn btn-aprobar-cot-pyp" style="padding:6px 9px;font-size:12px" onclick="aprobarCotizacionPyp(\''+id+'\')">✓ Aprobar</button>' :
-       estadoGuardado==="Aprobada" ? (c.facturacion_id ? '<button type="button" class="btn btn-secondary" style="padding:6px 9px;font-size:12px" onclick="mostrarModuloAdministracion(\'facturacion\')">🧾 En Facturación</button>' : '<button type="button" class="btn btn-secondary" style="padding:6px 9px;font-size:12px" onclick="pasarCotizacionAFacturacion(\''+id+'\')">🧾 Pasar a facturación</button>') : '')+
+       estadoGuardado==="Aprobada" ? (c.facturacion_id ? '<button type="button" class="btn btn-secondary" style="padding:6px 9px;font-size:12px" onclick="continuarFacturacionCotizacionExistente(\''+id+'\')">🧾 Continuar facturación</button>' : '<button type="button" class="btn btn-secondary" style="padding:6px 9px;font-size:12px" onclick="pasarCotizacionAFacturacion(\''+id+'\')">🧾 Pasar a facturación</button>') : '')+
       '</div>';
     return '<tr id="filaCotPyp-'+id+'">'+
       '<td style="text-align:center">'+casilla+'</td>'+
@@ -5443,6 +5443,74 @@ function pasarCotizacionAFacturacion(id){
 
 let datosFacturaPypPrecargados=null;
 
+async function continuarFacturacionCotizacionExistente(cotizacionId){
+  const cotizacion=(cotizacionesPyp||[]).find(function(c){
+    return String(c.id)===String(cotizacionId);
+  });
+  if(!cotizacion || !cotizacion.facturacion_id){
+    mostrarAlerta("No se encontró el registro vinculado a esta cotización. Actualiza Cotizaciones PYP y vuelve a intentarlo.","error");
+    return;
+  }
+
+  const vehiculoId=String(cotizacion.facturacion_id);
+  try{
+    // Abrir Facturación sin disparar una segunda carga en paralelo.
+    mostrarModuloAdministracion("facturacion",true);
+    await inicializarFacturacion();
+
+    // Limpiar filtros anteriores para que el registro pendiente sea visible.
+    limpiarFiltrosFacturacion();
+    const estado=document.getElementById("facturacionEstado");
+    if(estado) estado.value="pendiente";
+    actualizarFiltrosFacturacionRelacionados();
+
+    const registro=registrosFacturacion.find(function(r){
+      return String(r.id)===vehiculoId;
+    });
+    if(!registro){
+      mostrarAlerta("La cotización está vinculada, pero el registro no aparece en Facturación. Actualiza el módulo y verifica el vínculo en Supabase.","error");
+      return;
+    }
+
+    if(estaFacturadoFacturacion(registro)){
+      mostrarSubmoduloFacturacion("emitidas");
+      mostrarAlerta("Este registro ya figura como facturado. Revisa Facturas emitidas para consultar su comprobante.","success");
+      return;
+    }
+
+    // Seleccionar únicamente la cotización que se desea continuar.
+    facturacionSeleccionadosIds.clear();
+    facturacionSeleccionadosIds.add(vehiculoId);
+
+    let lista=filtrarFacturacion();
+    let indice=lista.findIndex(function(r){return String(r.id)===vehiculoId;});
+
+    if(indice<0){
+      // Si por alguna configuración de Estado no aparece, probar con Todos.
+      if(estado) estado.value="todos";
+      actualizarFiltrosFacturacionRelacionados();
+      lista=filtrarFacturacion();
+      indice=lista.findIndex(function(r){return String(r.id)===vehiculoId;});
+    }
+
+    if(indice<0){
+      facturacionSeleccionadosIds.clear();
+      renderFacturacion();
+      mostrarAlerta("No se pudo mostrar el registro con los filtros actuales. Revisa los filtros de Facturación.","error");
+      return;
+    }
+
+    facturacionPaginaActual=Math.floor(indice/FACTURACION_POR_PAGINA)+1;
+    renderFacturacion();
+
+    // Reabrir el formulario para que se complete y guarde la factura.
+    await abrirModalNuevaFactura();
+  }catch(error){
+    console.error("Error al continuar la facturación de la cotización PYP:",error);
+    mostrarAlerta("No se pudo abrir la emisión de la factura: "+(error.message||"Error desconocido"),"error");
+  }
+}
+
 async function confirmarPasarCotizacionAFacturacion(){
   const cotizacion=cotizacionPypPendienteFacturacion;
   if(!cotizacion) return;
@@ -5683,7 +5751,7 @@ function mostrarSeccionSinPassword(nombre, boton){
   if(boton) boton.classList.add("active");
 }
 
-function mostrarModuloAdministracion(nombre){
+function mostrarModuloAdministracion(nombre, omitirCargaFacturacion){
   if(!administracionAutorizada){
     mostrarSeccion("administracion", null);
     return;
@@ -5714,7 +5782,7 @@ function mostrarModuloAdministracion(nombre){
   }
 
   if(nombre === "facturacion"){
-    inicializarFacturacion();
+    if(!omitirCargaFacturacion) inicializarFacturacion();
     mostrarSubmoduloFacturacion("facturar");
   }
 }
