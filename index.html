@@ -2285,6 +2285,102 @@ html, body {
 }
 </style>
 
+
+<style id="estilo-confirmacion-personalizada-anulacion">
+.modal-confirmar-anulacion{
+  z-index:1200 !important;
+  background:rgba(15,23,42,.58) !important;
+  backdrop-filter:blur(2px);
+}
+.confirmar-anulacion-card{
+  max-width:480px !important;
+  padding:0 !important;
+  overflow:hidden !important;
+  border-radius:18px !important;
+  box-shadow:0 22px 60px rgba(15,23,42,.28) !important;
+  animation:confirmarAnulacionEntrada .18s ease-out;
+}
+.confirmar-anulacion-cabecera{
+  padding:25px 28px 17px;
+  text-align:center;
+  background:linear-gradient(180deg,#fff7f7 0%,#fff 100%);
+}
+.confirmar-anulacion-icono{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:58px;
+  height:58px;
+  margin:0 auto 13px;
+  border-radius:50%;
+  background:#fee2e2;
+  color:#b91c1c;
+  font-size:30px;
+  font-weight:800;
+  box-shadow:inset 0 0 0 1px #fecaca;
+}
+.confirmar-anulacion-cabecera h2{
+  margin:0;
+  color:#172033;
+  font-size:21px;
+}
+.confirmar-anulacion-cabecera p{
+  margin:7px 0 0;
+  color:#64748b;
+  font-size:14px;
+}
+.confirmar-anulacion-detalle{
+  margin:0 24px;
+  padding:15px 16px;
+  border:1px solid #e2e8f0;
+  border-radius:11px;
+  background:#f8fafc;
+}
+.confirmar-anulacion-dato{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:14px;
+  padding:7px 0;
+  border-bottom:1px solid #e2e8f0;
+}
+.confirmar-anulacion-dato:last-of-type{border-bottom:0;}
+.confirmar-anulacion-dato span{
+  color:#64748b;
+  font-size:13px;
+}
+.confirmar-anulacion-dato strong{
+  color:#172033;
+  font-size:14px;
+  text-align:right;
+  overflow-wrap:anywhere;
+}
+.confirmar-anulacion-detalle p{
+  margin:12px 0 0;
+  color:#64748b;
+  font-size:12px;
+  line-height:1.5;
+}
+.confirmar-anulacion-acciones{
+  display:flex;
+  justify-content:center;
+  gap:10px;
+  padding:20px 24px 24px;
+}
+.confirmar-anulacion-acciones .btn{
+  min-width:140px;
+}
+@keyframes confirmarAnulacionEntrada{
+  from{opacity:0;transform:translateY(8px) scale(.98);}
+  to{opacity:1;transform:translateY(0) scale(1);}
+}
+@media(max-width:520px){
+  .confirmar-anulacion-card{max-width:calc(100vw - 24px) !important;}
+  .confirmar-anulacion-acciones{flex-direction:column-reverse;}
+  .confirmar-anulacion-acciones .btn{width:100%;}
+}
+</style>
+
 </head>
 
 <body>
@@ -4868,15 +4964,14 @@ async function cargarFacturasRelacionadasPyp(){
       if(!vehiculoId || !factura) return;
 
       const anterior=facturasRelacionadasPyp[vehiculoId];
-      const nuevoEstado=typeof obtenerEstadoPagoFactura==="function"
-        ? obtenerEstadoPagoFactura(factura)
-        : "Pendiente";
-      const estadoAnterior=anterior && typeof obtenerEstadoPagoFactura==="function"
-        ? obtenerEstadoPagoFactura(anterior)
-        : "";
+      const nuevaAnulada=facturaEstaAnuladaAutocamiones(factura);
+      const anteriorAnulada=facturaEstaAnuladaAutocamiones(anterior);
 
-      // Preferir una factura pagada si el registro tuviera más de una relación.
-      if(!anterior || nuevoEstado==="Pagada" || (estadoAnterior==="Anulada" && nuevoEstado!=="Anulada")){
+      // Priorizar cualquier factura vigente sobre las anuladas.
+      // Si hay varias vigentes, elegir la creada más recientemente.
+      if(!anterior ||
+         (anteriorAnulada && !nuevaAnulada) ||
+         (anteriorAnulada===nuevaAnulada && compararFacturasPorRecencia(factura,anterior)<0)){
         facturasRelacionadasPyp[vehiculoId]=factura;
       }
     });
@@ -10935,6 +11030,34 @@ function validarPasswordAnularFactura(){
   input.select();
 }
 
+let resolverConfirmacionAnulacionFacturaPendiente=null;
+
+function resolverConfirmacionAnulacionFactura(confirmar){
+  const modal=document.getElementById("modalConfirmarAnulacionFactura");
+  if(modal) modal.classList.remove("active");
+  if(typeof resolverConfirmacionAnulacionFacturaPendiente==="function"){
+    const resolver=resolverConfirmacionAnulacionFacturaPendiente;
+    resolverConfirmacionAnulacionFacturaPendiente=null;
+    resolver(Boolean(confirmar));
+  }
+}
+
+function confirmarAnulacionFacturaPersonalizada(numeroFactura,numeroNC){
+  return new Promise(function(resolve){
+    resolverConfirmacionAnulacionFacturaPendiente=resolve;
+    const factura=document.getElementById("confirmarAnulacionNumeroFactura");
+    const nota=document.getElementById("confirmarAnulacionNumeroNC");
+    const modal=document.getElementById("modalConfirmarAnulacionFactura");
+    if(factura) factura.textContent=numeroFactura||"—";
+    if(nota) nota.textContent=numeroNC||"—";
+    if(modal) modal.classList.add("active");
+    else{
+      resolverConfirmacionAnulacionFacturaPendiente=null;
+      resolve(window.confirm("¿Confirmas la anulación de la factura "+(numeroFactura||"")+"? Nota de Crédito: "+(numeroNC||"")));
+    }
+  });
+}
+
 async function anularFactura(){
   const id=document.getElementById("anularFacturaId").value;
   const factura=facturasEmitidas.find(function(f){return String(f.id)===String(id);});
@@ -10948,7 +11071,8 @@ async function anularFactura(){
   const motivo=document.getElementById("anularFacturaMotivo").value.trim();
   if(!numeroNC){mostrarAlerta("Ingresa el número de Nota de Crédito.","error");return;}
   if(!motivo){mostrarAlerta("Ingresa el motivo de la anulación.","error");return;}
-  if(!confirm("¿Confirmas la anulación de la factura "+(factura.numero_factura||"")+"?\n\nNota de Crédito: "+numeroNC)){return;}
+  const confirmar=await confirmarAnulacionFacturaPersonalizada(factura.numero_factura||"",numeroNC);
+  if(!confirmar) return;
 
   // La contraseña de Administración se solicita nuevamente justo antes de ejecutar la anulación.
   facturaAnulacionPendienteId=String(id);
@@ -11609,8 +11733,8 @@ let detallesFacturasDashboard = [];
 
 async function cargarFacturasDashboard(){
   const headers={"apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY};
-  const selectConMes="id,numero_factura,fecha_emision,periodo_facturacion,total_con_igv,estado_pago,estado_factura,fecha_pago,aplica_detraccion,monto_detraccion,monto_pago_directo,fecha_pago_directo,fecha_detraccion,estado_detraccion";
-  const selectSinMes="id,numero_factura,fecha_emision,total_con_igv,estado_pago,estado_factura,fecha_pago,aplica_detraccion,monto_detraccion,monto_pago_directo,fecha_pago_directo,fecha_detraccion,estado_detraccion";
+  const selectConMes="id,numero_factura,fecha_emision,created_at,periodo_facturacion,total_con_igv,estado_pago,estado_factura,fecha_pago,aplica_detraccion,monto_detraccion,monto_pago_directo,fecha_pago_directo,fecha_detraccion,estado_detraccion";
+  const selectSinMes="id,numero_factura,fecha_emision,created_at,total_con_igv,estado_pago,estado_factura,fecha_pago,aplica_detraccion,monto_detraccion,monto_pago_directo,fecha_pago_directo,fecha_detraccion,estado_detraccion";
   let respuesta=await fetch(SUPABASE_URL+"/rest/v1/facturas_autocamiones?select="+encodeURIComponent(selectConMes)+"&order=fecha_emision.asc,created_at.asc",{
     method:"GET",headers:headers,cache:"no-store"
   });
@@ -11635,10 +11759,48 @@ async function cargarFacturasDashboard(){
   detallesFacturasDashboard = await respuestaDetalle.json();
 }
 
+function compararFacturasPorRecencia(a,b){
+  const fechaA=new Date(a.created_at || a.fecha_emision || 0).getTime() || 0;
+  const fechaB=new Date(b.created_at || b.fecha_emision || 0).getTime() || 0;
+  if(fechaA!==fechaB) return fechaB-fechaA;
+
+  // Si ambas facturas se emitieron/crearon en el mismo instante,
+  // usar el correlativo numérico como desempate.
+  const numeroA=String(a.numero_factura||"").match(/(\d+)\s*$/);
+  const numeroB=String(b.numero_factura||"").match(/(\d+)\s*$/);
+  const correlativoA=numeroA ? Number(numeroA[1]) : 0;
+  const correlativoB=numeroB ? Number(numeroB[1]) : 0;
+  return correlativoB-correlativoA;
+}
+
+function facturaEstaAnuladaAutocamiones(f){
+  if(!f) return false;
+  if(typeof obtenerEstadoPagoFactura==="function"){
+    return obtenerEstadoPagoFactura(f)==="Anulada";
+  }
+  return String(f.estado_factura||"").trim().toLowerCase()==="anulada" ||
+         String(f.estado_pago||"").trim().toLowerCase()==="anulada";
+}
+
 function obtenerFacturaDashboardPorVehiculo(vehiculoId){
-  const detalle=(detallesFacturasDashboard||[]).find(function(d){return String(d.vehiculo_id)===String(vehiculoId);});
-  if(!detalle) return null;
-  return (facturasDashboard||[]).find(function(f){return String(f.id)===String(detalle.factura_id);}) || null;
+  const idsFacturas=new Set(
+    (detallesFacturasDashboard||[])
+      .filter(function(d){return String(d.vehiculo_id)===String(vehiculoId);})
+      .map(function(d){return String(d.factura_id);})
+  );
+  if(!idsFacturas.size) return null;
+
+  const relacionadas=(facturasDashboard||[]).filter(function(f){
+    return idsFacturas.has(String(f.id));
+  });
+  if(!relacionadas.length) return null;
+
+  // Si el vehículo se refacturó después de una anulación,
+  // mostrar la factura vigente más reciente, nunca la anulada anterior.
+  const vigentes=relacionadas.filter(function(f){return !facturaEstaAnuladaAutocamiones(f);});
+  const candidatas=vigentes.length ? vigentes : relacionadas;
+  candidatas.sort(compararFacturasPorRecencia);
+  return candidatas[0] || null;
 }
 
 function estadoDashboardVehiculo(r){
@@ -12931,6 +13093,33 @@ programarCierreAutomatico1930();
 #registrar .servicio-lavado-adicional-quitar{flex:0 0 32px;height:34px;border:1px solid #fecaca;border-radius:7px;background:#fff1f2;color:#b91c1c;font-size:21px;line-height:1;cursor:pointer;}
 #registrar .servicio-lavado-adicional-quitar:hover{background:#ffe4e6;}
 </style>
+
+<!-- Confirmación personalizada para anular factura -->
+<div id="modalConfirmarAnulacionFactura" class="modal modal-confirmar-anulacion">
+  <div class="modal-content confirmar-anulacion-card" role="dialog" aria-modal="true" aria-labelledby="confirmarAnulacionTitulo">
+    <div class="confirmar-anulacion-cabecera">
+      <div class="confirmar-anulacion-icono">!</div>
+      <h2 id="confirmarAnulacionTitulo">¿Confirmas la anulación?</h2>
+      <p>Revisa los datos antes de continuar.</p>
+    </div>
+    <div class="confirmar-anulacion-detalle">
+      <div class="confirmar-anulacion-dato">
+        <span>Factura</span>
+        <strong id="confirmarAnulacionNumeroFactura">—</strong>
+      </div>
+      <div class="confirmar-anulacion-dato">
+        <span>Nota de Crédito</span>
+        <strong id="confirmarAnulacionNumeroNC">—</strong>
+      </div>
+      <p>La factura quedará registrada como anulada. Los servicios asociados volverán a estar disponibles para una nueva facturación.</p>
+    </div>
+    <div class="confirmar-anulacion-acciones">
+      <button type="button" class="btn btn-secondary" onclick="resolverConfirmacionAnulacionFactura(false)">Cancelar</button>
+      <button type="button" class="btn btn-danger" onclick="resolverConfirmacionAnulacionFactura(true)">🚫 Sí, anular factura</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
 <style id="pyp-layout-structure-fix">
