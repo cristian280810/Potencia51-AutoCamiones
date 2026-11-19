@@ -11435,7 +11435,7 @@ async function generarReporteClienteExcel(){
 
     const detalleUrl =
       SUPABASE_URL +
-      "/rest/v1/factura_detalle_autocamiones?select=id,factura_id,vehiculo_id,servicio,precio_sin_igv,precio_con_igv&factura_id=in.(" +
+      "/rest/v1/factura_detalle_autocamiones?select=*&factura_id=in.(" +
       ids.map(encodeURIComponent).join(",") + ")";
 
     const respDetalle = await fetch(detalleUrl,{
@@ -11466,7 +11466,7 @@ async function generarReporteClienteExcel(){
     if(vehiculoIds.length){
       const respVeh = await fetch(
         SUPABASE_URL +
-        "/rest/v1/vehiculos_autocamiones?select=id,hora_inicio_lavado,created_at,tipo,placa,vin,marca&id=in.(" +
+        "/rest/v1/vehiculos_autocamiones?select=*&id=in.(" +
         vehiculoIds.map(encodeURIComponent).join(",") + ")",
         {
           method:"GET",
@@ -11487,29 +11487,38 @@ async function generarReporteClienteExcel(){
       facturasEmitidas.map(function(f){ return [String(f.id),f]; })
     );
 
-    // La fecha corresponde a la fecha de lavado del registro.
-    // No se incluye Área.
+    // Construir cada fila por nombre de columna para impedir desplazamientos.
+    // La marca se toma primero del vehículo; se contemplan campos alternativos
+    // si una fuente relacionada también conserva la marca.
     const datos = detalles.map(function(d){
       const v = vehiculoMap.get(String(d.vehiculo_id)) || {};
       const f = facturaMap.get(String(d.factura_id)) || {};
       const fecha = v.hora_inicio_lavado || v.created_at || "";
 
-      return [
-        fecha ? new Date(fecha) : null,
-        v.tipo || "",
-        v.marca || "",
-        v.vin || "",
-        v.placa || "",
-        d.servicio || v.servicio || "",
-        f.numero_factura || "",
-        Number(Number(d.precio_sin_igv || 0).toFixed(2)),
-        Number(Number(d.precio_con_igv || 0).toFixed(2))
-      ];
+      const marcaValor =
+        v.marca ||
+        v.marca_vehiculo ||
+        v.brand ||
+        d.marca ||
+        d.marca_vehiculo ||
+        "";
+
+      return {
+        fecha:fecha ? new Date(fecha) : null,
+        tipo:v.tipo || d.tipo || "",
+        marca:String(marcaValor || "").trim() || "No registrada",
+        vin:v.vin || d.vin || "",
+        placa:v.placa || d.placa || "",
+        servicio:d.servicio || v.servicio || "",
+        factura:f.numero_factura || "",
+        sinIgv:Number(Number(d.precio_sin_igv || 0).toFixed(2)),
+        conIgv:Number(Number(d.precio_con_igv || 0).toFixed(2))
+      };
     });
 
     datos.sort(function(a,b){
-      const fa = a[0] instanceof Date ? a[0].getTime() : 0;
-      const fb = b[0] instanceof Date ? b[0].getTime() : 0;
+      const fa = a.fecha instanceof Date ? a.fecha.getTime() : 0;
+      const fb = b.fecha instanceof Date ? b.fecha.getTime() : 0;
       return fa - fb;
     });
 
@@ -11535,15 +11544,15 @@ async function generarReporteClienteExcel(){
 
     datos.forEach(function(fila){
       worksheet.addRow({
-        fecha:fila[0],
-        tipo:fila[1],
-        marca:fila[3],
-        vin:fila[4],
-        placa:fila[5],
-        servicio:fila[6],
-        factura:fila[7],
-        sinIgv:fila[8],
-        conIgv:fila[9]
+        fecha:fila.fecha,
+        tipo:fila.tipo,
+        marca:fila.marca,
+        vin:fila.vin,
+        placa:fila.placa,
+        servicio:fila.servicio,
+        factura:fila.factura,
+        sinIgv:fila.sinIgv,
+        conIgv:fila.conIgv
       });
     });
 
@@ -11592,14 +11601,15 @@ async function generarReporteClienteExcel(){
       });
 
       row.getCell(1).numFmt = "dd/mm/yyyy";
+      // Las columnas monetarias son H (8) e I (9).
+      row.getCell(8).numFmt = '"S/"#,##0.00';
       row.getCell(9).numFmt = '"S/"#,##0.00';
-      row.getCell(10).numFmt = '"S/"#,##0.00';
 
-      row.getCell(9).alignment = {
+      row.getCell(8).alignment = {
         horizontal:"right",
         vertical:"middle"
       };
-      row.getCell(10).alignment = {
+      row.getCell(9).alignment = {
         horizontal:"right",
         vertical:"middle"
       };
@@ -12564,7 +12574,7 @@ programarCierreAutomatico1930();
 </script>
 
 
-<div class="version-app">V5.6 Dashboard</div>
+<div class="version-app">V5.533 Dashboard</div>
 
 <style id="autocamiones-layout-final-override">
 /* =========================================================
