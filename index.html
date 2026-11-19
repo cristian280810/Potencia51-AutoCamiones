@@ -2381,6 +2381,38 @@ html, body {
 }
 </style>
 
+
+<style id="regularizacion-multiples-servicios-ui">
+#formularioPasado #btnAgregarServicioPasado{
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  margin-top:8px;padding:8px 12px;min-height:35px;
+  border:1px solid #2563eb;border-radius:7px;background:#eff6ff;color:#1d4ed8;
+  font-size:13px;font-weight:700;cursor:pointer;box-sizing:border-box;
+}
+#formularioPasado #btnAgregarServicioPasado:hover{background:#dbeafe;}
+#formularioPasado .servicios-pasados-adicionales{
+  display:flex;flex-direction:column;gap:8px;margin-top:8px;
+}
+#formularioPasado .servicios-pasados-adicionales:empty{display:none;}
+#formularioPasado .servicio-pasado-adicional-row{
+  display:flex;align-items:center;gap:8px;width:100%;min-width:0;
+}
+#formularioPasado .servicio-pasado-adicional-row select{
+  flex:1;min-width:0;width:100%;
+}
+#formularioPasado .servicio-pasado-adicional-quitar{
+  flex:0 0 36px;height:38px;border:1px solid #fecaca;border-radius:7px;
+  background:#fff1f2;color:#b91c1c;font-size:22px;line-height:1;cursor:pointer;
+}
+#formularioPasado .servicio-pasado-adicional-quitar:hover{background:#ffe4e6;}
+#formularioPasado .pasado-servicios-ayuda{
+  display:block;margin-top:5px;color:#64748b;font-size:12px;
+}
+@media(max-width:700px){
+  #formularioPasado .servicio-pasado-adicional-row{align-items:stretch;}
+}
+</style>
+
 </head>
 
 <body>
@@ -3677,10 +3709,8 @@ onclick="buscarRegistroPasado()">
 </div>
 
 <div class="form-group">
-<label>Servicio *</label>
-<select id="pasadoServicio">
-  <option value="">⏳ Cargando servicios...</option>
-</select>
+<label>Foto de ingreso</label>
+<input id="pasadoFotoIngreso" type="file" accept="image/*" capture="environment">
 </div>
 
 <div class="form-group">
@@ -3689,8 +3719,15 @@ onclick="buscarRegistroPasado()">
 </div>
 
 <div class="form-group">
-<label>Foto de ingreso</label>
-<input id="pasadoFotoIngreso" type="file" accept="image/*" capture="environment">
+<label>Servicios realizados *</label>
+<select id="pasadoServicio">
+  <option value="">⏳ Cargando servicios...</option>
+</select>
+<div id="serviciosPasadosAdicionales" class="servicios-pasados-adicionales" aria-live="polite"></div>
+<button type="button" id="btnAgregarServicioPasado" class="pasado-agregar-servicio-btn" onclick="agregarServicioPasadoAdicional()">
+  ＋ Agregar servicio
+</button>
+<small class="pasado-servicios-ayuda">Puedes registrar varios servicios realizados al mismo vehículo.</small>
 </div>
 
 
@@ -7438,6 +7475,78 @@ function actualizarModoEdicionPasado(){
   }
 }
 
+let contadorServicioPasadoAdicional=0;
+
+function agregarServicioPasadoAdicional(nombreServicio, servicioId){
+  const contenedor=document.getElementById("serviciosPasadosAdicionales");
+  if(!contenedor) return null;
+
+  if(!Array.isArray(serviciosAutoCamiones) || serviciosAutoCamiones.length===0){
+    mostrarAlerta("El catálogo de servicios todavía está cargando. Intenta nuevamente.","error");
+    return null;
+  }
+
+  const indice=++contadorServicioPasadoAdicional;
+  const fila=document.createElement("div");
+  fila.className="servicio-pasado-adicional-row";
+  fila.dataset.rowId=String(indice);
+
+  const select=document.createElement("select");
+  select.className="servicio-pasado-adicional-select";
+  select.setAttribute("aria-label","Servicio adicional "+indice);
+
+  const inicial=document.createElement("option");
+  inicial.value="";
+  inicial.textContent="Seleccione el servicio";
+  select.appendChild(inicial);
+
+  const ordenados=serviciosAutoCamiones.slice().sort(function(a,b){
+    return String(a.nombre_servicio||"").localeCompare(
+      String(b.nombre_servicio||""),"es",{sensitivity:"base",numeric:true}
+    );
+  });
+  ordenados.forEach(function(servicio){
+    const opcion=document.createElement("option");
+    opcion.value=String(servicio.id);
+    opcion.textContent=servicio.nombre_servicio;
+    opcion.dataset.precioSinIgv=Number(servicio.precio_sin_igv||0).toFixed(2);
+    select.appendChild(opcion);
+  });
+
+  if(servicioId!==undefined && servicioId!==null && servicioId!==""){
+    select.value=String(servicioId);
+  }
+  if(!select.value && nombreServicio){
+    const objetivo=String(nombreServicio).trim().toLocaleLowerCase("es");
+    const encontrado=serviciosAutoCamiones.find(function(s){
+      return String(s.nombre_servicio||"").trim().toLocaleLowerCase("es")===objetivo;
+    });
+    if(encontrado) select.value=String(encontrado.id);
+  }
+
+  const quitar=document.createElement("button");
+  quitar.type="button";
+  quitar.className="servicio-pasado-adicional-quitar";
+  quitar.title="Quitar este servicio";
+  quitar.setAttribute("aria-label","Quitar servicio adicional "+indice);
+  quitar.textContent="×";
+  quitar.addEventListener("click",function(){fila.remove();});
+
+  fila.appendChild(select);
+  fila.appendChild(quitar);
+  contenedor.appendChild(fila);
+
+  if(!nombreServicio && (servicioId===undefined || servicioId===null || servicioId==="")){
+    select.focus();
+  }
+  return select;
+}
+
+function limpiarServiciosPasadosAdicionales(){
+  const contenedor=document.getElementById("serviciosPasadosAdicionales");
+  if(contenedor) contenedor.innerHTML="";
+}
+
 function seleccionarRegistroPasado(id){
   const registro=(registrosPasadosEncontrados||[]).find(function(r){return String(r.id)===String(id);});
   if(!registro){mostrarAlerta("No se encontró el registro seleccionado.","error");return;}
@@ -7448,7 +7557,20 @@ function seleccionarRegistroPasado(id){
   document.getElementById("pasadoPlaca").value=String(registro.placa||"").toUpperCase();
   document.getElementById("pasadoVIN").value=String(registro.vin||"").toUpperCase();
   document.getElementById("pasadoMarca").value=registro.marca||"";
-  seleccionarServicioPorIdONombre("pasadoServicio",registro.servicio_id,registro.servicio||"Lavado básico");
+  limpiarServiciosPasadosAdicionales();
+  const serviciosPrevios=String(registro.servicio||"Lavado básico")
+    .split(/\s+\+\s+/)
+    .map(function(nombre){return nombre.trim();})
+    .filter(Boolean);
+  const servicioPrincipal=serviciosPrevios[0]||"Lavado básico";
+  seleccionarServicioPorIdONombre(
+    "pasadoServicio",
+    registro.servicio_id,
+    servicioPrincipal
+  );
+  serviciosPrevios.slice(1).forEach(function(nombre){
+    agregarServicioPasadoAdicional(nombre);
+  });
   document.getElementById("pasadoFecha").value=obtenerFechaHistorial(registro.hora_inicio_lavado)||"";
   document.getElementById("pasadoFotoIngreso").value="";
   document.getElementById("pasadoFotoVIN").value="";
@@ -7524,14 +7646,25 @@ async function guardarRegistroPasado(){
     const placa=normalizarValorInterno(document.getElementById("pasadoPlaca").value);
     const vin=normalizarValorInterno(document.getElementById("pasadoVIN").value);
     const marca=document.getElementById("pasadoMarca").value;
-    const servicioSeleccionado=obtenerServicioSeleccionado("pasadoServicio");
+    const selectoresServiciosPasado=[
+      document.getElementById("pasadoServicio"),
+      ...Array.from(document.querySelectorAll("#serviciosPasadosAdicionales .servicio-pasado-adicional-select"))
+    ].filter(Boolean);
+    const serviciosSeleccionadosPasado=selectoresServiciosPasado.map(function(select){
+      const idServicio=String(select.value||"");
+      return serviciosAutoCamiones.find(function(servicio){
+        return String(servicio.id)===idServicio;
+      })||null;
+    });
     const fecha=document.getElementById("pasadoFecha").value;
     const observaciones=document.getElementById("pasadoObservaciones").value.trim();
     const archivoIngreso=document.getElementById("pasadoFotoIngreso").files[0];
     const archivoVIN=document.getElementById("pasadoFotoVIN").files[0];
     if(tipo==="Taller"&&!placa)throw new Error("Debe ingresar la placa.");
     if(tipo==="Nuevo"&&!vin)throw new Error("Debe ingresar el VIN.");
-    if(!marca||!servicioSeleccionado)throw new Error("Seleccione marca y servicio.");
+    if(!marca||!serviciosSeleccionadosPasado.length || serviciosSeleccionadosPasado.some(function(s){return !s;})){
+      throw new Error("Seleccione un servicio válido en cada fila. Si no necesita una fila adicional, elimínela con ×.");
+    }
     if(!fecha)throw new Error("Debe indicar la fecha de ingreso / lavado.");
     boton.disabled=true; loading.style.display="block";
     const id=registroPasadoSeleccionadoId || ((window.crypto&&crypto.randomUUID)?crypto.randomUUID():Date.now().toString(36));
@@ -7573,7 +7706,17 @@ async function guardarRegistroPasado(){
       observacionesFinalesRegistro = lineasObservaciones.join("\n");
     }
 
-    const body={tipo,placa:tipo==="Taller"?placa:"",vin:tipo==="Nuevo"?vin:"",marca,modelo:"",servicio:servicioSeleccionado.nombre,servicio_id:servicioSeleccionado.id,precio_sin_igv:servicioSeleccionado.precioSinIgv,igv:servicioSeleccionado.igv,precio_con_igv:servicioSeleccionado.precioConIgv,estado:actual.estado||"Finalizado",hora_inicio_lavado:horaInicioISO,hora_salida:horaSalidaISO,observaciones:observacionesFinalesRegistro,observaciones_finales:actual.observaciones_finales||"",foto_ingreso:fotos.fotoIngreso,foto_final:actual.foto_final||"",foto_vin:fotos.fotoVIN,facturado:actual.facturado||false,fecha_facturacion:actual.fecha_facturacion||null};
+    const precioTotalSinIgv=Number(serviciosSeleccionadosPasado.reduce(function(total,s){
+      return total+Number(s.precio_sin_igv||0);
+    },0).toFixed(2));
+    const igvTotal=Number((precioTotalSinIgv*IGV_AUTOCAMIONES).toFixed(2));
+    const precioTotalConIgv=Number((precioTotalSinIgv+igvTotal).toFixed(2));
+    const servicioTexto=serviciosSeleccionadosPasado.map(function(s){
+      return String(s.nombre_servicio||"").trim();
+    }).join(" + ");
+    const servicioPrincipal=serviciosSeleccionadosPasado[0];
+
+    const body={tipo,placa:tipo==="Taller"?placa:"",vin:tipo==="Nuevo"?vin:"",marca,modelo:"",servicio:servicioTexto,servicio_id:servicioPrincipal.id,precio_sin_igv:precioTotalSinIgv,igv:igvTotal,precio_con_igv:precioTotalConIgv,estado:actual.estado||"Finalizado",hora_inicio_lavado:horaInicioISO,hora_salida:horaSalidaISO,observaciones:observacionesFinalesRegistro,observaciones_finales:actual.observaciones_finales||"",foto_ingreso:fotos.fotoIngreso,foto_final:actual.foto_final||"",foto_vin:fotos.fotoVIN,facturado:actual.facturado||false,fecha_facturacion:actual.fecha_facturacion||null};
     let respuesta;
     if(registroPasadoSeleccionadoId){
       respuesta=await fetch(SUPABASE_URL+"/rest/v1/vehiculos_autocamiones?id=eq."+encodeURIComponent(id),{method:"PATCH",headers:{"apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY,"Content-Type":"application/json","Prefer":"return=minimal"},body:JSON.stringify(body)});
@@ -7590,6 +7733,7 @@ async function guardarRegistroPasado(){
 function limpiarCamposFormularioPasadoSinResultados(){
   ["pasadoPlaca","pasadoVIN","pasadoMarca","pasadoFecha","pasadoObservaciones","pasadoFotoIngreso","pasadoFotoVIN"].forEach(function(id){const el=document.getElementById(id);if(!el)return;el.value="";});
   seleccionarServicioPorNombre("pasadoServicio","Lavado básico");
+  limpiarServiciosPasadosAdicionales();
   const opcion=document.querySelector('input[name="tipoPasado"][value="Taller"]');if(opcion)opcion.checked=true;
   cambiarTipoPasado("Taller");
   const fecha=document.getElementById("pasadoFecha");if(fecha)fecha.value=obtenerFechaHistorial(new Date().toISOString());
@@ -7604,6 +7748,7 @@ function limpiarRegistroPasado(){
   if(buscar)buscar.value="";if(resultado)resultado.innerHTML="";
   ["pasadoPlaca","pasadoVIN","pasadoMarca","pasadoFecha","pasadoObservaciones","pasadoFotoIngreso","pasadoFotoVIN"].forEach(function(id){const el=document.getElementById(id);if(el)el.value="";});
   seleccionarServicioPorNombre("pasadoServicio","Lavado básico");
+  limpiarServiciosPasadosAdicionales();
   const radio=document.querySelector('input[name="tipoPasado"][value="Taller"]');if(radio)radio.checked=true;
   cambiarTipoPasado("Taller"); actualizarModoEdicionPasado();
   const hoy=obtenerFechaHistorial(new Date().toISOString());if(document.getElementById("pasadoFecha"))document.getElementById("pasadoFecha").value=hoy;
@@ -12419,7 +12564,7 @@ programarCierreAutomatico1930();
 </script>
 
 
-<div class="version-app">V5.533 Dashboard</div>
+<div class="version-app">V5.6 Dashboard</div>
 
 <style id="autocamiones-layout-final-override">
 /* =========================================================
