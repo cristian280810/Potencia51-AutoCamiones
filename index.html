@@ -3516,9 +3516,11 @@ class="section">
 <input
 id="buscarPasado"
 type="text"
-placeholder="Buscar por placa o VIN">
+placeholder="Buscar por placa o VIN"
+onkeydown="if(event.key==='Enter'){event.preventDefault();if(!event.repeat)buscarRegistroPasado();}">
 
 <button
+type="button"
 class="btn btn-primary"
 onclick="buscarRegistroPasado()">
 
